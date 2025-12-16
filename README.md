@@ -1,3 +1,11 @@
+# ed-platform
+
+This is the monorepo for the "ed" project.
+
+**Project Vision:** [TODO: Add a detailed project vision here]
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
