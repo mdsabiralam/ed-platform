@@ -26,6 +26,7 @@
     "eslint-config-next": "16.0.10",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "turbo": "latest"
+    "turbo": "latest",
+    "supabase": "^1.165.0"
   }
 }

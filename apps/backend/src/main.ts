@@ -1,8 +1,28 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import 'package:flutter/material.dart';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+void main() {
+  runApp(const EdApp());
 }
-bootstrap();
+
+class EdApp extends StatelessWidget {
+  const EdApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('ed Platform'), // ছোট হাতের 'ed'
+          backgroundColor: Colors.blueAccent,
+        ),
+        body: const Center(
+          child: Text(
+            'Welcome to ed Platform!', // ছোট হাতের 'ed'
+            style: TextStyle(fontSize: 24),
+          ),
+        ),
+      ),
+    );
+  }
+}
