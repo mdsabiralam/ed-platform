@@ -1,0 +1,23 @@
+# 1. Base Image আপডেট করা হয়েছে (Node 18 থেকে 22)
+FROM node:22-alpine As development
+
+# 2. অ্যাপের ডিরেক্টরি সেট করা
+WORKDIR /usr/src/app
+
+# 3. প্যাকেজ ফাইলগুলো কপি করা
+COPY package*.json ./
+
+# 4. ডিপেন্ডেন্সি ইন্সটল করা
+RUN npm install
+
+# 5. বাকি সোর্স কোড কপি করা
+COPY . .
+
+# 6. প্রোডাকশনের জন্য বিল্ড করা
+RUN npm run build
+
+# 7. পোর্ট এক্সপোজ করা
+EXPOSE 3000
+
+# 8. অ্যাপ রান করা
+CMD ["npm", "run", "start:prod"]
