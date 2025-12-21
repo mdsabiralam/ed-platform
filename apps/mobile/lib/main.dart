@@ -1,10 +1,18 @@
-import 'dart:convert';
-import 'package:mobile/core/models/plan.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/database/app_database.dart';
+import 'package:mobile/core/router/app_router.dart';
+import 'package:mobile/core/services/connectivity_service.dart';
+import 'package:mobile/core/services/sync_service.dart';
+import 'package:mobile/features/saas/plans_cubit.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-void main() {
-  runApp(const EdApp());
+Future<void> main() async {
+  await SentryFlutter.init((options) {
+    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry থেকে পাওয়া DSN এখানে বসান
+    options.tracesSampleRate = 1.0;
+  }, appRunner: () => runApp(const EdApp()));
 }
 
 class EdApp extends StatelessWidget {
@@ -12,81 +20,37 @@ class EdApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ed Platform',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const PlanListScreen(),
+    // 1.E.07: ApiClient Instance
+    final apiClient = ApiClient();
+
+    // 1.F.06: Database Instance
+    final database = AppDatabase();
+
+    // 1.F.07: Sync Service Instance
+    final syncService = SyncService(
+      db: database,
+      apiClient: apiClient,
+      connectivityService: ConnectivityService(),
     );
-  }
-}
 
-class PlanListScreen extends StatefulWidget {
-  const PlanListScreen({super.key});
-
-  @override
-  State<PlanListScreen> createState() => _PlanListScreenState();
-}
-
-class _PlanListScreenState extends State<PlanListScreen> {
-  List<Plan> plans = [];
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchPlans();
-  }
-
-  // ডাটা আনার ফাংশন
-  Future<void> fetchPlans() async {
-    try {
-      // Android Emulator এর জন্য 10.0.2.2 ব্যবহার করতে হয়
-      final url = Uri.parse('http://localhost:3001/api/saas/plans');
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          plans = data.map((json) => Plan.fromJson(json)).toList();
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load plans');
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-      setState(() => isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Subscription Plans')),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: plans.length,
-              itemBuilder: (context, index) {
-                final plan = plans[index];
-                return Card(
-                  margin: const EdgeInsets.all(8.0),
-                  child: ListTile(
-                    title: Text(
-                      plan.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      plan.features.join(", "),
-                    ), // এটি সঠিক (সব ফিচার কমা দিয়ে দেখাবে)
-                    trailing: Text(
-                      "৳${plan.priceMonthly}",
-                      style: const TextStyle(color: Colors.green, fontSize: 16),
-                    ),
-                  ),
-                );
-              },
-            ),
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<ApiClient>.value(value: apiClient),
+        RepositoryProvider<AppDatabase>.value(value: database),
+        RepositoryProvider<SyncService>.value(value: syncService),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          // 1.E.03: State Management (Cubit)
+          BlocProvider<PlansCubit>(create: (context) => PlansCubit(apiClient)),
+        ],
+        child: MaterialApp.router(
+          title: 'Ed Platform',
+          theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+          // 1.E.04: GoRouter Configuration
+          routerConfig: appRouter,
+        ),
+      ),
     );
   }
 }

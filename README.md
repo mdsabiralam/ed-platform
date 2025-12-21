@@ -1,25 +1,40 @@
-# ed-platform
+# Ed Platform - SaaS School Management System
 
-This is the monorepo for the "ed" project.
+**Ed Platform** is a comprehensive, offline-first, super-app designed for schools. It aims to bridge the digital divide by providing a robust SaaS solution that works seamlessly even with intermittent internet connectivity.
 
-**Project Vision:** [TODO: Add a detailed project vision here]
+## 🚀 Project Vision
 
----
+To empower educational institutions with a unified platform that manages administration, learning, and communication, ensuring data accessibility and integrity regardless of connectivity status.
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## 🛠 Tech Stack
 
-## Getting Started
+### Backend (`apps/backend`)
+- **Framework:** NestJS (Node.js)
+- **Database:** PostgreSQL (with Prisma ORM)
+- **Caching:** Redis
+- **Language:** TypeScript
 
-First, run the development server:
+### Mobile App (`apps/mobile`)
+- **Framework:** Flutter
+- **Local Database:** Drift (SQLite) for Offline-first capability
+- **State Management:** flutter_bloc
+- **Language:** Dart
+
+### Infrastructure
+- **Containerization:** Docker & Docker Compose
+- **Monorepo Management:** NPM Workspaces / TurboRepo
+
+## 📂 Project Structure
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+ed-platform/
+├── apps/
+│   ├── backend/          # NestJS API Server
+│   └── mobile/           # Flutter Mobile Application
+├── packages/
+│   └── shared-types/     # Shared TypeScript interfaces & enums
+├── docker-compose.yml    # Local development infrastructure
+└── README.md             # Project documentation
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

@@ -5,6 +5,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { AllExceptionsFilter } from './shared/http-exception.filter';
+import * as Sentry from '@sentry/node';
+import { httpIntegration } from '@sentry/node';
+
 async function bootstrap() {
   // ১. উইনস্টন লগার সহ অ্যাপ তৈরি
   const app = await NestFactory.create(AppModule, {
@@ -22,6 +25,16 @@ async function bootstrap() {
         }),
       ],
     }),
+  });
+
+  // Sentry Initialization (1.I.04)
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN || 'YOUR_SENTRY_DSN_HERE', // .env ফাইলে আসল DSN রাখুন
+    integrations: [
+      // enable HTTP calls tracing
+      httpIntegration(),
+    ],
+    tracesSampleRate: 1.0,
   });
 
   // ২. Swagger সেটআপ (ডকুমেন্টেশন)
