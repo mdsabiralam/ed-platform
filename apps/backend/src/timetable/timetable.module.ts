@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { TimetableController } from './timetable.controller';
 import { TimetableService } from './timetable.service';
 import { TimetableProcessor } from './timetable.processor';
+import { GeneticAlgorithmService } from './genetic-algorithm.service';
 
 @Module({
   imports: [
@@ -11,6 +12,6 @@ import { TimetableProcessor } from './timetable.processor';
     }),
   ],
   controllers: [TimetableController],
-  providers: [TimetableService, TimetableProcessor],
+  providers: [TimetableService, TimetableProcessor, GeneticAlgorithmService],
 })
 export class TimetableModule {}
