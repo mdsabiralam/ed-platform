@@ -23,6 +23,7 @@ class TimetableScreen extends StatelessWidget {
                 final startTime = entry['startTime'] ?? '--:--';
                 final endTime = entry['endTime'] ?? '--:--';
                 final day = entry['day'] ?? 'UNK';
+                final className = entry['className'] ?? 'No Class';
 
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -37,6 +38,14 @@ class TimetableScreen extends StatelessWidget {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.class_, size: 16, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Text(className, style: const TextStyle(fontWeight: FontWeight.w500)),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [

@@ -22,6 +22,7 @@ export class TimetableProcessor extends WorkerHost {
         subject: 'Mathematics',
         teacher: 'Mr. Smith',
         room: 'Room 101',
+        className: 'Class 10 - A',
       },
       {
         day: 'MON',
@@ -30,6 +31,7 @@ export class TimetableProcessor extends WorkerHost {
         subject: 'Physics',
         teacher: 'Ms. Johnson',
         room: 'Lab 1',
+        className: 'Class 10 - A',
       },
       {
         day: 'TUE',
@@ -38,6 +40,7 @@ export class TimetableProcessor extends WorkerHost {
         subject: 'English',
         teacher: 'Mrs. Davis',
         room: 'Room 102',
+        className: 'Class 10 - A',
       },
        {
         day: 'TUE',
@@ -46,6 +49,7 @@ export class TimetableProcessor extends WorkerHost {
         subject: 'Chemistry',
         teacher: 'Mr. Brown',
         room: 'Lab 2',
+        className: 'Class 10 - A',
       },
     ];
 
