@@ -10,6 +10,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Pat
 import { TenantModule } from './tenants/tenant.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { LessonPlanModule } from './academic/lesson-plan/lesson-plan.module';
+import { AssignmentModule } from './academic/assignments/assignments.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -23,6 +24,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TenantModule,
     AttendanceModule,
     LessonPlanModule,
+    AssignmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

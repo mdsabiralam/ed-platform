@@ -297,6 +297,7 @@ model Section {
   class      Class        @relation(fields: [classId], references: [id])
   students   Student[]
   DailyDiary DailyDiary[]
+  Assignment Assignment[]
 
   @@map("sections")
 }
@@ -320,9 +321,10 @@ model Student {
   section          Section          @relation(fields: [sectionId], references: [id])
   user             User?            @relation(fields: [userId], references: [id])
 
-  guardians          ParentStudentMapping[]
-  healthProfile      HealthProfile?
-  AttendanceRegister AttendanceRegister[]
+  guardians            ParentStudentMapping[]
+  healthProfile        HealthProfile?
+  AttendanceRegister   AttendanceRegister[]
+  AssignmentSubmission AssignmentSubmission[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -366,6 +368,7 @@ model StaffProfile {
   tenant     Tenant       @relation(fields: [tenantId], references: [id])
   user       User         @relation(fields: [userId], references: [id])
   DailyDiary DailyDiary[]
+  Assignment Assignment[]
 
   @@map("staff_profiles")
 }
@@ -543,6 +546,7 @@ model Subject {
   chapters       Chapter[]
   routineEntries RoutineEntry[]
   lessonPlans    LessonPlan[]
+  Assignment     Assignment[]
 
   @@map("subjects")
 }
@@ -598,4 +602,53 @@ model DailyDiary {
   lessonPlan LessonPlan   @relation(fields: [lessonPlanId], references: [id])
 
   @@map("daily_diaries")
+}
+
+model Assignment {
+  id             String   @id @default(uuid())
+  title          String
+  description    String?  @db.Text
+  dueDate        DateTime @map("due_date")
+  maxMarks       Int      @map("max_marks")
+  attachmentUrls Json?    @map("attachment_urls") // JSON array
+  isPublished    Boolean  @default(false) @map("is_published")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  subjectId String @map("subject_id")
+  teacherId String @map("teacher_id")
+  sectionId String @map("section_id")
+
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  teacher StaffProfile @relation(fields: [teacherId], references: [id])
+  section Section      @relation(fields: [sectionId], references: [id])
+
+  submissions AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+  LATE
+  MISSING
+}
+
+model AssignmentSubmission {
+  id              String           @id @default(uuid())
+  fileUrls        Json?            @map("file_urls")
+  submittedAt     DateTime?        @map("submitted_at")
+  obtainedMarks   Float?           @map("obtained_marks")
+  teacherFeedback String?          @map("teacher_feedback") @db.Text
+  status          SubmissionStatus @default(PENDING)
+
+  studentId    String @map("student_id")
+  assignmentId String @map("assignment_id")
+
+  student    Student    @relation(fields: [studentId], references: [id])
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+
+  @@unique([studentId, assignmentId])
+  @@map("assignment_submissions")
 }
