@@ -9,6 +9,7 @@ import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { LessonPlanModule } from './academic/lesson-plan/lesson-plan.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -21,6 +22,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SaasModule,
     TenantModule,
     AttendanceModule,
+    LessonPlanModule,
   ],
   controllers: [AppController],
   providers: [AppService],

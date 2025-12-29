@@ -41,6 +41,7 @@ model Tenant {
   RoutineEntry      RoutineEntry[]
   TimeSlot          TimeSlot[]
   HolidayCalendar   HolidayCalendar[]
+  subjects          Subject[]
 
   @@map("tenants")
 }
@@ -281,6 +282,7 @@ model Class {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
   sections Section[]
+  Subject  Subject[]
 
   @@map("classes")
 }
@@ -292,8 +294,9 @@ model Section {
   name      String // e.g., "Section A"
   deletedAt DateTime? @map("deleted_at")
 
-  class    Class     @relation(fields: [classId], references: [id])
-  students Student[]
+  class      Class        @relation(fields: [classId], references: [id])
+  students   Student[]
+  DailyDiary DailyDiary[]
 
   @@map("sections")
 }
@@ -360,8 +363,9 @@ model StaffProfile {
   joiningDate DateTime  @map("joining_date")
   deletedAt   DateTime? @map("deleted_at")
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+  DailyDiary DailyDiary[]
 
   @@map("staff_profiles")
 }
@@ -481,7 +485,10 @@ model RoutineEntry {
   // Other fields can be added later as needed, but for now I need it for the relation
   attendances AttendanceRegister[]
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+  Subject    Subject?     @relation(fields: [subjectId], references: [id])
+  subjectId  String?
+  LessonPlan LessonPlan[]
 
   @@map("routine_entries")
 }
@@ -522,4 +529,73 @@ model HolidayCalendar {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("holiday_calendars")
+}
+
+model Subject {
+  id       String  @id @default(uuid())
+  tenantId String  @map("tenant_id")
+  name     String
+  code     String?
+  classId  String  @map("class_id")
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  class          Class          @relation(fields: [classId], references: [id])
+  chapters       Chapter[]
+  routineEntries RoutineEntry[]
+  lessonPlans    LessonPlan[]
+
+  @@map("subjects")
+}
+
+model Chapter {
+  id         String @id @default(uuid())
+  subjectId  String @map("subject_id")
+  name       String
+  orderIndex Int    @default(0)
+
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  lessonPlans LessonPlan[]
+
+  @@map("chapters")
+}
+
+enum LessonPlanStatus {
+  PENDING
+  COMPLETED
+}
+
+model LessonPlan {
+  id               String           @id @default(uuid())
+  topic            String
+  learningOutcomes String?          @db.Text
+  plannedDate      DateTime         @db.Date
+  resourcesUrl     Json? // JSON array
+  status           LessonPlanStatus @default(PENDING)
+  routineEntryId   String           @map("routine_entry_id")
+  subjectId        String           @map("subject_id")
+  chapterId        String?          @map("chapter_id")
+
+  routineEntry RoutineEntry @relation(fields: [routineEntryId], references: [id])
+  subject      Subject      @relation(fields: [subjectId], references: [id])
+  chapter      Chapter?     @relation(fields: [chapterId], references: [id])
+
+  dailyDiary DailyDiary?
+
+  @@map("lesson_plans")
+}
+
+model DailyDiary {
+  id               String   @id @default(uuid())
+  executionDate    DateTime @db.Date
+  contentCovered   String?  @db.Text
+  homeworkAssigned String?  @db.Text
+  teacherId        String   @map("teacher_id") // Relation to StaffProfile
+  sectionId        String   @map("section_id")
+  lessonPlanId     String   @unique @map("lesson_plan_id")
+
+  teacher    StaffProfile @relation(fields: [teacherId], references: [id])
+  section    Section      @relation(fields: [sectionId], references: [id])
+  lessonPlan LessonPlan   @relation(fields: [lessonPlanId], references: [id])
+
+  @@map("daily_diaries")
 }
