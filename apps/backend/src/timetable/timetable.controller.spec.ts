@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getQueueToken } from '@nestjs/bullmq';
 import { TimetableController } from './timetable.controller';
 import { TimetableService } from './timetable.service';
 
@@ -13,6 +14,12 @@ describe('TimetableController', () => {
           provide: TimetableService,
           useValue: {
             validateRequest: jest.fn().mockResolvedValue({ status: 'valid', message: 'mock' }),
+          },
+        },
+        {
+          provide: getQueueToken('timetable-generation'),
+          useValue: {
+            add: jest.fn().mockResolvedValue({ id: 'mock-job-id' }),
           },
         },
       ],
