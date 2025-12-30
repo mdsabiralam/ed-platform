@@ -120,4 +120,46 @@ export class SubstitutionService {
 
     return true;
   }
+
+  /**
+   * Marks assigned substitutions as completed and logs extra duty.
+   * This is intended to be called by a CRON job.
+   */
+  async markCompletedAndLogPayroll() {
+    const now = new Date();
+    // Find substitutions that are ASSIGNED and date is in the past (e.g. yesterday or earlier today)
+    // For simplicity, let's say "date < now" and status is ASSIGNED
+    const completedSubs = await this.prisma.routineSubstitution.findMany({
+      where: {
+        status: 'ASSIGNED',
+        date: { lt: now },
+      },
+      include: { routineEntry: { include: { slot: true } } },
+    });
+
+    for (const sub of completedSubs) {
+      // Calculate hours (mock logic: assuming 1 hour per slot, or parse times)
+      const hours = 1.0;
+
+      await this.prisma.$transaction([
+        // 1. Update Status
+        this.prisma.routineSubstitution.update({
+          where: { id: sub.id },
+          data: { status: 'COMPLETED' },
+        }),
+        // 2. Log Extra Duty
+        this.prisma.staffExtraDutyLog.create({
+          data: {
+            teacherId: sub.substituteTeacherId!,
+            hoursWorked: hours,
+            type: 'SUBSTITUTION',
+            date: sub.date,
+            details: { substitutionId: sub.id },
+          },
+        }),
+      ]);
+    }
+
+    return { count: completedSubs.length };
+  }
 }

@@ -16,4 +16,9 @@ export class SubstitutionController {
   assignSubstitute(@Body() dto: AssignSubstituteDto) {
     return this.substitutionService.assignSubstitute(dto);
   }
+
+  @Post('process-payroll')
+  async processPayroll() {
+    return this.substitutionService.markCompletedAndLogPayroll();
+  }
 }

@@ -384,6 +384,7 @@ model StaffProfile {
   routineEntries RoutineEntry[]
   substitutionsAsOriginal RoutineSubstitution[] @relation("OriginalTeacher")
   substitutionsAsSubstitute RoutineSubstitution[] @relation("SubstituteTeacher")
+  extraDutyLogs StaffExtraDutyLog[]
 
   @@map("staff_profiles")
 }
@@ -597,6 +598,19 @@ model RoutineSubstitution {
   substituteTeacher   StaffProfile? @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id])
 
   @@map("routine_substitutions")
+}
+
+model StaffExtraDutyLog {
+  id          String   @id @default(uuid())
+  teacherId   String   @map("teacher_id")
+  hoursWorked Float    @map("hours_worked")
+  type        String   // 'SUBSTITUTION', 'EXAM_DUTY'
+  date        DateTime @default(now())
+  details     Json?
+
+  teacher     StaffProfile @relation(fields: [teacherId], references: [id])
+
+  @@map("staff_extra_duty_logs")
 }
 
 // 2.C.03 Roles Enum
