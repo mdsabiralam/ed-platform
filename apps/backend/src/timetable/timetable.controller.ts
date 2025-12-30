@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Req } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { TimetableService } from './timetable.service';
@@ -13,6 +13,7 @@ export class TimetableController {
 
   @Get('filter')
   async getFilteredRoutine(
+    @Req() req: any,
     @Query('classId') classId?: string,
     @Query('teacherId') teacherId?: string,
     @Query('subjectId') subjectId?: string,
@@ -25,6 +26,7 @@ export class TimetableController {
       subjectId,
       roomId,
       day,
+      schoolId: req['tenantId'],
     });
   }
 

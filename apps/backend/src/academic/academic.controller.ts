@@ -1,14 +1,32 @@
 import { Controller, Post, Body, UseGuards, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { VideoConferenceService } from './services/video-conference.service';
+import { AcademicService } from './academic.service';
 import { TenantMiddleware } from '../common/middleware/tenant.middleware';
+import { Request } from 'express';
+import { Req } from '@nestjs/common';
 
 @Controller('academic/live')
 export class AcademicController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly videoService: VideoConferenceService,
+    private readonly academicService: AcademicService,
   ) {}
+
+  @Post('log-attendance')
+  async logAttendance(
+    @Req() req: any,
+    @Body('routineId') routineId: string,
+    @Body('action') action: 'JOIN' | 'LEAVE',
+    @Body('studentId') studentId: string, // Simulated Auth
+  ) {
+    if (!routineId || !action || !studentId) {
+      throw new BadRequestException('routineId, action, and studentId are required');
+    }
+    const tenantId = req['tenantId'];
+    return this.academicService.logAttendance(tenantId, studentId, routineId, action);
+  }
 
   @Post('start')
   async startClass(

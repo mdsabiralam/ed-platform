@@ -70,7 +70,7 @@ async function bootstrap() {
   app.use(new TenantMiddleware().use);
 
     // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
-  await app.listen(3001, '0.0.0.0');
+  await app.listen(3000, '0.0.0.0');
   
   // কনসোলে লিংক প্রিন্ট হবে
   console.log(`Application is running on: ${await app.getUrl()}`);

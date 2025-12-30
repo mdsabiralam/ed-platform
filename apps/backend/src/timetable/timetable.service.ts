@@ -14,10 +14,12 @@ export class TimetableService {
     subjectId?: string;
     roomId?: string;
     day?: string;
+    schoolId?: string;
   }) {
-    const { classId, teacherId, subjectId, roomId, day } = filters;
+    const { classId, teacherId, subjectId, roomId, day, schoolId } = filters;
 
     const where: any = {};
+    if (schoolId) where.schoolId = schoolId;
     if (classId) where.classId = classId;
     if (teacherId) where.teacherId = teacherId;
     if (subjectId) where.subjectId = subjectId;
