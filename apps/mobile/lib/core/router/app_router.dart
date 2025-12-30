@@ -3,6 +3,7 @@ import 'package:mobile/features/auth/login_screen.dart';
 import 'package:mobile/features/auth/plan_list_screen.dart';
 import 'package:mobile/features/timetable/timetable_screen.dart';
 import 'package:mobile/features/classroom/active_classes_screen.dart';
+import 'package:mobile/features/classroom/screens/classroom_chat_screen.dart';
 import 'package:mobile/core/api/api_client.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -20,6 +21,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/active-classes',
       builder: (context, state) => ActiveClassesScreen(apiClient: ApiClient()),
+    ),
+    GoRoute(
+      path: '/classroom/chat/:sectionId/:studentId',
+      builder: (context, state) => ClassroomChatScreen(
+        sectionId: state.pathParameters['sectionId']!,
+        studentId: state.pathParameters['studentId']!,
+      ),
     ),
   ],
 );
