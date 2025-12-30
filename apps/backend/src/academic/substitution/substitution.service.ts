@@ -31,6 +31,37 @@ export class SubstitutionService {
     });
   }
 
+  async findAvailableTeachers(slotId: string, date: Date, dayOfWeek: any) {
+    // 1. Find all teachers (StaffProfile)
+    const teachers = await this.prisma.staffProfile.findMany({
+        include: { user: true }
+    });
+
+    const availableTeachers: any[] = [];
+
+    // 2. Filter (Inefficient but correct per algorithm step)
+    for (const teacher of teachers) {
+        // Exclude if on Leave
+        const onLeave = await this.prisma.leaveApplication.findFirst({
+            where: {
+                teacherId: teacher.id,
+                status: 'APPROVED',
+                startDate: { lte: date },
+                endDate: { gte: date }
+            }
+        });
+        if (onLeave) continue;
+
+        // Exclude if busy
+        const isFree = await this.isTeacherFree(teacher.id, date, slotId, dayOfWeek);
+        if (isFree) {
+            availableTeachers.push(teacher);
+        }
+    }
+
+    return availableTeachers;
+  }
+
   async assignSubstitute(dto: AssignSubstituteDto) {
     const { substitutionId, substituteTeacherId } = dto;
 

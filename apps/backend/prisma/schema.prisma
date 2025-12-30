@@ -385,6 +385,7 @@ model StaffProfile {
   substitutionsAsOriginal RoutineSubstitution[] @relation("OriginalTeacher")
   substitutionsAsSubstitute RoutineSubstitution[] @relation("SubstituteTeacher")
   extraDutyLogs StaffExtraDutyLog[]
+  leaveApplications LeaveApplication[]
 
   @@map("staff_profiles")
 }
@@ -611,6 +612,17 @@ model StaffExtraDutyLog {
   teacher     StaffProfile @relation(fields: [teacherId], references: [id])
 
   @@map("staff_extra_duty_logs")
+}
+
+model LeaveApplication {
+  id        String   @id @default(uuid())
+  teacherId String   @map("teacher_id")
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  status    String   @default("PENDING") // PENDING, APPROVED, REJECTED
+
+  teacher   StaffProfile @relation(fields: [teacherId], references: [id])
+  @@map("leave_applications")
 }
 
 // 2.C.03 Roles Enum
