@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { VideoConferenceService } from './services/video-conference.service';
 import { AcademicService } from './academic.service';
 import { TenantMiddleware } from '../common/middleware/tenant.middleware';
+import { LiveClassGuard } from './guards/live-class.guard';
 import { Request } from 'express';
 import { Req } from '@nestjs/common';
 
@@ -32,40 +33,11 @@ export class AcademicController {
   }
 
   @Get(':id/join')
-  async joinClass(
-    @Param('id') routineId: string,
-    @Headers('x-user-id') userId: string,
-    @Headers('x-role') role: string, // 'STUDENT' | 'PRINCIPAL'
-  ) {
-    const routine = await this.prisma.routineEntry.findUnique({
-      where: { id: routineId },
-    });
-
-    if (!routine) throw new NotFoundException('Routine not found');
-    if (!routine.isLive) throw new BadRequestException('Class is not live');
-
-    if (role === 'PRINCIPAL') {
-      return { meetingLink: routine.meetingLink };
-    }
-
-    if (role === 'STUDENT') {
-      if (!userId) throw new ForbiddenException('User ID required');
-
-      const student = await this.prisma.student.findUnique({
-        where: { id: userId }, // Assuming userId maps to Student ID here for simplicity
-      });
-
-      if (!student) throw new ForbiddenException('Student not found');
-
-      // Security Check: Section Match
-      if (student.sectionId !== routine.sectionId) {
-        throw new ForbiddenException('You are not enrolled in this section');
-      }
-
-      return { meetingLink: routine.meetingLink };
-    }
-
-    throw new ForbiddenException('Unauthorized role');
+  @UseGuards(LiveClassGuard)
+  async joinClass(@Req() req: any) {
+    // Routine is attached by Guard
+    const routine = req.routine;
+    return { meetingLink: routine.meetingLink };
   }
 
   @Post('log-attendance')
