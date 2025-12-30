@@ -60,6 +60,9 @@ dependencies:
   # Monitoring
   sentry_flutter: ^9.9.1
 
+  # Connectivity
+  connectivity_plus: ^5.0.2
+
   # Printing
   pdf: ^3.10.0
   printing: ^5.11.0

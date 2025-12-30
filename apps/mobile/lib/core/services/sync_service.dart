@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:drift/drift.dart';
 import 'package:mobile/core/api/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
