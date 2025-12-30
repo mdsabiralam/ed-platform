@@ -329,6 +329,16 @@ model Student {
   @@map("students")
 }
 
+model StudentSequence {
+  id        String @id @default(uuid())
+  tenantId  String @map("school_id")
+  year      Int
+  lastSeq   Int    @default(0) @map("last_seq")
+
+  @@unique([tenantId, year])
+  @@map("student_sequences")
+}
+
 // 2.F.06 Guardians
 model Guardian {
   id        String   @id @default(uuid())

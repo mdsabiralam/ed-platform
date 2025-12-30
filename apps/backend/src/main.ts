@@ -4,7 +4,9 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
-import { AllExceptionsFilter } from './shared/http-exception.filter';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import * as Sentry from '@sentry/node';
 import { httpIntegration } from '@sentry/node';
 
@@ -49,8 +51,23 @@ async function bootstrap() {
   // ৩. গ্লোবাল সেটিংস
   app.enableCors(); // ক্রস অরিজিন অন করা
   app.setGlobalPrefix('api');
-  app.useGlobalFilters(new AllExceptionsFilter()); 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+
+  // Register Global Filters, Interceptors, and Pipes
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new TransformInterceptor());
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  // Apply Tenant Middleware
+  // Note: Middleware in NestJS main.ts via app.use() applies to *all* routes.
+  // We use a middleware function if we want simple express middleware,
+  // but TenantMiddleware is a class. NestJS class middleware is usually applied in a Module (AppModule).
+  // However, the prompt asked to "Apply TenantMiddleware using app.use()".
+  // `app.use()` expects a functional middleware or an instance.
+  // Since TenantMiddleware is a class with `use`, we can instantiate it,
+  // BUT it won't have dependency injection if we do `new TenantMiddleware()`.
+  // If `TenantMiddleware` has no dependencies, `app.use(new TenantMiddleware().use)` works.
+  // The provided code has no constructor deps, so this is safe.
+  app.use(new TenantMiddleware().use);
 
     // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
   await app.listen(3001, '0.0.0.0');

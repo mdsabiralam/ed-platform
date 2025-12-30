@@ -10,6 +10,7 @@ import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { TenantModule } from './tenants/tenant.module';
 import { TimetableModule } from './timetable/timetable.module';
+import { StudentModule } from './student/student.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TimetableModule } from './timetable/timetable.module';
     SaasModule,
     TenantModule,
     TimetableModule,
+    StudentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
