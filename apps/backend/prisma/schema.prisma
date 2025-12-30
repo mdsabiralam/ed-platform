@@ -547,6 +547,7 @@ model RoutineEntry {
   room      Room?     @relation(fields: [roomId], references: [id])
   slot      TimeSlot  @relation(fields: [slotId], references: [id])
   liveAttendanceLogs LiveAttendanceLog[]
+  classRecordings    ClassRecording[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -565,6 +566,18 @@ model LiveAttendanceLog {
   routineEntry   RoutineEntry @relation(fields: [routineEntryId], references: [id])
 
   @@map("live_attendance_logs")
+}
+
+model ClassRecording {
+  id             String   @id @default(uuid())
+  routineEntryId String   @map("routine_entry_id")
+  vodUrl         String   @map("vod_url")
+  duration       Int      // In minutes or seconds
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  routineEntry   RoutineEntry @relation(fields: [routineEntryId], references: [id])
+
+  @@map("class_recordings")
 }
 
 // 2.C.03 Roles Enum
