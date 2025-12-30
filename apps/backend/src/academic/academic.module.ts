@@ -4,8 +4,10 @@ import { VideoConferenceService } from './services/video-conference.service';
 import { AcademicService } from './academic.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LiveClassGuard } from './guards/live-class.guard';
+import { SubstitutionModule } from './substitution/substitution.module';
 
 @Module({
+  imports: [SubstitutionModule],
   controllers: [AcademicController],
   providers: [VideoConferenceService, AcademicService, PrismaService, LiveClassGuard],
 })

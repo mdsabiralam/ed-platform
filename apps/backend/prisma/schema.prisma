@@ -382,6 +382,8 @@ model StaffProfile {
 
   // Relations for Timetable
   routineEntries RoutineEntry[]
+  substitutionsAsOriginal RoutineSubstitution[] @relation("OriginalTeacher")
+  substitutionsAsSubstitute RoutineSubstitution[] @relation("SubstituteTeacher")
 
   @@map("staff_profiles")
 }
@@ -548,6 +550,7 @@ model RoutineEntry {
   slot      TimeSlot  @relation(fields: [slotId], references: [id])
   liveAttendanceLogs LiveAttendanceLog[]
   classRecordings    ClassRecording[]
+  substitutions      RoutineSubstitution[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -578,6 +581,22 @@ model ClassRecording {
   routineEntry   RoutineEntry @relation(fields: [routineEntryId], references: [id])
 
   @@map("class_recordings")
+}
+
+model RoutineSubstitution {
+  id                  String   @id @default(uuid())
+  routineEntryId      String   @map("routine_entry_id")
+  originalTeacherId   String   @map("original_teacher_id")
+  substituteTeacherId String?  @map("substitute_teacher_id")
+  date                DateTime
+  status              String   @default("PENDING") // PENDING, ASSIGNED
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  routineEntry        RoutineEntry @relation(fields: [routineEntryId], references: [id])
+  originalTeacher     StaffProfile @relation("OriginalTeacher", fields: [originalTeacherId], references: [id])
+  substituteTeacher   StaffProfile? @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id])
+
+  @@map("routine_substitutions")
 }
 
 // 2.C.03 Roles Enum
