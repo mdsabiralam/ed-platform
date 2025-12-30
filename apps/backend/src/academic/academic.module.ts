@@ -5,9 +5,10 @@ import { AcademicService } from './academic.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LiveClassGuard } from './guards/live-class.guard';
 import { SubstitutionModule } from './substitution/substitution.module';
+import { LeaveModule } from './leave/leave.module';
 
 @Module({
-  imports: [SubstitutionModule],
+  imports: [SubstitutionModule, LeaveModule],
   controllers: [AcademicController],
   providers: [VideoConferenceService, AcademicService, PrismaService, LiveClassGuard],
 })
