@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  leaveApplications  LeaveApplication[]
 
   @@map("tenants")
 }
@@ -363,6 +364,8 @@ model StaffProfile {
   routines              RoutineEntry[]
   originalSubstitutions RoutineSubstitution[] @relation("OriginalTeacher")
   substituteSubstitutions RoutineSubstitution[] @relation("SubstituteTeacher")
+  leaveApplications     LeaveApplication[] @relation("Applicant")
+  approvedLeaves        LeaveApplication[] @relation("Approver")
 
   @@map("staff_profiles")
 }
@@ -396,6 +399,7 @@ model LeaveType {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  leaveApplications LeaveApplication[]
 
   @@unique([tenantId, code])
   @@map("leave_types")
@@ -488,6 +492,33 @@ enum SubstitutionStatus {
   PENDING
   ASSIGNED
   COMPLETED
+}
+
+model LeaveApplication {
+  id            String      @id @default(uuid())
+  tenantId      String      @map("school_id")
+  applicantId   String      @map("applicant_id")
+  leaveTypeId   String      @map("leave_type_id")
+  startDate     DateTime    @map("start_date")
+  endDate       DateTime    @map("end_date")
+  reason        String
+  status        LeaveStatus @default(PENDING)
+  approvedById  String?     @map("approved_by_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  applicant     StaffProfile @relation(fields: [applicantId], references: [id], name: "Applicant")
+  leaveType     LeaveType    @relation(fields: [leaveTypeId], references: [id])
+  approvedBy    StaffProfile? @relation(fields: [approvedById], references: [id], name: "Approver")
+
+  @@map("leave_applications")
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // 2.C.03 Roles Enum
