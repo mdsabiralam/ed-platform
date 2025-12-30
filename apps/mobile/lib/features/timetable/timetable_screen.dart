@@ -140,13 +140,34 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final bool isStartingSoon = _checkIfStartingSoon(timeStart);
     final bool canJoin = isLive || isStartingSoon;
 
+    // Check Substitution
+    final List<dynamic>? subs = entry['substitutions'];
+    final bool hasSubstitution = subs != null && subs.isNotEmpty;
+    final String displayTeacher = hasSubstitution
+        ? 'Sub: ${subs.first['substituteTeacher']?['firstName'] ?? 'Teacher'}'
+        : teacher;
+
     return Card(
+      color: hasSubstitution ? Colors.orange.shade50 : null,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
         children: [
           ListTile(
             title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("$teacher • $room"),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("$displayTeacher • $room"),
+                if (hasSubstitution)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(4)),
+                    child: const Text('Substitution', style: TextStyle(fontSize: 10, color: Colors.red)),
+                  ),
+              ],
+            ),
             trailing: Text("$timeStart - $timeEnd"),
           ),
           if (canJoin)

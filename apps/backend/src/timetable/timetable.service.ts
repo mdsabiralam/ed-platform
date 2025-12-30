@@ -33,6 +33,10 @@ export class TimetableService {
         teacher: true,
         room: true,
         slot: true,
+        substitutions: {
+          where: { status: 'ASSIGNED' }, // Include only confirmed subs
+          include: { substituteTeacher: true },
+        },
       },
       orderBy: [
         { dayOfWeek: 'asc' },
