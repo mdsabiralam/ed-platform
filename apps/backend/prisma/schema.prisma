@@ -324,6 +324,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  liveAttendanceLogs LiveAttendanceLog[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -534,6 +535,10 @@ model RoutineEntry {
   roomId    String?   @map("room_id")
   slotId    String    @map("slot_id")
 
+  // Live Class Fields
+  meetingLink String? @map("meeting_link")
+  isLive      Boolean @default(false) @map("is_live")
+
   tenant    Tenant    @relation(fields: [schoolId], references: [id])
   class     Class     @relation(fields: [classId], references: [id])
   section   Section   @relation(fields: [sectionId], references: [id])
@@ -541,11 +546,25 @@ model RoutineEntry {
   teacher   StaffProfile @relation(fields: [teacherId], references: [id])
   room      Room?     @relation(fields: [roomId], references: [id])
   slot      TimeSlot  @relation(fields: [slotId], references: [id])
+  liveAttendanceLogs LiveAttendanceLog[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@map("routine_entries")
+}
+
+model LiveAttendanceLog {
+  id             String       @id @default(uuid())
+  studentId      String       @map("student_id")
+  routineEntryId String       @map("routine_entry_id")
+  joinTime       DateTime     @default(now()) @map("join_time")
+  leaveTime      DateTime?    @map("leave_time")
+
+  student        Student      @relation(fields: [studentId], references: [id])
+  routineEntry   RoutineEntry @relation(fields: [routineEntryId], references: [id])
+
+  @@map("live_attendance_logs")
 }
 
 // 2.C.03 Roles Enum
