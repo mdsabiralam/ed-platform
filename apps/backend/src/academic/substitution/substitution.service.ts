@@ -10,6 +10,27 @@ export class SubstitutionService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  async findPending(tenantId: string) {
+    return this.prisma.routineSubstitution.findMany({
+      where: {
+        status: 'PENDING',
+        routineEntry: {
+          schoolId: tenantId,
+        },
+      },
+      include: {
+        routineEntry: {
+          include: {
+            class: true,
+            section: true,
+            subject: true,
+          },
+        },
+        originalTeacher: true,
+      },
+    });
+  }
+
   async assignSubstitute(dto: AssignSubstituteDto) {
     const { substitutionId, substituteTeacherId } = dto;
 
