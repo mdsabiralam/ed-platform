@@ -291,6 +291,7 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  routines  RoutineEntry[]
 
   @@map("sections")
 }
@@ -358,6 +359,10 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+
+  routines              RoutineEntry[]
+  originalSubstitutions RoutineSubstitution[] @relation("OriginalTeacher")
+  substituteSubstitutions RoutineSubstitution[] @relation("SubstituteTeacher")
 
   @@map("staff_profiles")
 }
@@ -443,6 +448,46 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// Routine Entry
+model RoutineEntry {
+  id          String   @id @default(uuid())
+  sectionId   String   @map("section_id")
+  teacherId   String   @map("teacher_id")
+  dayOfWeek   String   @map("day_of_week")
+  startTime   DateTime @map("start_time")
+  endTime     DateTime @map("end_time")
+
+  section     Section      @relation(fields: [sectionId], references: [id])
+  teacher     StaffProfile @relation(fields: [teacherId], references: [id])
+  substitutions RoutineSubstitution[]
+
+  @@map("routine_entries")
+}
+
+// Routine Substitution
+model RoutineSubstitution {
+  id                 String   @id @default(uuid())
+  routineEntryId     String   @map("routine_entry_id")
+  originalTeacherId  String   @map("original_teacher_id")
+  substituteTeacherId String?  @map("substitute_teacher_id")
+  date               DateTime
+  status             SubstitutionStatus @default(PENDING)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  routineEntry       RoutineEntry @relation(fields: [routineEntryId], references: [id])
+  originalTeacher    StaffProfile @relation(fields: [originalTeacherId], references: [id], name: "OriginalTeacher")
+  substituteTeacher  StaffProfile? @relation(fields: [substituteTeacherId], references: [id], name: "SubstituteTeacher")
+
+  @@map("routine_substitutions")
+}
+
+enum SubstitutionStatus {
+  PENDING
+  ASSIGNED
+  COMPLETED
 }
 
 // 2.C.03 Roles Enum
