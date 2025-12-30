@@ -361,6 +361,8 @@ model StaffProfile {
   userId       String   @unique @map("user_id")
   designation  String
   department   String?
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
   joiningDate  DateTime @map("joining_date")
   deletedAt    DateTime? @map("deleted_at")
   
@@ -500,6 +502,7 @@ model TimeSlot {
   startTime String   @map("start_time") // e.g., "09:00"
   endTime   String   @map("end_time")   // e.g., "10:00"
   label     String?  // e.g., "Period 1"
+  type      String?  // e.g., "CLASS", "BREAK"
   deletedAt DateTime? @map("deleted_at")
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
@@ -510,7 +513,7 @@ model TimeSlot {
 
 model RoutineEntry {
   id        String    @id @default(uuid())
-  tenantId  String    @map("school_id")
+  schoolId  String    @map("school_id") // Renamed from tenantId to match service
 
   dayOfWeek DayOfWeek @map("day_of_week")
 
@@ -521,7 +524,7 @@ model RoutineEntry {
   roomId    String?   @map("room_id")
   slotId    String    @map("slot_id")
 
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  tenant    Tenant    @relation(fields: [schoolId], references: [id])
   class     Class     @relation(fields: [classId], references: [id])
   section   Section   @relation(fields: [sectionId], references: [id])
   subject   Subject   @relation(fields: [subjectId], references: [id])
