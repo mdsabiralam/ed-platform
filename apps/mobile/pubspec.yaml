@@ -60,6 +60,10 @@ dependencies:
   # Monitoring
   sentry_flutter: ^9.9.1
 
+  # Printing
+  pdf: ^3.10.0
+  printing: ^5.11.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

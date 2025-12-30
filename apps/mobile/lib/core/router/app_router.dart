@@ -13,7 +13,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/timetable',
-      builder: (context, state) => const TimetableScreen(routine: []), // Initially empty or fetching?
+      builder: (context, state) => const TimetableScreen(routine: {}), // Initially empty map
     ),
   ],
 );

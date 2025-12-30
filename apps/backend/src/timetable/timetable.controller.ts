@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { TimetableService } from './timetable.service';
@@ -10,6 +10,23 @@ export class TimetableController {
     private readonly timetableService: TimetableService,
     @InjectQueue('timetable-generation') private readonly timetableQueue: Queue,
   ) {}
+
+  @Get('filter')
+  async getFilteredRoutine(
+    @Query('classId') classId?: string,
+    @Query('teacherId') teacherId?: string,
+    @Query('subjectId') subjectId?: string,
+    @Query('roomId') roomId?: string,
+    @Query('day') day?: string,
+  ) {
+    return this.timetableService.findFiltered({
+      classId,
+      teacherId,
+      subjectId,
+      roomId,
+      day,
+    });
+  }
 
   @Post('validate-config')
   validateConfig(@Body() createDto: GenerateTimetableDto) {
