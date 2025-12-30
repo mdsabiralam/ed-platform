@@ -40,7 +40,7 @@ class SyncService {
     for (final student in unsyncedStudents) {
       try {
         // সার্ভারে ডাটা পাঠানো
-        await apiClient.post('/students', {
+        await apiClient.post('/students', data: {
           'name': student.name,
           'rollNo': student.rollNo,
           'classId': student.classId,

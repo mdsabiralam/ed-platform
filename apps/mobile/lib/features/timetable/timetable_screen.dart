@@ -135,14 +135,60 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final timeStart = entry['timeSlot']?['startTime'] ?? entry['startTime'] ?? '--';
     final timeEnd = entry['timeSlot']?['endTime'] ?? entry['endTime'] ?? '--';
 
+    // Check if live or starting soon
+    final bool isLive = entry['isLive'] == true;
+    final bool isStartingSoon = _checkIfStartingSoon(timeStart);
+    final bool canJoin = isLive || isStartingSoon;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
-        title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("$teacher • $room"),
-        trailing: Text("$timeStart - $timeEnd"),
+      child: Column(
+        children: [
+          ListTile(
+            title: Text(subject, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("$teacher • $room"),
+            trailing: Text("$timeStart - $timeEnd"),
+          ),
+          if (canJoin)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // TODO: Navigate to Jitsi or WebView
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Joining Live Class...')),
+                  );
+                },
+                icon: const Icon(Icons.video_call),
+                label: const Text('JOIN LIVE CLASS'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 40),
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  bool _checkIfStartingSoon(String startTimeStr) {
+    // Basic logic assuming HH:mm format (24h)
+    try {
+      final now = DateTime.now();
+      final parts = startTimeStr.split(':');
+      final startHour = int.parse(parts[0]);
+      final startMinute = int.parse(parts[1]);
+
+      final startTime = DateTime(now.year, now.month, now.day, startHour, startMinute);
+      final diff = startTime.difference(now).inMinutes;
+
+      // Active if within 5 mins before start, or if class started recently (e.g. < 60 mins ago)
+      return diff <= 5 && diff > -60;
+    } catch (e) {
+      return false;
+    }
   }
 
   void _showPrintDialog() {

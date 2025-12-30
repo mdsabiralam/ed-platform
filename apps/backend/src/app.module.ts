@@ -11,6 +11,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { TenantModule } from './tenants/tenant.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { StudentModule } from './student/student.module';
+import { AcademicModule } from './academic/academic.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StudentModule } from './student/student.module';
     TenantModule,
     TimetableModule,
     StudentModule,
+    AcademicModule,
   ],
   controllers: [AppController],
   providers: [AppService],
