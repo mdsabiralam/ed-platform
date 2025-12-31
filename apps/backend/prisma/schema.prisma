@@ -323,6 +323,7 @@ model Student {
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
   hallTickets       HallTicket[]
+  marks             StudentMark[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -614,8 +615,24 @@ model Exam {
   term      ExamTerm @relation(fields: [termId], references: [id])
   type      ExamType @relation(fields: [typeId], references: [id])
   group     ExamGroup? @relation(fields: [groupId], references: [id])
+  marks     StudentMark[]
 
   @@map("exams")
+}
+
+// Student Marks
+model StudentMark {
+  id            String   @id @default(uuid())
+  examId        String   @map("exam_id")
+  studentId     String   @map("student_id")
+  marksObtained Float    @map("marks_obtained")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  exam          Exam     @relation(fields: [examId], references: [id])
+  student       Student  @relation(fields: [studentId], references: [id])
+
+  @@map("student_marks")
 }
 
 // Hall Ticket

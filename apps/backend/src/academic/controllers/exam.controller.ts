@@ -5,6 +5,7 @@ import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray, IsOptional, I
 import { ExamLockedGuard } from '../guards/exam-locked.guard';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { AttendanceService } from '../../attendance/attendance.service';
+import { ExamService } from '../services/exam.service';
 
 export class GenerateAdmitCardDto {
   @IsUUID()
@@ -61,6 +62,7 @@ export class ExamController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly attendanceService: AttendanceService,
+    private readonly examService: ExamService,
   ) {}
 
   @Post('define')
@@ -309,11 +311,6 @@ export class ExamController {
   @Delete(':id')
   @UseGuards(ExamLockedGuard)
   async deleteExam(@Param('id') id: string) {
-    // This endpoint demonstrates the guard.
-    // In a real app, you might soft delete or check other dependencies.
-    const deleted = await this.prisma.exam.delete({
-      where: { id },
-    });
-    return deleted;
+    return await this.examService.deleteExam(id);
   }
 }
