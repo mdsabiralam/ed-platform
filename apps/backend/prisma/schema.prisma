@@ -281,6 +281,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  examSchedules ExamSchedule[]
 
   @@map("classes")
 }
@@ -516,6 +517,7 @@ model ExamSchedule {
   id              String   @id @default(uuid())
   examId          String   @map("exam_id")
   subjectId       String   @map("subject_id")
+  classId         String   @map("class_id")
   date            DateTime
   startTime       DateTime @map("start_time")
   durationMinutes Int      @map("duration_minutes")
@@ -525,6 +527,7 @@ model ExamSchedule {
 
   exam    Exam    @relation(fields: [examId], references: [id])
   subject Subject @relation(fields: [subjectId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
   room    Room?   @relation(fields: [roomId], references: [id])
 
   @@map("exam_schedules")
