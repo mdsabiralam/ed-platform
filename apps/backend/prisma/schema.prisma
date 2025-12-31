@@ -41,6 +41,7 @@ model Tenant {
   leaveApplications  LeaveApplication[]
   subjects           Subject[]
   examTerms          ExamTerm[]
+  examGroups         ExamGroup[]
 
   @@map("tenants")
 }
@@ -576,6 +577,21 @@ model ExamType {
   @@map("exam_types")
 }
 
+// Exam Group
+model ExamGroup {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  exams     Exam[]
+
+  @@unique([tenantId, name])
+  @@map("exam_groups")
+}
+
 // Exam
 model Exam {
   id        String   @id @default(uuid())
@@ -583,6 +599,7 @@ model Exam {
   subjectId String   @map("subject_id")
   termId    String   @map("term_id")
   typeId    String   @map("type_id")
+  groupId   String?  @map("group_id")
   maxMarks  Float    @map("max_marks")
   examDate  DateTime @map("exam_date")
   createdAt DateTime @default(now()) @map("created_at")
@@ -592,6 +609,7 @@ model Exam {
   subject   Subject  @relation(fields: [subjectId], references: [id])
   term      ExamTerm @relation(fields: [termId], references: [id])
   type      ExamType @relation(fields: [typeId], references: [id])
+  group     ExamGroup? @relation(fields: [groupId], references: [id])
 
   @@map("exams")
 }

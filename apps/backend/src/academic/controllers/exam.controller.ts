@@ -1,6 +1,16 @@
 import { Controller, Post, Body, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty } from 'class-validator';
+import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray } from 'class-validator';
+
+export class AssignExamGroupDto {
+  @IsUUID()
+  @IsNotEmpty()
+  groupId: string;
+
+  @IsArray()
+  @IsUUID('4', { each: true })
+  examIds: string[];
+}
 
 export class DefineExamDto {
   @IsUUID()
@@ -70,5 +80,30 @@ export class ExamController {
     });
 
     return exam;
+  }
+
+  @Post('assign-group')
+  async assignExamGroup(@Body() dto: AssignExamGroupDto) {
+    const { groupId, examIds } = dto;
+
+    // 1. Validate Group
+    const group = await this.prisma.examGroup.findUnique({ where: { id: groupId } });
+    if (!group) throw new NotFoundException('Exam Group not found');
+
+    // 2. Validate Exams Existence (Optional but good)
+    // For now, we assume they exist or let the updateMany fail/work silently for unmatched IDs
+    // But updateMany doesn't error on missing IDs, it just updates 0.
+
+    // 3. Update Exams
+    const result = await this.prisma.exam.updateMany({
+      where: {
+        id: { in: examIds },
+      },
+      data: {
+        groupId: groupId,
+      },
+    });
+
+    return { message: 'Exams assigned to group successfully', count: result.count };
   }
 }
