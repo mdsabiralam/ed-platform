@@ -1,7 +1,19 @@
-import { Controller, Post, Put, Delete, Get, Body, Param, BadRequestException, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Delete, Get, Body, Param, Res, BadRequestException, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray } from 'class-validator';
 import { ExamLockedGuard } from '../guards/exam-locked.guard';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+
+export class GenerateAdmitCardDto {
+  @IsUUID()
+  @IsNotEmpty()
+  studentId: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  examGroupId: string;
+}
 
 export class AssignExamGroupDto {
   @IsUUID()
@@ -176,6 +188,108 @@ export class ExamController {
     });
 
     return exams;
+  }
+
+  @Post('admit-card/generate')
+  async generateAdmitCard(@Body() dto: GenerateAdmitCardDto, @Res() res: Response) {
+    const { studentId, examGroupId } = dto;
+
+    // 1. Fetch Data
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        tenant: true,
+        section: { include: { class: true } },
+      },
+    });
+
+    if (!student) throw new NotFoundException('Student not found');
+
+    const examGroup = await this.prisma.examGroup.findUnique({
+      where: { id: examGroupId },
+      include: {
+        exams: {
+          include: { subject: true },
+          orderBy: { examDate: 'asc' },
+        },
+      },
+    });
+
+    if (!examGroup) throw new NotFoundException('Exam Group not found');
+
+    // 2. Generate PDF
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([600, 800]);
+    const { width, height } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // School Header
+    const fontSize = 20;
+    const text = student.tenant.name;
+    const textWidth = boldFont.widthOfTextAtSize(text, fontSize);
+    page.drawText(text, {
+      x: (width - textWidth) / 2,
+      y: height - 50,
+      size: fontSize,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+
+    page.drawText('Admit Card', {
+      x: (width - boldFont.widthOfTextAtSize('Admit Card', 16)) / 2,
+      y: height - 80,
+      size: 16,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+
+    // Student Info
+    const startY = height - 120;
+    const lineHeight = 20;
+
+    page.drawText(`Name: ${student.firstName} ${student.lastName}`, { x: 50, y: startY, size: 12, font });
+    page.drawText(`Class: ${student.section.class.name} - ${student.section.name}`, { x: 50, y: startY - lineHeight, size: 12, font });
+    page.drawText(`Roll No: ${student.rollNo || 'N/A'}`, { x: 300, y: startY, size: 12, font });
+    page.drawText(`Exam: ${examGroup.name}`, { x: 300, y: startY - lineHeight, size: 12, font });
+
+    // Exam Table Header
+    const tableTop = startY - 60;
+    page.drawLine({ start: { x: 50, y: tableTop }, end: { x: 550, y: tableTop }, thickness: 1 });
+    page.drawText('Date', { x: 50, y: tableTop - 15, size: 12, font: boldFont });
+    page.drawText('Subject', { x: 200, y: tableTop - 15, size: 12, font: boldFont });
+    page.drawText('Time', { x: 400, y: tableTop - 15, size: 12, font: boldFont });
+    page.drawLine({ start: { x: 50, y: tableTop - 25 }, end: { x: 550, y: tableTop - 25 }, thickness: 1 });
+
+    // Exam Rows
+    let currentY = tableTop - 45;
+    for (const exam of examGroup.exams) {
+      const dateStr = exam.examDate.toLocaleDateString();
+      const timeStr = exam.examDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      page.drawText(dateStr, { x: 50, y: currentY, size: 10, font });
+      page.drawText(exam.subject.name, { x: 200, y: currentY, size: 10, font });
+      page.drawText(timeStr, { x: 400, y: currentY, size: 10, font });
+
+      currentY -= 20;
+    }
+
+    // Signature
+    const bottomY = 100;
+    page.drawLine({ start: { x: 400, y: bottomY }, end: { x: 550, y: bottomY }, thickness: 1 });
+    page.drawText("Principal's Signature", { x: 420, y: bottomY - 15, size: 10, font });
+
+    // Serialize
+    const pdfBytes = await pdfDoc.save();
+
+    // Send Response
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename=admit-card-${student.rollNo}.pdf`,
+      'Content-Length': pdfBytes.length,
+    });
+
+    res.end(Buffer.from(pdfBytes));
   }
 
   @Delete(':id')
