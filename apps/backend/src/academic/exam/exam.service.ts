@@ -1,9 +1,90 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateExamScheduleDto } from './dto/create-exam-schedule.dto';
 
 @Injectable()
 export class ExamService {
   constructor(private prisma: PrismaService) {}
+
+  async createSchedules(schedules: CreateExamScheduleDto[]) {
+    return await this.prisma.$transaction(async (tx) => {
+      const createdSchedules = [];
+      for (const schedule of schedules) {
+        // Construct Date objects
+        // date string to Date
+        const dateObj = new Date(schedule.date);
+
+        // time string to Date (Start Time)
+        // If 'time' is full ISO, use it. If HH:mm, merge with date.
+        // Assuming 'time' is full ISO or we parse it.
+        // Let's assume input 'time' is a full ISO string for the start time.
+        const startTimeObj = new Date(schedule.time);
+
+        // Conflict check
+        // Note: We use 'tx' (transaction client) for saving, but for checking conflict
+        // we should also use 'tx' to see conflicts within the current transaction?
+        // OR use `this.checkScheduleConflict` which uses `this.prisma`.
+        // Ideally we should refactor checkScheduleConflict to accept a prisma client instance,
+        // or just perform check here.
+        // Given we need to reuse logic, I'll inline the check or call the method.
+        // But the method uses `this.prisma` (global). If we are in a transaction and inserting multiple,
+        // subsequent checks in the loop won't see previous insertions in the same transaction
+        // unless we use `tx`.
+        // `findFirst` on `tx` sees uncommitted writes within the transaction.
+        // So I should verify conflict against DB *and* against the list I'm currently building if needed?
+        // Actually, `tx.examSchedule.findMany` will see records created in previous iterations of this loop.
+
+        // So I'll replicate the conflict logic using `tx`.
+
+        // 1. Check DB conflicts (including those just added in this transaction)
+        await this.checkScheduleConflictWithClient(tx, schedule.classId, dateObj, startTimeObj, schedule.duration);
+
+        // 2. Create
+        const newSchedule = await tx.examSchedule.create({
+          data: {
+            examId: schedule.examId,
+            subjectId: schedule.subjectId,
+            classId: schedule.classId,
+            date: dateObj,
+            startTime: startTimeObj,
+            durationMinutes: schedule.duration,
+          },
+        });
+        createdSchedules.push(newSchedule);
+      }
+      return createdSchedules;
+    });
+  }
+
+  /**
+   * Helper to check conflict using a specific prisma client (tx or this.prisma).
+   */
+  private async checkScheduleConflictWithClient(
+    prismaClient: any,
+    classId: string,
+    date: Date,
+    startTime: Date,
+    durationMinutes: number,
+  ): Promise<void> {
+    const newExamStart = new Date(startTime);
+    const newExamEnd = new Date(newExamStart.getTime() + durationMinutes * 60000);
+
+    const potentialConflicts = await prismaClient.examSchedule.findMany({
+      where: {
+        classId: classId,
+        date: date,
+      },
+    });
+
+    for (const schedule of potentialConflicts) {
+      const existingStart = new Date(schedule.startTime);
+      const existingEnd = new Date(existingStart.getTime() + schedule.durationMinutes * 60000);
+
+      if (newExamStart < existingEnd && newExamEnd > existingStart) {
+        throw new ConflictException('Class already has an exam scheduled at this time');
+      }
+    }
+  }
 
   /**
    * Checks if an exam schedule conflicts with existing schedules for a specific class.
@@ -20,34 +101,6 @@ export class ExamService {
     startTime: Date,
     durationMinutes: number,
   ): Promise<void> {
-    const newExamStart = new Date(startTime);
-    const newExamEnd = new Date(newExamStart.getTime() + durationMinutes * 60000);
-
-    // Fetch all exams for this class on the same date
-    // We assume 'date' field in DB represents the day.
-    // To be safe, we can filter by range or just match the date part if it's stored as midnight.
-    // Assuming `date` in DB is stored as DateTime at 00:00:00 or similar for the day.
-
-    // To robustly handle "same day", we can use a range for the `date` field
-    // or assume the input `date` matches the stored `date` format (e.g. truncated to day).
-    // Let's assume strict equality on the `date` field for now as per schema design implies it holds the "Date" of the exam.
-
-    const potentialConflicts = await this.prisma.examSchedule.findMany({
-      where: {
-        classId: classId,
-        date: date,
-      },
-    });
-
-    for (const schedule of potentialConflicts) {
-      const existingStart = new Date(schedule.startTime);
-      const existingEnd = new Date(existingStart.getTime() + schedule.durationMinutes * 60000);
-
-      // Check for overlap
-      // Overlap exists if (StartA < EndB) and (EndA > StartB)
-      if (newExamStart < existingEnd && newExamEnd > existingStart) {
-        throw new ConflictException('Class already has an exam scheduled at this time');
-      }
-    }
+    return this.checkScheduleConflictWithClient(this.prisma, classId, date, startTime, durationMinutes);
   }
 }
