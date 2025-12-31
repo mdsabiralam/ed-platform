@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Get, Body, Req, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Put, Get, Body, Req, Param, BadRequestException, Res } from '@nestjs/common';
 import { ExamService } from './exam.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
@@ -35,5 +35,19 @@ export class ExamController {
   async getStudentExams(@Req() req: any, @Param('studentId') studentId: string) {
     const tenantId = req.headers['x-tenant-id'];
     return this.examService.getExamsForStudent(tenantId, studentId);
+  }
+
+  @ApiOperation({ summary: 'Generate Admit Card PDF' })
+  @Post('admit-card/generate')
+  async generateAdmitCard(@Req() req: any, @Body() body: { studentId: string; examGroupId: string }, @Res() res: any) {
+    const tenantId = req.headers['x-tenant-id'];
+    const pdfBuffer = await this.examService.generateAdmitCard(tenantId, body.studentId, body.examGroupId);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename=admit-card.pdf',
+      'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
   }
 }

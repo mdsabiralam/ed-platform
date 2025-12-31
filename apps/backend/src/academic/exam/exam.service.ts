@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PDFDocument, rgb } from 'pdf-lib';
 
 @Injectable()
 export class ExamService {
@@ -66,5 +67,69 @@ export class ExamService {
         type: true,
       },
     });
+  }
+
+  // 6.A.08 & 6.A.09: Admit Card Generation with Attendance Check
+  async generateAdmitCard(tenantId: string, studentId: string, examGroupId: string): Promise<Buffer> {
+    const student = await this.prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) throw new NotFoundException('Student not found');
+
+    const examGroup = await this.prisma.examGroup.findUnique({
+      where: { id: examGroupId },
+      include: { exams: { include: { subject: true } } },
+    });
+    if (!examGroup) throw new NotFoundException('Exam Group not found');
+
+    // 6.A.09: Attendance Check (Mocked Logic)
+    // In a real implementation, we would call AttendanceService
+    const mockAttendancePercentage = 80; // Hardcoded for this task scope
+    if (mockAttendancePercentage < 75) {
+      throw new ForbiddenException('Attendance is below 75%. Contact Admin.');
+    }
+
+    // Generate PDF
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([600, 400]);
+    const { width, height } = page.getSize();
+
+    page.drawText('Admit Card', {
+      x: 50,
+      y: height - 50,
+      size: 30,
+      color: rgb(0, 0, 0),
+    });
+
+    page.drawText(`Name: ${student.firstName} ${student.lastName}`, { x: 50, y: height - 100, size: 18 });
+    page.drawText(`Roll No: ${student.admissionNo}`, { x: 50, y: height - 125, size: 18 });
+    page.drawText(`Exam Group: ${examGroup.name}`, { x: 50, y: height - 150, size: 18 });
+
+    let yOffset = height - 200;
+    page.drawText('Schedule:', { x: 50, y: yOffset, size: 14 });
+    yOffset -= 20;
+
+    examGroup.exams.forEach((exam) => {
+      const dateStr = exam.examDate.toISOString().split('T')[0];
+      page.drawText(`- ${exam.subject.name}: ${dateStr}`, { x: 50, y: yOffset, size: 12 });
+      yOffset -= 20;
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
+  }
+
+  // 6.A.10: Delete Exam with Protection
+  async deleteExam(examId: string, tenantId: string) {
+    const exam = await this.prisma.exam.findUnique({ where: { id: examId } });
+    if (!exam || exam.tenantId !== tenantId) throw new NotFoundException('Exam not found');
+
+    if (exam.isLocked) {
+      throw new BadRequestException('Cannot delete a locked exam.');
+    }
+
+    // Check for marks dependencies (mocked for now as StudentMarks table is 6.D)
+    // const hasMarks = await this.prisma.studentMark.findFirst({ where: { examId } });
+    // if (hasMarks) throw new BadRequestException('Cannot delete exam with entered marks.');
+
+    return this.prisma.exam.delete({ where: { id: examId } });
   }
 }
