@@ -322,6 +322,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  hallTickets       HallTicket[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -587,6 +588,7 @@ model ExamGroup {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   exams     Exam[]
+  hallTickets HallTicket[]
 
   @@unique([tenantId, name])
   @@map("exam_groups")
@@ -614,6 +616,24 @@ model Exam {
   group     ExamGroup? @relation(fields: [groupId], references: [id])
 
   @@map("exams")
+}
+
+// Hall Ticket
+model HallTicket {
+  id          String   @id @default(uuid())
+  studentId   String   @map("student_id")
+  examGroupId String   @map("exam_group_id")
+  rollNo      String   @map("roll_no")
+  examCenter  String   @map("exam_center")
+  seatNumber  String?  @map("seat_number")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  student     Student   @relation(fields: [studentId], references: [id])
+  examGroup   ExamGroup @relation(fields: [examGroupId], references: [id])
+
+  @@unique([studentId, examGroupId])
+  @@map("hall_tickets")
 }
 
 // 2.C.03 Roles Enum
