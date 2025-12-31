@@ -286,6 +286,7 @@ model Class {
   sections  Section[]
   routineEntries RoutineEntry[]
   homeworks Homework[]
+  curriculumPlans CurriculumPlan[]
 
   @@map("classes")
 }
@@ -498,6 +499,7 @@ model Subject {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   routineEntries RoutineEntry[]
   homeworks Homework[]
+  curriculumPlans CurriculumPlan[]
 
   @@map("subjects")
 }
@@ -557,6 +559,7 @@ model RoutineEntry {
   liveAttendanceLogs LiveAttendanceLog[]
   classRecordings    ClassRecording[]
   substitutions      RoutineSubstitution[]
+  lessonPlans        LessonPlan[]
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -660,6 +663,37 @@ model HomeworkSubmission {
   student     Student  @relation(fields: [studentId], references: [id])
 
   @@map("homework_submissions")
+}
+
+model CurriculumPlan {
+  id                   String       @id @default(uuid())
+  classId              String       @map("class_id")
+  subjectId            String       @map("subject_id")
+  chapterName          String       @map("chapter_name")
+  totalLessons         Int          @map("total_lessons")
+  status               String       @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  actualCompletionDate DateTime?    @map("actual_completion_date")
+  createdAt            DateTime     @default(now()) @map("created_at")
+
+  class                Class        @relation(fields: [classId], references: [id])
+  subject              Subject      @relation(fields: [subjectId], references: [id])
+  lessons              LessonPlan[]
+
+  @@map("curriculum_plans")
+}
+
+model LessonPlan {
+  id               String         @id @default(uuid())
+  curriculumPlanId String         @map("curriculum_plan_id")
+  routineEntryId   String?        @map("routine_entry_id")
+  topic            String
+  status           String         @default("PENDING") // PENDING, COMPLETED
+  completionDate   DateTime?      @map("completion_date")
+
+  curriculumPlan   CurriculumPlan @relation(fields: [curriculumPlanId], references: [id])
+  routineEntry     RoutineEntry?  @relation(fields: [routineEntryId], references: [id])
+
+  @@map("lesson_plans")
 }
 
 // 2.C.03 Roles Enum

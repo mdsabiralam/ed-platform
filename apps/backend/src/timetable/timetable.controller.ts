@@ -40,6 +40,11 @@ export class TimetableController {
     });
   }
 
+  @Post(':id/complete')
+  async markRoutineComplete(@Param('id') id: string) {
+    return this.timetableService.markComplete(id);
+  }
+
   @Post('validate-config')
   validateConfig(@Body() createDto: GenerateTimetableDto) {
     return this.timetableService.validateRequest(createDto);

@@ -2,12 +2,16 @@ import { Injectable, Logger, ConflictException, NotFoundException } from '@nestj
 import { GenerateTimetableDto } from './dto/generate-timetable.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DayOfWeek } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class TimetableService {
   private readonly logger = new Logger(TimetableService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async findFiltered(filters: {
     classId?: string;
@@ -122,5 +126,18 @@ export class TimetableService {
     }
 
     return true;
+  }
+
+  async markComplete(routineId: string) {
+    const routine = await this.prisma.routineEntry.findUnique({
+      where: { id: routineId },
+    });
+
+    if (!routine) throw new NotFoundException('Routine not found');
+
+    // Emit event for Syllabus Tracking
+    this.eventEmitter.emit('routine.completed', { routineId });
+
+    return { success: true, message: 'Routine marked as completed' };
   }
 }
