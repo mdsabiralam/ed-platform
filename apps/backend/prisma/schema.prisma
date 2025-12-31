@@ -52,6 +52,7 @@ model Tenant {
   examTerms            ExamTerm[]
   examGroups           ExamGroup[]
   exams                Exam[]
+  gradingScales        GradingScale[]
 
   @@map("tenants")
 }
@@ -531,6 +532,7 @@ model Subject {
   homeworks    Homework[]
   curriculumPlans CurriculumPlan[]
   exams        Exam[]
+  gradingMaps  SubjectGradingMap[]
 
   @@unique([tenantId, code])
   @@map("subjects")
@@ -732,4 +734,45 @@ model HallTicket {
 
   @@unique([studentId, examGroupId])
   @@map("hall_tickets")
+}
+
+// 6.B Grading Engine
+
+model GradingScale {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  name         String
+  type         String   // SCHOLASTIC, CO_SCHOLASTIC
+  isMarksBased Boolean  @default(true) @map("is_marks_based")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  logic        GradingLogic[]
+  subjectMaps  SubjectGradingMap[]
+
+  @@map("grading_scales")
+}
+
+model GradingLogic {
+  id           String   @id @default(uuid())
+  scaleId      String   @map("scale_id")
+  minScore     Float    @map("min_score")
+  maxScore     Float    @map("max_score")
+  gradePoint   Float    @map("grade_point")
+  label        String   // A1, A2
+
+  scale        GradingScale @relation(fields: [scaleId], references: [id])
+
+  @@map("grading_logic")
+}
+
+model SubjectGradingMap {
+  id             String   @id @default(uuid())
+  subjectId      String   @map("subject_id")
+  gradingScaleId String   @map("grading_scale_id")
+
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  gradingScale   GradingScale @relation(fields: [gradingScaleId], references: [id])
+
+  @@unique([subjectId])
+  @@map("subject_grading_maps")
 }

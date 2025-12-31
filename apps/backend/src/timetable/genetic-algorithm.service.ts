@@ -1,238 +1,180 @@
-import { Injectable, Logger } from '@nestjs/common';
-import {
-  TimetableInputData,
-  RoutineEntry,
-  DayOfWeek,
-} from './interfaces/timetable.interface';
+import { Injectable } from '@nestjs/common';
 
-interface Gene {
-  sectionId: string;
-  day: DayOfWeek;
-  timeSlotId: string;
-  subjectId: string;
-  teacherId: string;
-  roomId: string;
+export interface TimeSlot {
+  id: string;
+  day: string;
+  time: string;
 }
 
-interface Schedule {
-  genes: Gene[];
+export interface Teacher {
+  id: string;
+  name: string;
+  subjects: string[]; // Subject IDs they can teach
+}
+
+export interface ClassGroup {
+  id: string;
+  name: string;
+  subjects: string[]; // Subject IDs required
+}
+
+export interface RoutineGene {
+  classId: string;
+  subjectId: string;
+  teacherId: string;
+  slotId: string;
+}
+
+export interface RoutineChromosome {
+  genes: RoutineGene[];
   fitness: number;
 }
 
 @Injectable()
 export class GeneticAlgorithmService {
-  private readonly logger = new Logger(GeneticAlgorithmService.name);
-  private readonly POPULATION_SIZE = 50;
-  private readonly MAX_GENERATIONS = 100;
-  private readonly MUTATION_RATE = 0.1;
+  private populationSize = 100;
+  private mutationRate = 0.05;
+  private generations = 50;
 
-  generate(data: TimetableInputData): RoutineEntry[] {
-    this.logger.log('Starting genetic algorithm generation...');
-    let population = this.initializePopulation(this.POPULATION_SIZE, data);
+  async generateRoutine(
+    slots: TimeSlot[],
+    teachers: Teacher[],
+    classes: ClassGroup[],
+  ): Promise<RoutineGene[]> {
+    let population = this.initializePopulation(slots, teachers, classes);
 
-    for (let generation = 0; generation < this.MAX_GENERATIONS; generation++) {
-      // Calculate fitness for all
-      population.forEach((individual) => {
-        individual.fitness = this.calculateFitness(individual, data);
-      });
+    for (let generation = 0; generation < this.generations; generation++) {
+      population = this.evolvePopulation(population, slots, teachers, classes);
 
-      // Sort by fitness (descending)
-      population.sort((a, b) => b.fitness - a.fitness);
-
-      // Log progress
-      if (generation % 10 === 0) {
-        this.logger.debug(
-          `Generation ${generation}: Best Fitness = ${population[0].fitness}`,
-        );
+      // Check if we found a perfect solution
+      const best = population.reduce((prev, current) => (prev.fitness > current.fitness ? prev : current));
+      if (best.fitness === 1) {
+        return best.genes;
       }
-
-      // Check for perfect score (optional termination)
-      // if (population[0].fitness >= PERFECT_SCORE) break;
-
-      // Selection & Evolution
-      const newPopulation: Schedule[] = [];
-
-      // Elitism: Keep top 10%
-      const eliteCount = Math.floor(this.POPULATION_SIZE * 0.1);
-      newPopulation.push(...population.slice(0, eliteCount));
-
-      // Fill rest
-      while (newPopulation.length < this.POPULATION_SIZE) {
-        const parent1 = this.tournamentSelection(population);
-        const parent2 = this.tournamentSelection(population);
-        let child = this.crossover(parent1, parent2);
-
-        if (Math.random() < this.MUTATION_RATE) {
-          child = this.mutate(child, data);
-        }
-        newPopulation.push(child);
-      }
-      population = newPopulation;
     }
 
-    // Final sort
-    population.forEach(ind => ind.fitness = this.calculateFitness(ind, data));
-    population.sort((a, b) => b.fitness - a.fitness);
-
-    return population[0].genes;
+    // Return the best solution found after max generations
+    return population.reduce((prev, current) => (prev.fitness > current.fitness ? prev : current)).genes;
   }
 
-  private initializePopulation(size: number, data: TimetableInputData): Schedule[] {
-    const population: Schedule[] = [];
-    for (let i = 0; i < size; i++) {
-      population.push(this.createRandomSchedule(data));
+  private initializePopulation(slots: TimeSlot[], teachers: Teacher[], classes: ClassGroup[]): RoutineChromosome[] {
+    const population: RoutineChromosome[] = [];
+    for (let i = 0; i < this.populationSize; i++) {
+      const genes: RoutineGene[] = [];
+
+      for (const cls of classes) {
+        for (const subjectId of cls.subjects) {
+          // Find eligible teachers
+          const eligibleTeachers = teachers.filter(t => t.subjects.includes(subjectId));
+          if (eligibleTeachers.length === 0) continue; // Skip if no teacher available (simplified)
+
+          const randomTeacher = eligibleTeachers[Math.floor(Math.random() * eligibleTeachers.length)];
+          const randomSlot = slots[Math.floor(Math.random() * slots.length)];
+
+          genes.push({
+            classId: cls.id,
+            subjectId: subjectId,
+            teacherId: randomTeacher.id,
+            slotId: randomSlot.id,
+          });
+        }
+      }
+
+      population.push({ genes, fitness: this.calculateFitness(genes) });
     }
     return population;
   }
 
-  private createRandomSchedule(data: TimetableInputData): Schedule {
-    const genes: Gene[] = [];
-    // For every section, every day, every timeslot, try to assign a subject
-    // This is a simplified "Slot-based" gene generation.
-    // A better approach for "Weekly Sessions" is to iterate subjects and place them.
+  private calculateFitness(genes: RoutineGene[]): number {
+    let conflicts = 0;
 
-    // Strategy: For each section, fulfill the required sessions for each subject
-    for (const section of data.sections) {
-      const sectionSubjects = data.subjects.filter(s => section.subjectIds.includes(s.id));
+    for (let i = 0; i < genes.length; i++) {
+      for (let j = i + 1; j < genes.length; j++) {
+        const g1 = genes[i];
+        const g2 = genes[j];
 
-      const availableSlots: { day: DayOfWeek; slotId: string }[] = [];
-      for (const day of data.workDays) {
-        for (const slot of data.timeSlots) {
-          availableSlots.push({ day, slotId: slot.id });
+        // Conflict 1: Same teacher at the same time
+        if (g1.teacherId === g2.teacherId && g1.slotId === g2.slotId) {
+          conflicts++;
         }
-      }
-      // Shuffle slots to randomize placement
-      this.shuffleArray(availableSlots);
 
-      let slotIndex = 0;
-      for (const subject of sectionSubjects) {
-        for (let i = 0; i < subject.weeklySessions; i++) {
-          if (slotIndex >= availableSlots.length) break; // No more slots
-
-          const { day, slotId } = availableSlots[slotIndex];
-          slotIndex++;
-
-          // Randomly assign valid teacher for this subject
-          const validTeachers = data.teachers.filter(t => t.subjectIds.includes(subject.id));
-          const teacher = validTeachers.length > 0
-            ? validTeachers[Math.floor(Math.random() * validTeachers.length)]
-            : data.teachers[0]; // Fallback (should handle gracefully)
-
-          // Randomly assign room
-          const room = data.rooms[Math.floor(Math.random() * data.rooms.length)];
-
-          genes.push({
-            sectionId: section.id,
-            subjectId: subject.id,
-            day,
-            timeSlotId: slotId,
-            teacherId: teacher?.id || 'unassigned',
-            roomId: room?.id || 'unassigned',
-          });
+        // Conflict 2: Same class at the same time
+        if (g1.classId === g2.classId && g1.slotId === g2.slotId) {
+          conflicts++;
         }
       }
     }
-    return { genes, fitness: 0 };
+
+    return 1 / (1 + conflicts); // 1.0 is perfect fitness (0 conflicts)
   }
 
-  private calculateFitness(schedule: Schedule, data: TimetableInputData): number {
-    let score = 1000;
+  private evolvePopulation(
+    population: RoutineChromosome[],
+    slots: TimeSlot[],
+    teachers: Teacher[],
+    classes: ClassGroup[]
+  ): RoutineChromosome[] {
+    // Selection (Tournament)
+    const nextGeneration: RoutineChromosome[] = [];
 
-    // Map to track usage
-    const teacherUsage = new Set<string>(); // "teacherId-day-slotId"
-    const roomUsage = new Set<string>();    // "roomId-day-slotId"
-    const sectionUsage = new Set<string>(); // "sectionId-day-slotId"
+    while (nextGeneration.length < this.populationSize) {
+        const parent1 = this.tournamentSelection(population);
+        const parent2 = this.tournamentSelection(population);
 
-    for (const gene of schedule.genes) {
-      const timeKey = `${gene.day}-${gene.timeSlotId}`;
+        // Crossover
+        const childGenes = this.crossover(parent1.genes, parent2.genes);
 
-      // HARD CONSTRAINT: Teacher Conflict
-      const teacherKey = `${gene.teacherId}-${timeKey}`;
-      if (teacherUsage.has(teacherKey)) {
-        score -= 100; // Penalty
-      } else {
-        teacherUsage.add(teacherKey);
-      }
+        // Mutation
+        this.mutate(childGenes, slots, teachers, classes);
 
-      // HARD CONSTRAINT: Room Conflict
-      const roomKey = `${gene.roomId}-${timeKey}`;
-      if (roomUsage.has(roomKey)) {
-        score -= 100;
-      } else {
-        roomUsage.add(roomKey);
-      }
-
-      // HARD CONSTRAINT: Section double booking (logic ensures usually, but safe to check)
-      const sectionKey = `${gene.sectionId}-${timeKey}`;
-      if (sectionUsage.has(sectionKey)) {
-        score -= 100;
-      } else {
-        sectionUsage.add(sectionKey);
-      }
+        nextGeneration.push({
+            genes: childGenes,
+            fitness: this.calculateFitness(childGenes)
+        });
     }
 
-    return score;
+    return nextGeneration;
   }
 
-  private tournamentSelection(population: Schedule[]): Schedule {
-    // Select k individuals
-    const k = 5;
-    let best = population[Math.floor(Math.random() * population.length)];
+  private tournamentSelection(population: RoutineChromosome[]): RoutineChromosome {
+    const tournamentSize = 5;
+    let best: RoutineChromosome | null = null;
 
-    for (let i = 0; i < k; i++) {
-      const ind = population[Math.floor(Math.random() * population.length)];
-      if (ind.fitness > best.fitness) {
-        best = ind;
-      }
+    for (let i = 0; i < tournamentSize; i++) {
+        const candidate = population[Math.floor(Math.random() * population.length)];
+        if (!best || candidate.fitness > best.fitness) {
+            best = candidate;
+        }
     }
-    return best; // Return clone if needed, but for read-only parents strictly ok
+    return best!;
   }
 
-  private crossover(parent1: Schedule, parent2: Schedule): Schedule {
-    // Single Point Crossover
-    const cutPoint = Math.floor(Math.random() * parent1.genes.length);
-
-    const childGenes = [
-      ...parent1.genes.slice(0, cutPoint),
-      ...parent2.genes.slice(cutPoint)
-    ];
-
-    // Note: Simple crossover might duplicate/missing sessions for a class.
-    // A smarter crossover preserves the "set of sessions" but swaps time slots.
-    // For Phase 3 basic requirement, strict structure maintenance is complex.
-    // We will stick to simple gene splicing and rely on the fact that
-    // both parents have roughly same structure of sessions (if initialized same way).
-
-    return { genes: childGenes, fitness: 0 };
+  private crossover(parent1: RoutineGene[], parent2: RoutineGene[]): RoutineGene[] {
+    const splitPoint = Math.floor(Math.random() * parent1.length);
+    return [...parent1.slice(0, splitPoint), ...parent2.slice(splitPoint)];
   }
 
-  private mutate(schedule: Schedule, data: TimetableInputData): Schedule {
-    const newGenes = [...schedule.genes];
+  private mutate(genes: RoutineGene[], slots: TimeSlot[], teachers: Teacher[], classes: ClassGroup[]) {
+    if (Math.random() < this.mutationRate) {
+        const index = Math.floor(Math.random() * genes.length);
+        const gene = genes[index];
 
-    // Pick a random gene
-    const index = Math.floor(Math.random() * newGenes.length);
-    const gene = { ...newGenes[index] };
+        // Find subject and class details to pick valid teacher
+        const cls = classes.find(c => c.id === gene.classId);
+        if(!cls) return;
 
-    // Mutation Type 1: Change Time Slot
-    const randomDay = data.workDays[Math.floor(Math.random() * data.workDays.length)];
-    const randomSlot = data.timeSlots[Math.floor(Math.random() * data.timeSlots.length)];
+        const eligibleTeachers = teachers.filter(t => t.subjects.includes(gene.subjectId));
+        if (eligibleTeachers.length > 0) {
+             const randomTeacher = eligibleTeachers[Math.floor(Math.random() * eligibleTeachers.length)];
+             const randomSlot = slots[Math.floor(Math.random() * slots.length)];
 
-    gene.day = randomDay;
-    gene.timeSlotId = randomSlot.id;
-
-    // Mutation Type 2: Change Room
-    const randomRoom = data.rooms[Math.floor(Math.random() * data.rooms.length)];
-    gene.roomId = randomRoom.id;
-
-    newGenes[index] = gene;
-
-    return { genes: newGenes, fitness: 0 };
-  }
-
-  private shuffleArray(array: any[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+             // Mutate
+             genes[index] = {
+                 ...gene,
+                 teacherId: randomTeacher.id,
+                 slotId: randomSlot.id
+             };
+        }
     }
   }
 }
