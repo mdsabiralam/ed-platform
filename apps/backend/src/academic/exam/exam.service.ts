@@ -6,6 +6,19 @@ import { CreateExamScheduleDto } from './dto/create-exam-schedule.dto';
 export class ExamService {
   constructor(private prisma: PrismaService) {}
 
+  async getSchedules(classId: string) {
+    return this.prisma.examSchedule.findMany({
+      where: { classId },
+      include: {
+        subject: true,
+        exam: true,
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    });
+  }
+
   async createSchedules(schedules: CreateExamScheduleDto[]) {
     return await this.prisma.$transaction(async (tx) => {
       const createdSchedules = [];
