@@ -40,6 +40,7 @@ model Tenant {
   kycDocuments       KycDocument[]
   leaveApplications  LeaveApplication[]
   subjects           Subject[]
+  examTerms          ExamTerm[]
 
   @@map("tenants")
 }
@@ -539,6 +540,24 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+// Exam Terms
+model ExamTerm {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  name            String
+  weightagePercent Float   @map("weightage_percent")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+  @@map("exam_terms")
 }
 
 // 2.C.03 Roles Enum
