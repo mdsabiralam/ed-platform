@@ -1,6 +1,7 @@
-import { Controller, Post, Body, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Put, Delete, Body, Param, BadRequestException, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray } from 'class-validator';
+import { ExamLockedGuard } from '../guards/exam-locked.guard';
 
 export class AssignExamGroupDto {
   @IsUUID()
@@ -91,8 +92,17 @@ export class ExamController {
     if (!group) throw new NotFoundException('Exam Group not found');
 
     // 2. Validate Exams Existence (Optional but good)
-    // For now, we assume they exist or let the updateMany fail/work silently for unmatched IDs
-    // But updateMany doesn't error on missing IDs, it just updates 0.
+    // Check if any exam is locked
+    const lockedExams = await this.prisma.exam.findMany({
+      where: {
+        id: { in: examIds },
+        isLocked: true,
+      },
+    });
+
+    if (lockedExams.length > 0) {
+      throw new ForbiddenException(`Cannot assign group. The following exams are locked: ${lockedExams.map(e => e.id).join(', ')}`);
+    }
 
     // 3. Update Exams
     const result = await this.prisma.exam.updateMany({
@@ -105,5 +115,29 @@ export class ExamController {
     });
 
     return { message: 'Exams assigned to group successfully', count: result.count };
+  }
+
+  @Put(':id/lock')
+  async lockExam(@Param('id') id: string) {
+    const exam = await this.prisma.exam.findUnique({ where: { id } });
+    if (!exam) throw new NotFoundException('Exam not found');
+
+    const updated = await this.prisma.exam.update({
+      where: { id },
+      data: { isLocked: true },
+    });
+
+    return updated;
+  }
+
+  @Delete(':id')
+  @UseGuards(ExamLockedGuard)
+  async deleteExam(@Param('id') id: string) {
+    // This endpoint demonstrates the guard.
+    // In a real app, you might soft delete or check other dependencies.
+    const deleted = await this.prisma.exam.delete({
+      where: { id },
+    });
+    return deleted;
   }
 }
