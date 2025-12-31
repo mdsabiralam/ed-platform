@@ -13,6 +13,7 @@ import { TenantModule } from './tenants/tenant.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { StudentModule } from './student/student.module';
 import { AcademicModule } from './academic/academic.module';
+import { AttendanceModule } from './academic/attendance/attendance.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AcademicModule } from './academic/academic.module';
     TimetableModule,
     StudentModule,
     AcademicModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

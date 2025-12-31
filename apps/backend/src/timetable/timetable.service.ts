@@ -62,12 +62,13 @@ export class TimetableService {
   async getStudentRoutine(studentId: string) {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
+      include: { section: true },
     });
 
     if (!student) throw new NotFoundException('Student not found');
 
     return this.findFiltered({
-      classId: student.classId, // Assuming classId is on Student model (it is in schema)
+      classId: student.section?.classId,
       schoolId: student.tenantId,
     });
   }
