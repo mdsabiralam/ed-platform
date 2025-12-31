@@ -39,6 +39,7 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
   leaveApplications  LeaveApplication[]
+  subjects           Subject[]
 
   @@map("tenants")
 }
@@ -459,15 +460,34 @@ model RoutineEntry {
   id          String   @id @default(uuid())
   sectionId   String   @map("section_id")
   teacherId   String   @map("teacher_id")
+  subjectId   String?  @map("subject_id")
   dayOfWeek   String   @map("day_of_week")
   startTime   DateTime @map("start_time")
   endTime     DateTime @map("end_time")
 
   section     Section      @relation(fields: [sectionId], references: [id])
   teacher     StaffProfile @relation(fields: [teacherId], references: [id])
+  subject     Subject?     @relation(fields: [subjectId], references: [id])
   substitutions RoutineSubstitution[]
 
   @@map("routine_entries")
+}
+
+// Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String
+  category  String   @default("GENERAL") // SCIENCE, ARTS, etc.
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  routines  RoutineEntry[]
+
+  @@unique([tenantId, code])
+  @@map("subjects")
 }
 
 // Routine Substitution
