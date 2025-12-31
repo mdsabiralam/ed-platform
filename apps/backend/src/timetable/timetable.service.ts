@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { GenerateTimetableDto } from './dto/generate-timetable.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { DayOfWeek } from '@prisma/client';
 
 @Injectable()
 export class TimetableService {
@@ -64,5 +65,35 @@ export class TimetableService {
       status: 'valid',
       message: 'Configuration is ready for processing',
     };
+  }
+
+  async validateConflict(teacherId: string, classId: string, dayOfWeek: DayOfWeek, slotId: string) {
+    // 1. Check if Teacher is busy
+    const teacherBusy = await this.prisma.routineEntry.findFirst({
+      where: {
+        teacherId,
+        dayOfWeek,
+        slotId,
+      },
+    });
+
+    if (teacherBusy) {
+      throw new ConflictException(`Teacher ${teacherId} is already assigned at this time.`);
+    }
+
+    // 2. Check if Class is busy
+    const classBusy = await this.prisma.routineEntry.findFirst({
+      where: {
+        classId,
+        dayOfWeek,
+        slotId,
+      },
+    });
+
+    if (classBusy) {
+      throw new ConflictException(`Class ${classId} already has a subject at this time.`);
+    }
+
+    return true;
   }
 }
