@@ -38,10 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
-  leaveApplications  LeaveApplication[]
-  subjects           Subject[]
-  examTerms          ExamTerm[]
-  examGroups         ExamGroup[]
+  gradingScales      GradingScale[]
 
   @@map("tenants")
 }
@@ -282,7 +279,6 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
-  exams     Exam[]
 
   @@map("classes")
 }
@@ -296,7 +292,6 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
-  routines  RoutineEntry[]
 
   @@map("sections")
 }
@@ -322,8 +317,6 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
-  hallTickets       HallTicket[]
-  marks             StudentMark[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -367,12 +360,6 @@ model StaffProfile {
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 
-  routines              RoutineEntry[]
-  originalSubstitutions RoutineSubstitution[] @relation("OriginalTeacher")
-  substituteSubstitutions RoutineSubstitution[] @relation("SubstituteTeacher")
-  leaveApplications     LeaveApplication[] @relation("Applicant")
-  approvedLeaves        LeaveApplication[] @relation("Approver")
-
   @@map("staff_profiles")
 }
 
@@ -405,7 +392,6 @@ model LeaveType {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  leaveApplications LeaveApplication[]
 
   @@unique([tenantId, code])
   @@map("leave_types")
@@ -460,197 +446,35 @@ model TableAuditLog {
   @@map("table_audit_logs")
 }
 
-// Routine Entry
-model RoutineEntry {
-  id          String   @id @default(uuid())
-  sectionId   String   @map("section_id")
-  teacherId   String   @map("teacher_id")
-  subjectId   String?  @map("subject_id")
-  dayOfWeek   String   @map("day_of_week")
-  startTime   DateTime @map("start_time")
-  endTime     DateTime @map("end_time")
-
-  section     Section      @relation(fields: [sectionId], references: [id])
-  teacher     StaffProfile @relation(fields: [teacherId], references: [id])
-  subject     Subject?     @relation(fields: [subjectId], references: [id])
-  substitutions RoutineSubstitution[]
-
-  @@map("routine_entries")
-}
-
-// Subjects
-model Subject {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("school_id")
-  name      String
-  code      String
-  category  String   @default("GENERAL") // SCIENCE, ARTS, etc.
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  routines  RoutineEntry[]
-  exams     Exam[]
-
-  @@unique([tenantId, code])
-  @@map("subjects")
-}
-
-// Routine Substitution
-model RoutineSubstitution {
-  id                 String   @id @default(uuid())
-  routineEntryId     String   @map("routine_entry_id")
-  originalTeacherId  String   @map("original_teacher_id")
-  substituteTeacherId String?  @map("substitute_teacher_id")
-  date               DateTime
-  status             SubstitutionStatus @default(PENDING)
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  routineEntry       RoutineEntry @relation(fields: [routineEntryId], references: [id])
-  originalTeacher    StaffProfile @relation(fields: [originalTeacherId], references: [id], name: "OriginalTeacher")
-  substituteTeacher  StaffProfile? @relation(fields: [substituteTeacherId], references: [id], name: "SubstituteTeacher")
-
-  @@map("routine_substitutions")
-}
-
-enum SubstitutionStatus {
-  PENDING
-  ASSIGNED
-  COMPLETED
-}
-
-model LeaveApplication {
-  id            String      @id @default(uuid())
-  tenantId      String      @map("school_id")
-  applicantId   String      @map("applicant_id")
-  leaveTypeId   String      @map("leave_type_id")
-  startDate     DateTime    @map("start_date")
-  endDate       DateTime    @map("end_date")
-  reason        String
-  status        LeaveStatus @default(PENDING)
-  approvedById  String?     @map("approved_by_id")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
-
-  tenant        Tenant       @relation(fields: [tenantId], references: [id])
-  applicant     StaffProfile @relation(fields: [applicantId], references: [id], name: "Applicant")
-  leaveType     LeaveType    @relation(fields: [leaveTypeId], references: [id])
-  approvedBy    StaffProfile? @relation(fields: [approvedById], references: [id], name: "Approver")
-
-  @@map("leave_applications")
-}
-
-enum LeaveStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-// Exam Terms
-model ExamTerm {
-  id              String   @id @default(uuid())
-  tenantId        String   @map("tenant_id")
-  name            String
-  weightagePercent Float   @map("weightage_percent")
-  startDate       DateTime @map("start_date")
-  endDate         DateTime @map("end_date")
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  tenant          Tenant   @relation(fields: [tenantId], references: [id])
-  exams           Exam[]
-
-  @@unique([tenantId, name])
-  @@map("exam_terms")
-}
-
-// Exam Types (Global Master)
-model ExamType {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  exams       Exam[]
-
-  @@map("exam_types")
-}
-
-// Exam Group
-model ExamGroup {
+// Grading Scale (e.g. CBSE Standard)
+model GradingScale {
   id        String   @id @default(uuid())
   tenantId  String   @map("tenant_id")
   name      String
+  type      String   @default("SCHOLASTIC") // SCHOLASTIC, CO_SCHOLASTIC
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  exams     Exam[]
-  hallTickets HallTicket[]
+  logics    GradingLogic[]
 
-  @@unique([tenantId, name])
-  @@map("exam_groups")
+  @@map("grading_scales")
 }
 
-// Exam
-model Exam {
-  id        String   @id @default(uuid())
-  classId   String   @map("class_id")
-  subjectId String   @map("subject_id")
-  termId    String   @map("term_id")
-  typeId    String   @map("type_id")
-  groupId   String?  @map("group_id")
-  maxMarks  Float    @map("max_marks")
-  examDate  DateTime @map("exam_date")
-  isLocked  Boolean  @default(false) @map("is_locked")
-  isPublished Boolean  @default(false) @map("is_published")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+// Grading Logic (Rows)
+model GradingLogic {
+  id         String   @id @default(uuid())
+  scaleId    String   @map("scale_id")
+  minScore   Float    @map("min_score")
+  maxScore   Float    @map("max_score")
+  gradePoint Float    @map("grade_point")
+  label      String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  class     Class    @relation(fields: [classId], references: [id])
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  term      ExamTerm @relation(fields: [termId], references: [id])
-  type      ExamType @relation(fields: [typeId], references: [id])
-  group     ExamGroup? @relation(fields: [groupId], references: [id])
-  marks     StudentMark[]
+  scale      GradingScale @relation(fields: [scaleId], references: [id])
 
-  @@map("exams")
-}
-
-// Student Marks
-model StudentMark {
-  id            String   @id @default(uuid())
-  examId        String   @map("exam_id")
-  studentId     String   @map("student_id")
-  marksObtained Float    @map("marks_obtained")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  exam          Exam     @relation(fields: [examId], references: [id])
-  student       Student  @relation(fields: [studentId], references: [id])
-
-  @@map("student_marks")
-}
-
-// Hall Ticket
-model HallTicket {
-  id          String   @id @default(uuid())
-  studentId   String   @map("student_id")
-  examGroupId String   @map("exam_group_id")
-  rollNo      String   @map("roll_no")
-  examCenter  String   @map("exam_center")
-  seatNumber  String?  @map("seat_number")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  student     Student   @relation(fields: [studentId], references: [id])
-  examGroup   ExamGroup @relation(fields: [examGroupId], references: [id])
-
-  @@unique([studentId, examGroupId])
-  @@map("hall_tickets")
+  @@map("grading_logics")
 }
 
 // 2.C.03 Roles Enum

@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { seedExamTypes } from './seed-exam-types';
 
 const prisma = new PrismaClient();
 
@@ -45,9 +44,6 @@ async function main() {
   });
 
   console.log({ superAdmin });
-
-  // 6.A.02 Seed Exam Types
-  await seedExamTypes(prisma);
 }
 
 main()
