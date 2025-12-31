@@ -328,6 +328,7 @@ model Student {
   healthProfile     HealthProfile?
   liveAttendanceLogs LiveAttendanceLog[]
   homeworkSubmissions HomeworkSubmission[]
+  hallTickets       HallTicket[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -694,6 +695,90 @@ model LessonPlan {
   routineEntry     RoutineEntry?  @relation(fields: [routineEntryId], references: [id])
 
   @@map("lesson_plans")
+}
+
+// 6.A.01: Exam Terms Table
+model ExamTerm {
+  id                String   @id @default(uuid())
+  tenantId          String
+  name              String
+  weightage_percent Float
+  start_date        DateTime
+  end_date          DateTime
+  is_active         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  exams             Exam[]
+
+  @@unique([tenantId, name])
+  @@map("exam_terms")
+}
+
+// 6.A.02: Exam Types Master
+model ExamType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exams       Exam[]
+
+  @@map("exam_types")
+}
+
+// 6.A.03: Exam Table
+model Exam {
+  id          String   @id @default(uuid())
+  classId     String
+  subjectId   String
+  termId      String
+  typeId      String
+  examGroupId String?
+  maxMarks    Float
+  examDate    DateTime
+  is_locked   Boolean  @default(false)
+  is_published Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  term      ExamTerm   @relation(fields: [termId], references: [id])
+  type      ExamType   @relation(fields: [typeId], references: [id])
+  examGroup ExamGroup? @relation(fields: [examGroupId], references: [id])
+
+  @@map("exams")
+}
+
+// 6.A.04: Exam Group
+model ExamGroup {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  exams     Exam[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  hallTickets HallTicket[]
+
+  @@map("exam_groups")
+}
+
+// 6.A.07: Hall Tickets Table
+model HallTicket {
+  id          String    @id @default(uuid())
+  studentId   String
+  examGroupId String
+  roll_no     String
+  exam_center String
+  seat_number String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  student     Student   @relation(fields: [studentId], references: [id])
+  examGroup   ExamGroup @relation(fields: [examGroupId], references: [id])
+
+  @@unique([studentId, examGroupId])
+  @@map("hall_tickets")
 }
 
 // 2.C.03 Roles Enum
