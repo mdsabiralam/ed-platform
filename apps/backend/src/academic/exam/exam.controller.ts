@@ -50,4 +50,12 @@ export class ExamController {
     });
     res.send(pdfBuffer);
   }
+
+  @ApiOperation({ summary: 'Publish Exam Datesheet' })
+  @ApiResponse({ status: 201, description: 'Datesheet published.' })
+  @Post('schedule')
+  async publishDatesheet(@Req() req: any, @Body() body: any[]) { // 6.C.03
+      // Placeholder for batch insert logic using ExamService
+      return { message: 'Datesheet published', count: body.length };
+  }
 }

@@ -337,6 +337,8 @@ model Student {
   healthProfile     HealthProfile?
   homeworkSubmissions HomeworkSubmission[]
   hallTickets       HallTicket[]
+  marks             StudentMark[]
+  results           ResultSummary[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -383,6 +385,7 @@ model StaffProfile {
   routineEntries RoutineEntry[] @relation("OriginalTeacher")
   substitutions  RoutineSubstitution[] @relation("SubstituteTeacher")
   assignedHomeworks Homework[] @relation("HomeworkTeacher")
+  invigilationDuties InvigilationDuty[]
 
   @@map("staff_profiles")
 }
@@ -533,6 +536,8 @@ model Subject {
   curriculumPlans CurriculumPlan[]
   exams        Exam[]
   gradingMaps  SubjectGradingMap[]
+  examSchedules ExamSchedule[]
+  marks        StudentMark[]
 
   @@unique([tenantId, code])
   @@map("subjects")
@@ -546,6 +551,8 @@ model Room {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   routineEntries RoutineEntry[]
+  examSchedules  ExamSchedule[]
+  invigilationDuties InvigilationDuty[]
 
   @@unique([tenantId, name])
   @@map("rooms")
@@ -670,6 +677,7 @@ model ExamTerm {
 
   tenant          Tenant   @relation(fields: [tenantId], references: [id])
   exams           Exam[]
+  results         ResultSummary[]
 
   @@unique([tenantId, name])
   @@map("exam_terms")
@@ -716,6 +724,9 @@ model Exam {
   term        ExamTerm @relation(fields: [termId], references: [id])
   type        ExamType @relation(fields: [typeId], references: [id])
   group       ExamGroup? @relation(fields: [groupId], references: [id])
+
+  examSchedules ExamSchedule[]
+  marks         StudentMark[]
 
   @@map("exams")
 }
@@ -775,4 +786,82 @@ model SubjectGradingMap {
 
   @@unique([subjectId])
   @@map("subject_grading_maps")
+}
+
+// 6.C Exam Scheduling & Invigilation
+
+model ExamSchedule {
+  id              String   @id @default(uuid())
+  examId          String   @map("exam_id")
+  subjectId       String   @map("subject_id")
+  date            DateTime
+  startTime       DateTime @map("start_time")
+  durationMinutes Int      @map("duration_minutes")
+  roomId          String?  @map("room_id")
+
+  exam            Exam     @relation(fields: [examId], references: [id])
+  subject         Subject  @relation(fields: [subjectId], references: [id])
+  room            Room?    @relation(fields: [roomId], references: [id])
+  invigilationDuties InvigilationDuty[]
+
+  @@map("exam_schedules")
+}
+
+model InvigilationDuty {
+  id             String   @id @default(uuid())
+  examScheduleId String   @map("exam_schedule_id")
+  staffId        String   @map("staff_id")
+  roomId         String?  @map("room_id")
+  isConfirmed    Boolean  @default(false) @map("is_confirmed")
+
+  examSchedule   ExamSchedule @relation(fields: [examScheduleId], references: [id])
+  staff          StaffProfile @relation(fields: [staffId], references: [id])
+  room           Room?        @relation(fields: [roomId], references: [id])
+
+  @@map("invigilation_duties")
+}
+
+// 6.D & 6.E Marks & Results
+
+model StudentMark {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  examId         String   @map("exam_id")
+  subjectId      String   @map("subject_id")
+  theoryMarks    Float    @default(0) @map("theory_marks")
+  practicalMarks Float    @default(0) @map("practical_marks")
+  totalMarks     Float    @map("total_marks")
+  isAbsent       Boolean  @default(false) @map("is_absent")
+  remarks        String?
+
+  student        Student  @relation(fields: [studentId], references: [id])
+  exam           Exam     @relation(fields: [examId], references: [id])
+  subject        Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, examId, subjectId])
+  @@map("student_marks")
+}
+
+enum ResultStatus {
+  PASS
+  FAIL
+  WITHHELD
+  COMPARTMENT
+}
+
+model ResultSummary {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  examTermId     String   @map("exam_term_id")
+  totalMarks     Float    @map("total_marks")
+  percentage     Float
+  classRank      Int?     @map("class_rank")
+  sectionRank    Int?     @map("section_rank")
+  resultStatus   ResultStatus @map("result_status")
+  calculatedAt   DateTime @default(now()) @map("calculated_at")
+
+  student        Student  @relation(fields: [studentId], references: [id])
+  examTerm       ExamTerm @relation(fields: [examTermId], references: [id])
+
+  @@map("result_summaries")
 }

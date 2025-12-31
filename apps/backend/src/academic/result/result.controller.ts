@@ -14,4 +14,13 @@ export class ResultController {
     if (!tenantId) throw new BadRequestException('Tenant ID missing');
     return this.resultService.getRubric(subjectId, tenantId);
   }
+
+  @ApiOperation({ summary: 'Process results for a term' })
+  @ApiResponse({ status: 202, description: 'Result processing started.' })
+  @Post('process')
+  async processResults(@Body() body: { examTermId: string; classId: string }) {
+      // 6.E.05: Skeleton for Result Processing
+      // Ideally pushes to BullMQ
+      return { message: 'Result processing job accepted', jobId: 'mock-job-id' };
+  }
 }

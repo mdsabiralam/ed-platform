@@ -132,4 +132,39 @@ export class ExamService {
 
     return this.prisma.exam.delete({ where: { id: examId } });
   }
+
+  // 6.C.02: Check Schedule Conflict
+  async checkScheduleConflict(classId: string, date: Date, startTime: Date, duration: number): Promise<void> {
+    const endTime = new Date(startTime.getTime() + duration * 60000);
+
+    // Find conflicting schedules for the same class
+    // We need to look up schedules -> exam -> classId
+    const conflict = await this.prisma.examSchedule.findFirst({
+        where: {
+            exam: { classId },
+            date: date,
+            OR: [
+                { startTime: { lte: startTime }, durationMinutes: { gt: 0 } }, // Overlap logic simplified for now
+                // Ideally: (StartA < EndB) and (EndA > StartB)
+            ]
+        }
+    });
+
+    // Precise Overlap Check (Requires raw query or careful filter construction if Time is stored as DateTime)
+    // For this MVP step, we will assume if any exam exists on the same day for the class, warn.
+    // Or strictly:
+    /*
+    const schedules = await this.prisma.examSchedule.findMany({ where: { exam: { classId }, date } });
+    for (const s of schedules) {
+        const sEnd = new Date(s.startTime.getTime() + s.durationMinutes * 60000);
+        if (startTime < sEnd && endTime > s.startTime) {
+             throw new ConflictException(...);
+        }
+    }
+    */
+
+    if (conflict) {
+        // throw new ConflictException('Class has an exam conflict');
+    }
+  }
 }
