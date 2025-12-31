@@ -281,6 +281,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  exams     Exam[]
 
   @@map("classes")
 }
@@ -486,6 +487,7 @@ model Subject {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   routines  RoutineEntry[]
+  exams     Exam[]
 
   @@unique([tenantId, code])
   @@map("subjects")
@@ -555,6 +557,7 @@ model ExamTerm {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  exams           Exam[]
 
   @@unique([tenantId, name])
   @@map("exam_terms")
@@ -568,7 +571,29 @@ model ExamType {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  exams       Exam[]
+
   @@map("exam_types")
+}
+
+// Exam
+model Exam {
+  id        String   @id @default(uuid())
+  classId   String   @map("class_id")
+  subjectId String   @map("subject_id")
+  termId    String   @map("term_id")
+  typeId    String   @map("type_id")
+  maxMarks  Float    @map("max_marks")
+  examDate  DateTime @map("exam_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  class     Class    @relation(fields: [classId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  term      ExamTerm @relation(fields: [termId], references: [id])
+  type      ExamType @relation(fields: [typeId], references: [id])
+
+  @@map("exams")
 }
 
 // 2.C.03 Roles Enum
