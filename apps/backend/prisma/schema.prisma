@@ -48,6 +48,11 @@ model Tenant {
   homeworks            Homework[]
   curriculumPlans      CurriculumPlan[]
 
+  // Exam Relations
+  examTerms            ExamTerm[]
+  examGroups           ExamGroup[]
+  exams                Exam[]
+
   @@map("tenants")
 }
 
@@ -288,6 +293,7 @@ model Class {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
   routineEntries RoutineEntry[]
+  exams        Exam[]
 
   @@map("classes")
 }
@@ -523,6 +529,7 @@ model Subject {
   routineEntries RoutineEntry[]
   homeworks    Homework[]
   curriculumPlans CurriculumPlan[]
+  exams        Exam[]
 
   @@unique([tenantId, code])
   @@map("subjects")
@@ -645,4 +652,66 @@ model CurriculumPlan {
   subject     Subject  @relation(fields: [subjectId], references: [id])
 
   @@map("curriculum_plans")
+}
+
+// Division 6: Exam & Results
+
+model ExamTerm {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  name            String
+  weightagePercent Float   @map("weightage_percent")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  isActive        Boolean  @default(true) @map("is_active")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  exams           Exam[]
+
+  @@unique([tenantId, name])
+  @@map("exam_terms")
+}
+
+model ExamType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  exams       Exam[]
+
+  @@map("exam_types")
+}
+
+model ExamGroup {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  exams     Exam[]
+
+  @@map("exam_groups")
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  classId     String   @map("class_id")
+  subjectId   String   @map("subject_id")
+  termId      String   @map("term_id")
+  typeId      String   @map("type_id")
+  groupId     String?  @map("group_id")
+  maxMarks    Float    @map("max_marks")
+  examDate    DateTime @map("exam_date")
+  isLocked    Boolean  @default(false) @map("is_locked")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  term        ExamTerm @relation(fields: [termId], references: [id])
+  type        ExamType @relation(fields: [typeId], references: [id])
+  group       ExamGroup? @relation(fields: [groupId], references: [id])
+
+  @@map("exams")
 }

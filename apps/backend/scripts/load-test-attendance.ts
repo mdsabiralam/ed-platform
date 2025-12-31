@@ -13,7 +13,7 @@ async function simulateRequest(id: number) {
 }
 
 async function runLoadTest() {
-  const requests = [];
+  const requests: Promise<{ id: number; duration: number; success: boolean }>[] = [];
   for (let i = 0; i < 50; i++) {
     requests.push(simulateRequest(i));
   }
