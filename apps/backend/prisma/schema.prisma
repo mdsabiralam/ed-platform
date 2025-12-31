@@ -560,6 +560,17 @@ model ExamTerm {
   @@map("exam_terms")
 }
 
+// Exam Types (Global Master)
+model ExamType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("exam_types")
+}
+
 // 2.C.03 Roles Enum
 enum UserRole {
   SUPER_ADMIN
