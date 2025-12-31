@@ -11,6 +11,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Pat
 import { TenantModule } from './tenants/tenant.module';
 import { LeaveModule } from './leave/leave.module';
 import { AcademicModule } from './academic/academic.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AcademicModule } from './academic/academic.module';
     TenantModule,
     LeaveModule,
     AcademicModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

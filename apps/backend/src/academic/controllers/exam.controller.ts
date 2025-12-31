@@ -1,9 +1,10 @@
 import { Controller, Post, Put, Delete, Get, Body, Param, Res, BadRequestException, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray } from 'class-validator';
+import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray, IsOptional, IsBoolean } from 'class-validator';
 import { ExamLockedGuard } from '../guards/exam-locked.guard';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { AttendanceService } from '../../attendance/attendance.service';
 
 export class GenerateAdmitCardDto {
   @IsUUID()
@@ -13,6 +14,10 @@ export class GenerateAdmitCardDto {
   @IsUUID()
   @IsNotEmpty()
   examGroupId: string;
+
+  @IsOptional()
+  @IsBoolean()
+  override_pass?: boolean;
 }
 
 export class AssignExamGroupDto {
@@ -53,7 +58,10 @@ export class DefineExamDto {
 
 @Controller('api/academic/exam')
 export class ExamController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly attendanceService: AttendanceService,
+  ) {}
 
   @Post('define')
   async defineExam(@Body() dto: DefineExamDto) {
@@ -192,7 +200,13 @@ export class ExamController {
 
   @Post('admit-card/generate')
   async generateAdmitCard(@Body() dto: GenerateAdmitCardDto, @Res() res: Response) {
-    const { studentId, examGroupId } = dto;
+    const { studentId, examGroupId, override_pass } = dto;
+
+    // Check Attendance (Division 5 Integration)
+    const attendancePercent = await this.attendanceService.getAggregateAttendance(studentId);
+    if (attendancePercent < 75 && !override_pass) {
+      throw new ForbiddenException(`Attendance is below 75% (${attendancePercent}%). Contact Admin.`);
+    }
 
     // 1. Fetch Data
     const student = await this.prisma.student.findUnique({
