@@ -603,6 +603,7 @@ model Exam {
   maxMarks  Float    @map("max_marks")
   examDate  DateTime @map("exam_date")
   isLocked  Boolean  @default(false) @map("is_locked")
+  isPublished Boolean  @default(false) @map("is_published")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

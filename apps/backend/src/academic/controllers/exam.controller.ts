@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Delete, Body, Param, BadRequestException, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Delete, Get, Body, Param, BadRequestException, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IsUUID, IsNumber, IsDateString, Min, IsNotEmpty, IsArray } from 'class-validator';
 import { ExamLockedGuard } from '../guards/exam-locked.guard';
@@ -128,6 +128,54 @@ export class ExamController {
     });
 
     return updated;
+  }
+
+  @Put(':id/publish')
+  async publishExam(@Param('id') id: string) {
+    const exam = await this.prisma.exam.findUnique({ where: { id } });
+    if (!exam) throw new NotFoundException('Exam not found');
+
+    const updated = await this.prisma.exam.update({
+      where: { id },
+      data: { isPublished: true },
+    });
+
+    return updated;
+  }
+
+  @Get('student/:studentId')
+  async getStudentExams(@Param('studentId') studentId: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        section: {
+          include: {
+            class: true,
+          }
+        }
+      }
+    });
+
+    if (!student) throw new NotFoundException('Student not found');
+
+    const classId = student.section.class.id;
+
+    const exams = await this.prisma.exam.findMany({
+      where: {
+        classId: classId,
+        isPublished: true, // Only show published exams
+      },
+      include: {
+        subject: true,
+        term: true,
+        type: true,
+      },
+      orderBy: {
+        examDate: 'asc',
+      }
+    });
+
+    return exams;
   }
 
   @Delete(':id')
