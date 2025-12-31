@@ -363,6 +363,8 @@ model StaffProfile {
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 
+  invigilationDuties InvigilationDuty[]
+
   @@map("staff_profiles")
 }
 
@@ -509,6 +511,7 @@ model Room {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   schedules ExamSchedule[]
+  invigilationDuties InvigilationDuty[]
 
   @@map("rooms")
 }
@@ -529,6 +532,23 @@ model ExamSchedule {
   subject Subject @relation(fields: [subjectId], references: [id])
   class   Class   @relation(fields: [classId], references: [id])
   room    Room?   @relation(fields: [roomId], references: [id])
+  invigilationDuties InvigilationDuty[]
 
   @@map("exam_schedules")
+}
+
+model InvigilationDuty {
+  id              String   @id @default(uuid())
+  examScheduleId  String   @map("exam_schedule_id")
+  staffId         String   @map("staff_id")
+  roomId          String   @map("room_id")
+  isConfirmed     Boolean  @default(false) @map("is_confirmed")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  examSchedule    ExamSchedule @relation(fields: [examScheduleId], references: [id])
+  staff           StaffProfile @relation(fields: [staffId], references: [id])
+  room            Room         @relation(fields: [roomId], references: [id])
+
+  @@map("invigilation_duties")
 }
