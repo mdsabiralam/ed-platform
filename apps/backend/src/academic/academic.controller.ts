@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Get, Param, Headers, UseGuards, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service';
 import { VideoConferenceService } from './services/video-conference.service';
 import { AcademicService } from './academic.service';
@@ -7,6 +8,8 @@ import { LiveClassGuard } from './guards/live-class.guard';
 import { Request } from 'express';
 import { Req } from '@nestjs/common';
 
+@ApiTags('Academic - Live Classes')
+@ApiHeader({ name: 'x-tenant-id', description: 'Tenant ID', required: true })
 @Controller('academic/live')
 export class AcademicController {
   constructor(
@@ -15,6 +18,7 @@ export class AcademicController {
     private readonly academicService: AcademicService,
   ) {}
 
+  @ApiOperation({ summary: 'Get active live classes' })
   @Get('active')
   async getActiveClasses(@Req() req: any) {
     const tenantId = req['tenantId'];
@@ -32,6 +36,8 @@ export class AcademicController {
     });
   }
 
+  @ApiOperation({ summary: 'Join a live class' })
+  @ApiResponse({ status: 200, description: 'Returns meeting link' })
   @Get(':id/join')
   @UseGuards(LiveClassGuard)
   async joinClass(@Req() req: any) {
@@ -40,6 +46,7 @@ export class AcademicController {
     return { meetingLink: routine.meetingLink };
   }
 
+  @ApiOperation({ summary: 'Log attendance for live class' })
   @Post('log-attendance')
   async logAttendance(
     @Req() req: any,
@@ -54,6 +61,7 @@ export class AcademicController {
     return this.academicService.logAttendance(tenantId, studentId, routineId, action);
   }
 
+  @ApiOperation({ summary: 'Start a live class (Teacher)' })
   @Post('start')
   async startClass(
     @Body('routineId') routineId: string,
