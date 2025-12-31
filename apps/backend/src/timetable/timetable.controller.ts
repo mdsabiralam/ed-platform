@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Req, Param } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { TimetableService } from './timetable.service';
@@ -10,6 +10,16 @@ export class TimetableController {
     private readonly timetableService: TimetableService,
     @InjectQueue('timetable-generation') private readonly timetableQueue: Queue,
   ) {}
+
+  @Get('student/:id')
+  async getStudentRoutine(@Param('id') studentId: string) {
+    return this.timetableService.getStudentRoutine(studentId);
+  }
+
+  @Get('teacher/:id')
+  async getTeacherRoutine(@Param('id') teacherId: string) {
+    return this.timetableService.getTeacherRoutine(teacherId);
+  }
 
   @Get('filter')
   async getFilteredRoutine(

@@ -1,4 +1,4 @@
-import { Injectable, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import { GenerateTimetableDto } from './dto/generate-timetable.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DayOfWeek } from '@prisma/client';
@@ -57,6 +57,32 @@ export class TimetableService {
     }, {});
 
     return grouped;
+  }
+
+  async getStudentRoutine(studentId: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student) throw new NotFoundException('Student not found');
+
+    return this.findFiltered({
+      classId: student.classId, // Assuming classId is on Student model (it is in schema)
+      schoolId: student.tenantId,
+    });
+  }
+
+  async getTeacherRoutine(teacherId: string) {
+    const teacher = await this.prisma.staffProfile.findUnique({
+      where: { id: teacherId },
+    });
+
+    if (!teacher) throw new NotFoundException('Teacher not found');
+
+    return this.findFiltered({
+      teacherId: teacher.id,
+      schoolId: teacher.tenantId,
+    });
   }
 
   validateRequest(dto: GenerateTimetableDto) {
