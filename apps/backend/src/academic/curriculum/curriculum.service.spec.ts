@@ -46,6 +46,9 @@ describe('CurriculumService', () => {
     syllabusLog: {
       create: jest.fn(),
     },
+    section: {
+      findUnique: jest.fn(),
+    },
     admissionSession: {
       findFirst: jest.fn().mockResolvedValue({ startDate: new Date('2024-01-01') }),
     },
@@ -184,6 +187,23 @@ describe('CurriculumService', () => {
       // We expect this direct prisma call to fail, representing the DB constraint
       await expect(prisma.topic.deleteMany({ where: { id: 'topic-with-logs' } }))
         .rejects.toThrow('Foreign Key Constraint Violation');
+    });
+  });
+
+  describe('getSyllabusStatus', () => {
+    it('should resolve classId from sectionId if not provided', async () => {
+      mockPrismaService.section.findUnique.mockResolvedValue({ classId: 'class-1' });
+      mockPrismaService.curriculumPlan.findFirst.mockResolvedValue({ chapters: [] });
+
+      await service.getSyllabusStatus('tenant-1', undefined, 'subject-1', 'section-1');
+
+      expect(mockPrismaService.section.findUnique).toHaveBeenCalledWith({
+        where: { id: 'section-1' },
+        select: { classId: true },
+      });
+      expect(mockPrismaService.curriculumPlan.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ classId: 'class-1' }) })
+      );
     });
   });
 });

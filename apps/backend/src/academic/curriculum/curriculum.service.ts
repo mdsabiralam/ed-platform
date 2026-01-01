@@ -292,10 +292,21 @@ export class CurriculumService {
     return isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  async getSyllabusStatus(tenantId: string, classId: string, subjectId: string, sectionId: string) {
+  async getSyllabusStatus(tenantId: string, classId: string | undefined, subjectId: string, sectionId: string) {
+    let resolvedClassId = classId;
+
+    if (!resolvedClassId) {
+      const section = await this.prisma.section.findUnique({
+        where: { id: sectionId },
+        select: { classId: true },
+      });
+      if (!section) throw new NotFoundException('Section not found');
+      resolvedClassId = section.classId;
+    }
+
     // Fetch Plan
     const plan = await this.prisma.curriculumPlan.findFirst({
-      where: { tenantId, classId, subjectId },
+      where: { tenantId, classId: resolvedClassId, subjectId },
       orderBy: { version: 'desc' }, // Get latest version
       include: {
         chapters: {
@@ -318,6 +329,7 @@ export class CurriculumService {
     let completedTopics = 0;
     let totalEstimatedHours = 0;
     let completedEstimatedHours = 0;
+    const pendingTopics: any[] = [];
 
     const chaptersStatus = plan.chapters.map((chapter) => {
       const chapterTotalTopics = chapter.topics.length;
@@ -340,12 +352,24 @@ export class CurriculumService {
             lagDays = this.calculateSyllabusLag(chapter.targetCompletionDate, completedAt);
           }
 
-          return {
+          const topicStatus = {
+            id: t.id,
             name: t.name,
             isCompleted: t.syllabusLogs.length > 0,
             completedAt: completedAt,
             lagDays: lagDays, // 7.B.03
           };
+
+          if (!topicStatus.isCompleted) {
+            pendingTopics.push({
+              ...topicStatus,
+              chapterName: chapter.name,
+              chapterNumber: chapter.chapterNumber,
+              targetCompletionDate: chapter.targetCompletionDate,
+            });
+          }
+
+          return topicStatus;
         })
       };
     });
@@ -355,6 +379,7 @@ export class CurriculumService {
     return {
       subjectId,
       completionPercentage: parseFloat(completionPercentage.toFixed(2)),
+      pendingTopics, // 7.B.04 List of pending topics
       chapters: chaptersStatus,
     };
   }

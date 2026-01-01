@@ -63,4 +63,16 @@ export class CurriculumController {
     const tenantId = req.user?.tenantId;
     return this.curriculumService.getSyllabusStatus(tenantId, classId, subjectId, sectionId);
   }
+
+  @Get('status/:subjectId/:sectionId')
+  @ApiOperation({ summary: 'Get Syllabus Status (Generic Path)' })
+  async getStatusByPath(
+    @Req() req: any,
+    @Param('subjectId') subjectId: string,
+    @Param('sectionId') sectionId: string,
+  ) {
+    const tenantId = req.user?.tenantId;
+    // classId will be resolved in service
+    return this.curriculumService.getSyllabusStatus(tenantId, undefined, subjectId, sectionId);
+  }
 }
