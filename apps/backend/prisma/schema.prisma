@@ -551,6 +551,7 @@ model SyllabusLog {
   teacherId      String   @map("teacher_id") // StaffProfile
   sectionId      String   @map("section_id")
   completionDate DateTime @map("completion_date")
+  remarks        String?  @map("remarks") // 7.B.01
   createdAt      DateTime @default(now()) @map("created_at")
 
   tenant         Tenant       @relation(fields: [tenantId], references: [id])
