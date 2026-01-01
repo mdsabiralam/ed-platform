@@ -103,4 +103,30 @@ export class ResultService {
       graceUsed,
     };
   }
+
+  /**
+   * 6.B.10: Calculate Grade from Score
+   */
+  calculateGrade(
+    score: number,
+    scaleLogics: { minScore: number | null; maxScore: number | null; label: string }[],
+  ): string {
+    if (score < 0) {
+      throw new Error('Invalid Score: Score cannot be negative');
+    }
+
+    // Find matching logic
+    const match = scaleLogics.find((logic) => {
+      if (logic.minScore !== null && logic.maxScore !== null) {
+        return score >= logic.minScore && score <= logic.maxScore;
+      }
+      return false;
+    });
+
+    if (match) {
+      return match.label;
+    }
+
+    throw new Error('Invalid Score: No grade found for this score');
+  }
 }

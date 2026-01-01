@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Headers, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Put, Param, Body, Headers, NotFoundException, BadRequestException } from '@nestjs/common';
 import { GradingService } from '../services/grading.service';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 
@@ -6,6 +6,25 @@ import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 @Controller('api/academic/grades')
 export class GradingController {
   constructor(private readonly gradingService: GradingService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List all grading scales' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async listGradingScales(@Headers('x-tenant-id') tenantId: string) {
+      if (!tenantId) throw new BadRequestException('Tenant ID is required in headers (x-tenant-id)');
+      return this.gradingService.getAllGradingScales(tenantId);
+  }
+
+  @Put('update')
+  @ApiOperation({ summary: 'Update grading scale' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async updateGradingScale(
+      @Headers('x-tenant-id') tenantId: string,
+      @Body() body: any
+  ) {
+      if (!tenantId) throw new BadRequestException('Tenant ID is required in headers (x-tenant-id)');
+      return this.gradingService.updateGradingScale(tenantId, body.id, body);
+  }
 
   @Get(':classId/:subjectId')
   @ApiOperation({ summary: 'Get grading rubric for a subject' })

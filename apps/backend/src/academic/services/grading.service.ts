@@ -1,9 +1,59 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class GradingService {
   constructor(private prisma: PrismaService) {}
+
+  async getAllGradingScales(tenantId: string) {
+    return this.prisma.gradingScale.findMany({
+      where: {
+        OR: [
+          { tenantId: tenantId },
+          { tenantId: null }
+        ]
+      },
+      include: { gradingLogics: true }
+    });
+  }
+
+  async updateGradingScale(tenantId: string, scaleId: string, data: any) {
+    const scale = await this.prisma.gradingScale.findUnique({ where: { id: scaleId } });
+    if (!scale) throw new NotFoundException('Scale not found');
+
+    if (scale.tenantId !== tenantId) {
+        if (scale.tenantId === null) {
+             throw new ForbiddenException('Cannot edit global grading scale.');
+        }
+        throw new ForbiddenException('Access denied');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+        await tx.gradingLogic.deleteMany({ where: { scaleId } });
+
+        await tx.gradingScale.update({
+            where: { id: scaleId },
+            data: {
+                name: data.name,
+                isMarksBased: data.isMarksBased
+            }
+        });
+
+        if (data.gradingLogics && Array.isArray(data.gradingLogics)) {
+            await tx.gradingLogic.createMany({
+                data: data.gradingLogics.map((l: any) => ({
+                    scaleId,
+                    label: l.label,
+                    minScore: l.minScore,
+                    maxScore: l.maxScore,
+                    gradePoint: l.gradePoint
+                }))
+            });
+        }
+
+        return tx.gradingScale.findUnique({ where: { id: scaleId }, include: { gradingLogics: true }});
+    });
+  }
 
   async getGradingScaleForSubject(tenantId: string, subjectId: string, classId: string) {
     // 1. Try to find specific mapping for the class
