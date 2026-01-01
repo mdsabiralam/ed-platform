@@ -12,7 +12,10 @@ class MarksEntryScreen extends StatefulWidget {
 }
 
 class _MarksEntryScreenState extends State<MarksEntryScreen> {
-  final MarksRepository _repository = MarksRepository();
+  // In a real app, this should come from Auth Provider
+  final String _tenantId = 'ce58f250-8384-4af5-8c83-726746179b09';
+  late final MarksRepository _repository;
+
   // Mock Students
   final List<Map<String, dynamic>> _students = [
     {'id': 'student1', 'rollNo': '101', 'name': 'John Doe', 'theory': 0.0, 'practical': 0.0, 'isAbsent': false},
@@ -27,6 +30,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = MarksRepository(tenantId: _tenantId);
     for (var i = 0; i < _students.length; i++) {
       _theoryNodes.add(FocusNode());
       _practicalNodes.add(FocusNode());

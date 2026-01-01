@@ -8,6 +8,9 @@ import { ResultController } from './controllers/result.controller';
 import { ResultCalculationProcessor } from './queues/result-calculation.processor';
 import { PrismaModule } from '../prisma/prisma.module';
 import { BullModule } from '@nestjs/bull';
+import { CalculationLogService } from './services/calculation-log.service';
+import { SubjectAnalyticsService } from './services/subject-analytics.service';
+import { FinanceService } from './services/finance-mock.service';
 
 @Module({
   imports: [
@@ -17,7 +20,15 @@ import { BullModule } from '@nestjs/bull';
     }),
   ],
   controllers: [GradingController, MarksController, ResultController],
-  providers: [GradingService, ResultService, MarksService, ResultCalculationProcessor],
+  providers: [
+    GradingService,
+    ResultService,
+    MarksService,
+    ResultCalculationProcessor,
+    CalculationLogService,
+    SubjectAnalyticsService,
+    FinanceService
+  ],
   exports: [GradingService, ResultService, MarksService],
 })
 export class AcademicModule {}

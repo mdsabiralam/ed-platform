@@ -2,12 +2,16 @@ import { Process, Processor } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { ResultService } from '../services/result.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { FinanceService } from '../services/finance-mock.service';
+import { SubjectAnalyticsService } from '../services/subject-analytics.service';
 
 @Processor('result-calculation')
 export class ResultCalculationProcessor {
   constructor(
     private readonly resultService: ResultService,
     private readonly prisma: PrismaService,
+    private readonly financeService: FinanceService,
+    private readonly analyticsService: SubjectAnalyticsService,
   ) {}
 
   @Process('process-term-results')
@@ -64,6 +68,10 @@ export class ResultCalculationProcessor {
 
             const bestOf5 = this.resultService.calculateBestOfFive(normalizedMarks, 100);
 
+            // 6.E.07 Check Fees
+            const isFeesPaid = await this.financeService.checkFeeStatus(studentId);
+            const status = isFeesPaid ? (bestOf5.percentage >= 33 ? 'PASS' : 'FAIL') : 'WITHHELD';
+
             await this.prisma.resultSummary.upsert({
                 where: {
                     studentId_examTermId: { studentId, examTermId }
@@ -71,7 +79,7 @@ export class ResultCalculationProcessor {
                 update: {
                     totalMarks: bestOf5.totalMarks,
                     percentage: bestOf5.percentage,
-                    resultStatus: bestOf5.percentage >= 33 ? 'PASS' : 'FAIL',
+                    resultStatus: status,
                     calculatedAt: new Date()
                 },
                 create: {
@@ -79,7 +87,7 @@ export class ResultCalculationProcessor {
                     examTermId,
                     totalMarks: bestOf5.totalMarks,
                     percentage: bestOf5.percentage,
-                    resultStatus: bestOf5.percentage >= 33 ? 'PASS' : 'FAIL',
+                    resultStatus: status,
                     classRank: 0,
                     sectionRank: 0
                 }
@@ -95,6 +103,12 @@ export class ResultCalculationProcessor {
         }
 
         await this.resultService.calculateRanks(examTermId);
+
+        // 6.E.08 Subject Analytics
+        const termExams = await this.prisma.exam.findMany({ where: { examTermId } });
+        for (const exam of termExams) {
+            await this.analyticsService.calculateAndStore(exam.id);
+        }
 
         await this.prisma.calculationLog.update({
             where: { id: log.id },

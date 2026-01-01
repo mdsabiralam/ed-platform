@@ -10,7 +10,8 @@ class GradingManagerScreen extends StatefulWidget {
 }
 
 class _GradingManagerScreenState extends State<GradingManagerScreen> {
-  final GradingRepository _repository = GradingRepository();
+  final String _tenantId = 'ce58f250-8384-4af5-8c83-726746179b09';
+  late final GradingRepository _repository;
   List<GradingScale>? _scales;
   bool _isLoading = true;
   String? _error;
@@ -18,6 +19,7 @@ class _GradingManagerScreenState extends State<GradingManagerScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = GradingRepository(tenantId: _tenantId);
     _loadScales();
   }
 

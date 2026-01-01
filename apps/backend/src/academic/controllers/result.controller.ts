@@ -1,12 +1,22 @@
-import { Controller, Post, Body, Headers, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Put, Body, Param, Headers, BadRequestException, HttpCode, HttpStatus } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { ResultService } from '../services/result.service';
 
 @ApiTags('Academic - Result')
 @Controller('api/academic/result')
 export class ResultController {
-  constructor(@InjectQueue('result-calculation') private resultQueue: any) {}
+  constructor(
+    @InjectQueue('result-calculation') private resultQueue: any,
+    private resultService: ResultService
+  ) {}
+
+  @Put(':id/release')
+  @ApiOperation({ summary: 'Release withheld result' })
+  async releaseResult(@Param('id') id: string) {
+      return this.resultService.releaseResult(id);
+  }
 
   @Post('process')
   @HttpCode(HttpStatus.ACCEPTED)

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface SubjectResultInput {
@@ -162,6 +162,18 @@ export class ResultService {
     return { finalWeightedScore, totalWeightUsed };
   }
 
+  async releaseResult(summaryId: string) {
+      const summary = await this.prisma.resultSummary.findUnique({ where: { id: summaryId } });
+      if (!summary) throw new NotFoundException('Result not found');
+
+      const newStatus = summary.percentage >= 33 ? 'PASS' : 'FAIL';
+
+      return this.prisma.resultSummary.update({
+          where: { id: summaryId },
+          data: { resultStatus: newStatus }
+      });
+  }
+
   /**
    * 6.E.03: Best of 5 Logic
    */
@@ -192,9 +204,11 @@ export class ResultService {
     // Class Rank
     await this.prisma.$executeRaw`
       WITH Ranked AS (
-        SELECT id, RANK() OVER (ORDER BY total_marks DESC) as rnk
-        FROM result_summaries
-        WHERE exam_term_id = ${examTermId}
+        SELECT rs.id, RANK() OVER (PARTITION BY sec.class_id ORDER BY rs.total_marks DESC) as rnk
+        FROM result_summaries rs
+        JOIN students s ON rs.student_id = s.id
+        JOIN sections sec ON s.section_id = sec.id
+        WHERE rs.exam_term_id = ${examTermId}
       )
       UPDATE result_summaries
       SET class_rank = cast(Ranked.rnk as integer)

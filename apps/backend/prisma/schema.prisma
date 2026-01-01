@@ -675,3 +675,16 @@ model CalculationLog {
 
   @@map("calculation_logs")
 }
+
+model SubjectAnalytics {
+  id          String   @id @default(uuid())
+  examId      String   @unique @map("exam_id")
+  average     Float
+  highest     Float
+  lowest      Float
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("subject_analytics")
+}

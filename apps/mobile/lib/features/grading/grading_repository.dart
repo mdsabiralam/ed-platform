@@ -8,7 +8,7 @@ class GradingRepository {
 
   GradingRepository({
     this.baseUrl = 'http://localhost:3000',
-    this.tenantId = 'ce58f250-8384-4af5-8c83-726746179b09', // Mock Tenant ID from previous verification
+    required this.tenantId,
   });
 
   Future<List<GradingScale>> getScales() async {
