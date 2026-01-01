@@ -45,6 +45,7 @@ model Tenant {
 
   subjects           Subject[]
   gradingMaps        SubjectGradingMap[]
+  exams              Exam[]
 
   @@map("tenants")
 }
@@ -286,6 +287,7 @@ model Class {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
   gradingMaps SubjectGradingMap[]
+  exams       Exam[]
 
   @@map("classes")
 }
@@ -324,6 +326,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  marks             StudentMark[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -517,6 +520,8 @@ model Subject {
 
   tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gradingMaps SubjectGradingMap[]
+  exams       Exam[]
+  marks       StudentMark[]
 
   @@unique([tenantId, name])
   @@map("subjects")
@@ -535,4 +540,42 @@ model SubjectGradingMap {
   gradingScale GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
 
   @@map("subject_grading_maps")
+}
+
+// 6.D.01 Student Marks & Exam
+model Exam {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  name         String
+  classId      String   @map("class_id")
+  subjectId    String   @map("subject_id")
+  maxTheory    Float    @default(100) @map("max_theory")
+  maxPractical Float    @default(0) @map("max_practical")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  class        Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject      Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  studentMarks StudentMark[]
+
+  @@map("exams")
+}
+
+model StudentMark {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  examId         String   @map("exam_id")
+  subjectId      String   @map("subject_id")
+  theoryMarks    Float    @default(0) @map("theory_marks")
+  practicalMarks Float    @default(0) @map("practical_marks")
+  totalMarks     Float    @map("total_marks")
+  isAbsent       Boolean  @default(false) @map("is_absent")
+  remarks        String?
+
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam           Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId, subjectId])
+  @@map("student_marks")
 }
