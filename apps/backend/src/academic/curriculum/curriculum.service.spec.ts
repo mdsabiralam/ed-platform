@@ -11,7 +11,14 @@ jest.mock('xlsx', () => ({
     Sheets: { Sheet1: {} },
   })),
   utils: {
-    sheet_to_json: jest.fn(() => [{ 'Chapter Name': 'C1', 'Topic Name': 'T1' }]),
+    sheet_to_json: jest.fn(() => [
+      {
+        'Chapter Name': 'C1',
+        'Topic Name': 'T1',
+        'Learning Outcomes': 'O1, O2',
+        'Estimated Hours': '5',
+      }
+    ]),
   },
 }));
 
@@ -38,6 +45,9 @@ describe('CurriculumService', () => {
     },
     syllabusLog: {
       create: jest.fn(),
+    },
+    admissionSession: {
+      findFirst: jest.fn().mockResolvedValue({ startDate: new Date('2024-01-01') }),
     },
     $transaction: jest.fn((callback) => callback(mockPrismaService)),
     chapter: {

@@ -62,27 +62,57 @@ export class CurriculumService {
       },
     });
 
+    // Fetch AdmissionSession for start date calculation (7.A.06)
+    const session = await this.prisma.admissionSession.findFirst({
+      where: { tenantId, name: meta.academicYear },
+    });
+    const sessionStartDate = session?.startDate || new Date(); // Fallback to now if not found
+
     // Group data by Chapter
     const chaptersMap = new Map<number, { name: string; targetDate: string | null; topics: any[] }>();
+
+    let accumulatedHours = 0;
 
     for (const row of data) {
       const chapterNum = row['Chapter Number'] || row['chapter_number'];
       const chapterName = row['Chapter Name'] || row['chapter_name'];
       const topicName = row['Topic Name'] || row['topic_name'];
-      const hours = row['Estimated Hours'] || row['estimated_hours'];
+      const hours = parseFloat(row['Estimated Hours'] || row['estimated_hours']) || 1.0;
       // 7.A.06 Parse Target Date
       const targetDate = row['Target Completion Date'] || row['target_completion_date'] || row['target_date'];
+      // 7.A.07 Parse Learning Outcomes
+      const outcomesStr = row['Learning Outcomes'] || row['learning_outcomes'];
+      const outcomes = outcomesStr ? outcomesStr.split(',').map((s: string) => s.trim()) : [];
 
       if (!chapterNum || !chapterName || !topicName) {
         continue; // Skip invalid rows
       }
 
+      // 7.A.06 Calendar Integration: Calculate target date if missing
+      // Logic: Start Date + (Accumulated Hours / 5 hours per day)
+      let calculatedDate: Date | null = null;
+      if (!targetDate) {
+        accumulatedHours += hours;
+        const daysToAdd = Math.ceil(accumulatedHours / 5);
+        const date = new Date(sessionStartDate);
+        date.setDate(date.getDate() + daysToAdd);
+        calculatedDate = date;
+      }
+
       if (!chaptersMap.has(chapterNum)) {
-        chaptersMap.set(chapterNum, { name: chapterName, targetDate: targetDate || null, topics: [] });
+        chaptersMap.set(chapterNum, {
+          name: chapterName,
+          targetDate: targetDate || calculatedDate,
+          topics: []
+        });
       }
       const chapter = chaptersMap.get(chapterNum);
       if (chapter) {
-        chapter.topics.push({ name: topicName, hours: parseFloat(hours) || 1.0 });
+        chapter.topics.push({
+          name: topicName,
+          hours,
+          outcomes
+        });
       }
     }
 
@@ -111,6 +141,12 @@ export class CurriculumService {
               name: topicData.name,
               estimatedHours: topicData.hours,
               orderIndex: orderIndex++,
+              // 7.A.07 Create Learning Outcomes
+              outcomes: {
+                create: topicData.outcomes.map((desc: string) => ({
+                  description: desc,
+                })),
+              },
             },
           });
         }
