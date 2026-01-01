@@ -12,7 +12,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  extensions = [pgcrypto, vector, postgis]
+  extensions = [pgcrypto, vector, postgis, btree_gist]
 }
 
 // 2.B.01 Tenants Table
@@ -38,6 +38,9 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  exams              Exam[]
+  subjects           Subject[]
+  rooms              Room[]
 
   @@map("tenants")
 }
@@ -99,6 +102,7 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -278,6 +282,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  examSchedules ExamSchedule[]
 
   @@map("classes")
 }
@@ -358,6 +363,8 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+
+  invigilationDuties InvigilationDuty[]
 
   @@map("staff_profiles")
 }
@@ -463,4 +470,101 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 6.C.01 Exam Schedules
+model Exam {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  schedules ExamSchedule[]
+
+  @@map("exams")
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  schedules ExamSchedule[]
+
+  @@map("subjects")
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  capacity  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  schedules ExamSchedule[]
+  invigilationDuties InvigilationDuty[]
+
+  @@map("rooms")
+}
+
+model ExamSchedule {
+  id              String   @id @default(uuid())
+  examId          String   @map("exam_id")
+  subjectId       String   @map("subject_id")
+  classId         String   @map("class_id")
+  date            DateTime
+  startTime       DateTime @map("start_time")
+  durationMinutes Int      @map("duration_minutes")
+  roomId          String?  @map("room_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  exam    Exam    @relation(fields: [examId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
+  room    Room?   @relation(fields: [roomId], references: [id])
+  invigilationDuties InvigilationDuty[]
+
+  @@map("exam_schedules")
+}
+
+model InvigilationDuty {
+  id              String   @id @default(uuid())
+  examScheduleId  String   @map("exam_schedule_id")
+  staffId         String   @map("staff_id")
+  roomId          String   @map("room_id")
+  isConfirmed     Boolean  @default(false) @map("is_confirmed")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  examSchedule    ExamSchedule @relation(fields: [examScheduleId], references: [id])
+  staff           StaffProfile @relation(fields: [staffId], references: [id])
+  room            Room         @relation(fields: [roomId], references: [id])
+
+  @@map("invigilation_duties")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, ALERT, EXAM_DUTY
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
 }
