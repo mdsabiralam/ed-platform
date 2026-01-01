@@ -52,20 +52,22 @@ export class CurriculumService {
     });
 
     // Group data by Chapter
-    const chaptersMap = new Map<number, { name: string; topics: any[] }>();
+    const chaptersMap = new Map<number, { name: string; targetDate: string | null; topics: any[] }>();
 
     for (const row of data) {
       const chapterNum = row['Chapter Number'] || row['chapter_number'];
       const chapterName = row['Chapter Name'] || row['chapter_name'];
       const topicName = row['Topic Name'] || row['topic_name'];
       const hours = row['Estimated Hours'] || row['estimated_hours'];
+      // 7.A.06 Parse Target Date
+      const targetDate = row['Target Completion Date'] || row['target_completion_date'] || row['target_date'];
 
       if (!chapterNum || !chapterName || !topicName) {
         continue; // Skip invalid rows
       }
 
       if (!chaptersMap.has(chapterNum)) {
-        chaptersMap.set(chapterNum, { name: chapterName, topics: [] });
+        chaptersMap.set(chapterNum, { name: chapterName, targetDate: targetDate || null, topics: [] });
       }
       const chapter = chaptersMap.get(chapterNum);
       if (chapter) {
@@ -73,9 +75,28 @@ export class CurriculumService {
       }
     }
 
+    // 7.A.10 Integrity Check: Check if any topics in this plan have been logged as completed
+    const existingTopics = await this.prisma.topic.count({
+      where: {
+        chapter: { planId: plan.id },
+        syllabusLogs: { some: {} },
+      },
+    });
+
+    if (existingTopics > 0) {
+      throw new BadRequestException(
+        'Cannot overwrite syllabus version because some topics are already marked as completed. Please increment the version number.',
+      );
+    }
+
     // Save Chapters and Topics transactionally
     await this.prisma.$transaction(async (tx) => {
-      // 7.A.04 Idempotency: Delete existing Chapters (cascade deletes Topics) for this plan
+      // 7.A.04 Idempotency: Delete existing topics first to avoid FK constraint violation
+      await tx.topic.deleteMany({
+        where: { chapter: { planId: plan.id } },
+      });
+
+      // Then delete chapters
       await tx.chapter.deleteMany({
         where: { planId: plan.id },
       });
@@ -87,7 +108,8 @@ export class CurriculumService {
             planId: plan.id,
             chapterNumber: chapterNum,
             name: chapterData.name,
-            // 7.A.06 Target completion date logic can be added here if provided in Excel
+            // 7.A.06 Target completion date parsing
+            targetCompletionDate: this.parseExcelDate(chapterData.targetDate),
           },
         });
 
@@ -107,6 +129,43 @@ export class CurriculumService {
     });
 
     return { message: 'Curriculum imported successfully', planId: plan.id };
+  }
+
+  /**
+   * 7.A.08 Get Curriculum Structure (Viewer)
+   */
+  async getCurriculumStructure(planId: string) {
+    const plan = await this.prisma.curriculumPlan.findUnique({
+      where: { id: planId },
+      include: {
+        chapters: {
+          orderBy: { chapterNumber: 'asc' },
+          include: {
+            topics: {
+              orderBy: { orderIndex: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!plan) throw new NotFoundException('Curriculum Plan not found');
+    return plan;
+  }
+
+  /**
+   * 7.A.09 Reorder Topics (Editor)
+   */
+  async reorderTopics(updates: { topicId: string; orderIndex: number }[]) {
+    await this.prisma.$transaction(
+      updates.map((update) =>
+        this.prisma.topic.update({
+          where: { id: update.topicId },
+          data: { orderIndex: update.orderIndex },
+        }),
+      ),
+    );
+    return { message: 'Topics reordered successfully' };
   }
 
   /**
@@ -147,6 +206,24 @@ export class CurriculumService {
   /**
    * 7.B.04 Get Syllabus Status
    */
+  private parseExcelDate(dateVal: any): Date | null {
+    if (!dateVal) return null;
+    if (typeof dateVal === 'number') {
+      // Basic Excel date conversion (Serial to JS Date)
+      // Excel base date is Dec 30 1899.
+      // milliseconds = (serial - 25569) * 86400 * 1000
+      // But simpler: new Date(Math.round((n - 25569)*86400*1000))
+      // Or use xlsx.SSF if available, but manual calc is often safer for minimal dep usage.
+      // 25569 is the offset for 1970-01-01
+      const utc_days  = Math.floor(dateVal - 25569);
+      const utc_value = utc_days * 86400;
+      const date_info = new Date(utc_value * 1000);
+      return date_info;
+    }
+    const parsed = new Date(dateVal);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
   async getSyllabusStatus(tenantId: string, classId: string, subjectId: string, sectionId: string) {
     // Fetch Plan
     const plan = await this.prisma.curriculumPlan.findFirst({

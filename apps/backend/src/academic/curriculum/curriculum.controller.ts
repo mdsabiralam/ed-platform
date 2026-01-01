@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, Body, Req, Get, Query } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, Body, Req, Get, Query, Put, Param } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurriculumService } from './curriculum.service';
 import { CreateCurriculumPlanDto } from './dto/create-curriculum-plan.dto';
@@ -11,7 +11,7 @@ export class CurriculumController {
   constructor(private readonly curriculumService: CurriculumService) {}
 
   @Post('import')
-  @ApiOperation({ summary: 'Import Syllabus from Excel' })
+  @ApiOperation({ summary: 'Import Syllabus from Excel (7.A.04)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: ImportSyllabusDto })
   @UseInterceptors(FileInterceptor('file'))
@@ -22,6 +22,25 @@ export class CurriculumController {
   ) {
     const tenantId = req.user?.tenantId;
     return this.curriculumService.importCurriculum(tenantId, file, body);
+  }
+
+  @Get(':planId')
+  @ApiOperation({ summary: 'Get Syllabus Structure (Viewer 7.A.08)' })
+  async getCurriculumStructure(
+    @Req() req: any,
+    @Param('planId') planId: string
+  ) {
+    return this.curriculumService.getCurriculumStructure(planId);
+  }
+
+  @Put('reorder-topics')
+  @ApiOperation({ summary: 'Reorder topics (Editor 7.A.09)' })
+  @ApiBody({ schema: { type: 'array', items: { type: 'object', properties: { topicId: { type: 'string' }, orderIndex: { type: 'integer' } } } } })
+  async reorderTopics(
+    @Req() req: any,
+    @Body() body: { topicId: string; orderIndex: number }[]
+  ) {
+    return this.curriculumService.reorderTopics(body);
   }
 
   @Post('complete-topic')

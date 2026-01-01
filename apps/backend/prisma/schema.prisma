@@ -556,7 +556,7 @@ model SyllabusLog {
   createdAt      DateTime @default(now()) @map("created_at")
 
   tenant         Tenant       @relation(fields: [tenantId], references: [id])
-  topic          Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic          Topic        @relation(fields: [topicId], references: [id]) // Removed Cascade for 7.A.10 Integrity
   teacher        StaffProfile @relation(fields: [teacherId], references: [id])
   section        Section      @relation(fields: [sectionId], references: [id])
 
