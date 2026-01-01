@@ -40,6 +40,12 @@ model Tenant {
   kycDocuments       KycDocument[]
   gradingScales      GradingScale[]
 
+  defaultGradingScaleId String? @map("default_grading_scale_id")
+  defaultGradingScale   GradingScale? @relation("DefaultGradingScale", fields: [defaultGradingScaleId], references: [id])
+
+  subjects           Subject[]
+  gradingMaps        SubjectGradingMap[]
+
   @@map("tenants")
 }
 
@@ -279,6 +285,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  gradingMaps SubjectGradingMap[]
 
   @@map("classes")
 }
@@ -479,6 +486,9 @@ model GradingScale {
   tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gradingLogics GradingLogic[]
 
+  defaultForTenants Tenant[] @relation("DefaultGradingScale")
+  subjectMaps       SubjectGradingMap[]
+
   @@map("grading_scales")
 }
 
@@ -493,4 +503,36 @@ model GradingLogic {
   scale      GradingScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
 
   @@map("grading_logics")
+}
+
+// 6.B.04 Subject Grading Map
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gradingMaps SubjectGradingMap[]
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+model SubjectGradingMap {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("school_id")
+  subjectId      String   @map("subject_id")
+  classId        String?  @map("class_id")
+  gradingScaleId String   @map("grading_scale_id")
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class        Class?       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  gradingScale GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
+
+  @@map("subject_grading_maps")
 }
