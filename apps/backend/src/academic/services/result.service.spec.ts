@@ -99,4 +99,24 @@ describe('ResultService', () => {
         expect(out.results[0].isGraceApplied).toBe(false);
     });
   });
+
+  describe('calculateBestOfFive', () => {
+    it('should calculate best of 5 correctly', () => {
+      // 6 subjects: 90, 80, 70, 60, 50, 40
+      // Top 5: 90, 80, 70, 60, 50. Sum = 350.
+      // Max 500. Percentage 70.
+      const res = service.calculateBestOfFive([40, 90, 60, 80, 50, 70]);
+      expect(res.totalMarks).toBe(350);
+      expect(res.percentage).toBe(70);
+      expect(res.subjectsConsidered).toBe(5);
+    });
+
+    it('should handle fewer than 5 subjects', () => {
+      // 3 subjects: 90, 80, 70. Sum 240. Max 300. Percentage 80.
+      const res = service.calculateBestOfFive([90, 80, 70]);
+      expect(res.totalMarks).toBe(240);
+      expect(res.percentage).toBe(80);
+      expect(res.subjectsConsidered).toBe(3);
+    });
+  });
 });

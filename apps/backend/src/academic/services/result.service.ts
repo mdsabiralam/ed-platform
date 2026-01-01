@@ -161,4 +161,59 @@ export class ResultService {
 
     return { finalWeightedScore, totalWeightUsed };
   }
+
+  /**
+   * 6.E.03: Best of 5 Logic
+   */
+  calculateBestOfFive(marks: number[], maxPerSubject: number = 100) {
+    // 1. Sort descending
+    const sorted = [...marks].sort((a, b) => b - a);
+
+    // 2. Take top 5 (or less if fewer subjects)
+    const top5 = sorted.slice(0, 5);
+
+    // 3. Calculate total and percentage
+    const totalMarks = top5.reduce((sum, m) => sum + m, 0);
+    const maxTotal = top5.length * maxPerSubject;
+
+    const percentage = maxTotal > 0 ? (totalMarks / maxTotal) * 100 : 0;
+
+    return {
+      totalMarks,
+      percentage: Math.round(percentage * 100) / 100, // Round to 2 decimals
+      subjectsConsidered: top5.length
+    };
+  }
+
+  /**
+   * 6.E.04: Calculate Ranks
+   */
+  async calculateRanks(examTermId: string) {
+    // Class Rank
+    await this.prisma.$executeRaw`
+      WITH Ranked AS (
+        SELECT id, RANK() OVER (ORDER BY total_marks DESC) as rnk
+        FROM result_summaries
+        WHERE exam_term_id = ${examTermId}
+      )
+      UPDATE result_summaries
+      SET class_rank = cast(Ranked.rnk as integer)
+      FROM Ranked
+      WHERE result_summaries.id = Ranked.id
+    `;
+
+    // Section Rank
+    await this.prisma.$executeRaw`
+      WITH Ranked AS (
+        SELECT rs.id, RANK() OVER (PARTITION BY s.section_id ORDER BY rs.total_marks DESC) as rnk
+        FROM result_summaries rs
+        JOIN students s ON rs.student_id = s.id
+        WHERE rs.exam_term_id = ${examTermId}
+      )
+      UPDATE result_summaries
+      SET section_rank = cast(Ranked.rnk as integer)
+      FROM Ranked
+      WHERE result_summaries.id = Ranked.id
+    `;
+  }
 }
