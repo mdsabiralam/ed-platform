@@ -68,9 +68,22 @@ export class ResultCalculationProcessor {
 
             const bestOf5 = this.resultService.calculateBestOfFive(normalizedMarks, 100);
 
+            // 6.E.09 Promotion Logic
+            let failCount = 0;
+            for (const m of marks) {
+                const isPassed = this.resultService.checkPassCriteria(
+                    m.theoryMarks,
+                    m.practicalMarks,
+                    m.exam.maxTheory,
+                    m.exam.maxPractical
+                );
+                if (!isPassed) failCount++;
+            }
+            let status = this.resultService.determinePromotionStatus(failCount);
+
             // 6.E.07 Check Fees
             const isFeesPaid = await this.financeService.checkFeeStatus(studentId);
-            const status = isFeesPaid ? (bestOf5.percentage >= 33 ? 'PASS' : 'FAIL') : 'WITHHELD';
+            if (!isFeesPaid) status = 'WITHHELD';
 
             await this.prisma.resultSummary.upsert({
                 where: {
@@ -87,7 +100,7 @@ export class ResultCalculationProcessor {
                     examTermId,
                     totalMarks: bestOf5.totalMarks,
                     percentage: bestOf5.percentage,
-                    resultStatus: status,
+                    resultStatus: status as any, // Cast to enum
                     classRank: 0,
                     sectionRank: 0
                 }

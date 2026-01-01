@@ -230,4 +230,22 @@ export class ResultService {
       WHERE result_summaries.id = Ranked.id
     `;
   }
+
+  /**
+   * 6.E.09: Determine Promotion Eligibility
+   */
+  determinePromotionStatus(failCount: number): 'PASS' | 'FAIL' | 'COMPARTMENT' {
+      if (failCount > 2) return 'FAIL';
+      if (failCount > 0) return 'COMPARTMENT';
+      return 'PASS';
+  }
+
+  /**
+   * 6.E.10: Percentage Calculator
+   */
+  calculatePercentage(obtained: number, total: number): number {
+      if (total === 0) return 0;
+      const pct = (obtained / total) * 100;
+      return Math.round(pct * 100) / 100;
+  }
 }

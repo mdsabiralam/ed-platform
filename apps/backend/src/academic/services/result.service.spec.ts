@@ -119,4 +119,26 @@ describe('ResultService', () => {
       expect(res.subjectsConsidered).toBe(3);
     });
   });
+
+  describe('determinePromotionStatus', () => {
+      it('should return PASS for 0 fails', () => {
+          expect(service.determinePromotionStatus(0)).toBe('PASS');
+      });
+      it('should return COMPARTMENT for 1 or 2 fails', () => {
+          expect(service.determinePromotionStatus(1)).toBe('COMPARTMENT');
+          expect(service.determinePromotionStatus(2)).toBe('COMPARTMENT');
+      });
+      it('should return FAIL for > 2 fails', () => {
+          expect(service.determinePromotionStatus(3)).toBe('FAIL');
+      });
+  });
+
+  describe('calculatePercentage', () => {
+      it('should calculate and round to 2 decimal places', () => {
+          expect(service.calculatePercentage(455, 600)).toBe(75.83);
+      });
+      it('should handle zero total', () => {
+          expect(service.calculatePercentage(100, 0)).toBe(0);
+      });
+  });
 });
