@@ -1,10 +1,15 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateExamScheduleDto } from './dto/create-exam-schedule.dto';
+ import { RescheduleExamDto } from './dto/reschedule-exam.dto';
+ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ExamService {
-  constructor(private prisma: PrismaService) {}
+   constructor(
+     private prisma: PrismaService,
+     private eventEmitter: EventEmitter2, // Add EventEmitter
+   ) {}
 
   async getSchedules(classId: string) {
     return this.prisma.examSchedule.findMany({
@@ -69,6 +74,49 @@ export class ExamService {
     });
   }
 
+  async rescheduleExam(id: string, dto: RescheduleExamDto) {
+    const examSchedule = await this.prisma.examSchedule.findUnique({
+      where: { id },
+      include: { subject: true },
+    });
+
+    if (!examSchedule) {
+      throw new ConflictException('Exam schedule not found');
+    }
+
+    const dateObj = new Date(dto.date);
+    const startTimeObj = new Date(dto.time);
+
+    // 1. Verify no conflicts with the new time (exclude current exam ID)
+    await this.checkScheduleConflict(
+      examSchedule.classId,
+      dateObj,
+      startTimeObj,
+      dto.duration,
+      id, // Exclude this exam
+    );
+
+    // 2. Update the record
+    const updatedSchedule = await this.prisma.examSchedule.update({
+      where: { id },
+      data: {
+        date: dateObj,
+        startTime: startTimeObj,
+        durationMinutes: dto.duration,
+      },
+    });
+
+    // 3. Trigger Urgent Alert
+    this.eventEmitter.emit('exam.rescheduled', {
+      classId: examSchedule.classId,
+      subjectName: examSchedule.subject.name,
+      newDate: dateObj,
+      newTime: startTimeObj,
+    });
+
+    return updatedSchedule;
+  }
+
   /**
    * Helper to check conflict using a specific prisma client (tx or this.prisma).
    */
@@ -78,6 +126,7 @@ export class ExamService {
     date: Date,
     startTime: Date,
     durationMinutes: number,
+    excludeExamId?: string,
   ): Promise<void> {
     const newExamStart = new Date(startTime);
     const newExamEnd = new Date(newExamStart.getTime() + durationMinutes * 60000);
@@ -86,6 +135,8 @@ export class ExamService {
       where: {
         classId: classId,
         date: date,
+        // Exclude the current exam if ID provided
+        ...(excludeExamId ? { id: { not: excludeExamId } } : {}),
       },
     });
 
@@ -106,6 +157,7 @@ export class ExamService {
    * @param date The date of the exam.
    * @param startTime The start time of the exam.
    * @param durationMinutes The duration of the exam in minutes.
+   * @param excludeExamId Optional ID of exam to exclude from check (for updates).
    * @throws ConflictException if an overlap is found.
    */
   async checkScheduleConflict(
@@ -113,7 +165,8 @@ export class ExamService {
     date: Date,
     startTime: Date,
     durationMinutes: number,
+    excludeExamId?: string,
   ): Promise<void> {
-    return this.checkScheduleConflictWithClient(this.prisma, classId, date, startTime, durationMinutes);
+    return this.checkScheduleConflictWithClient(this.prisma, classId, date, startTime, durationMinutes, excludeExamId);
   }
 }

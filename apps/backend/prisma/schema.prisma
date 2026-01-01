@@ -102,6 +102,7 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -551,4 +552,19 @@ model InvigilationDuty {
   room            Room         @relation(fields: [roomId], references: [id])
 
   @@map("invigilation_duties")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, ALERT, EXAM_DUTY
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
 }
