@@ -12,6 +12,7 @@ import { BullModule } from '@nestjs/bull';
 import { CalculationLogService } from './services/calculation-log.service';
 import { SubjectAnalyticsService } from './services/subject-analytics.service';
 import { FinanceService } from './services/finance-mock.service';
+import { PdfGeneratorService } from './services/pdf-generator.service';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { FinanceService } from './services/finance-mock.service';
     ResultCalculationProcessor,
     CalculationLogService,
     SubjectAnalyticsService,
-    FinanceService
+    FinanceService,
+    PdfGeneratorService
   ],
   exports: [GradingService, ResultService, MarksService],
 })

@@ -8,8 +8,8 @@ class MarksheetBuilderScreen extends StatefulWidget {
 }
 
 class _MarksheetBuilderScreenState extends State<MarksheetBuilderScreen> {
-  // State to store dropped items. For simplicity, storing label strings.
-  final List<String> _droppedItems = [];
+  final List<Map<String, dynamic>> _droppedItems = [];
+  final GlobalKey _canvasKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +42,18 @@ class _MarksheetBuilderScreenState extends State<MarksheetBuilderScreen> {
               child: AspectRatio(
                 aspectRatio: 1 / 1.414,
                 child: DragTarget<String>(
+                  key: _canvasKey,
                   onWillAccept: (data) => true,
-                  onAccept: (data) {
+                  onAcceptWithDetails: (details) {
+                    final RenderBox renderBox = _canvasKey.currentContext!.findRenderObject() as RenderBox;
+                    final localOffset = renderBox.globalToLocal(details.offset);
+
                     setState(() {
-                       _droppedItems.add(data);
+                       _droppedItems.add({
+                         'label': details.data,
+                         'offset': localOffset
+                       });
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added $data')));
                   },
                   builder: (context, candidateData, rejectedData) {
                     return Container(
@@ -60,11 +66,20 @@ class _MarksheetBuilderScreenState extends State<MarksheetBuilderScreen> {
                         children: [
                            if (_droppedItems.isEmpty)
                              const Center(child: Text('Drop Here')),
-                           // Simple list rendering for demo
-                           ListView.builder(
-                             itemCount: _droppedItems.length,
-                             itemBuilder: (ctx, i) => ListTile(title: Text(_droppedItems[i])),
-                           ),
+
+                           ..._droppedItems.map((item) {
+                             final offset = item['offset'] as Offset;
+                             return Positioned(
+                               left: offset.dx,
+                               top: offset.dy,
+                               child: Card(
+                                 child: Padding(
+                                   padding: const EdgeInsets.all(8.0),
+                                   child: Text(item['label']),
+                                 ),
+                               ),
+                             );
+                           }).toList(),
                         ],
                       ),
                     );
