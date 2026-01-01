@@ -24,6 +24,7 @@ describe('CurriculumService', () => {
       upsert: jest.fn(),
       findFirst: jest.fn(),
       findUnique: jest.fn(),
+      create: jest.fn(),
     },
     topic: {
       findUnique: jest.fn(),
@@ -81,15 +82,19 @@ describe('CurriculumService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw BadRequestException if existing logs are found (7.A.10)', async () => {
+    it('should increment version if plan exists', async () => {
       const mockFile = { buffer: Buffer.from('dummy') } as any;
 
-      mockPrismaService.curriculumPlan.upsert.mockResolvedValue({ id: 'plan-1' });
-      mockPrismaService.topic.count.mockResolvedValue(1); // 1 existing topic with logs
+      // Mock existing plan version 1.0
+      mockPrismaService.curriculumPlan.findFirst.mockResolvedValue({ id: 'old-plan', version: '1.0' });
+      mockPrismaService.curriculumPlan.create.mockResolvedValue({ id: 'new-plan', version: '1.1' });
 
-      await expect(
-        service.importCurriculum('tenant-1', mockFile, { classId: 'c1', subjectId: 's1', academicYearId: 'ay1' }),
-      ).rejects.toThrow(BadRequestException);
+      const result = await service.importCurriculum('tenant-1', mockFile, { classId: 'c1', subjectId: 's1', academicYear: 'ay1' });
+
+      expect(mockPrismaService.curriculumPlan.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ version: '1.1' })
+      }));
+      expect(result.planId).toBe('new-plan');
     });
   });
 

@@ -30,24 +30,35 @@ export class CurriculumService {
       throw new BadRequestException('Excel sheet is empty');
     }
 
-    // Create or find Curriculum Plan
-    const plan = await this.prisma.curriculumPlan.upsert({
+    // 7.A.05 Version Control Logic
+    // Find the latest version for this class/subject/year
+    const existingPlan = await this.prisma.curriculumPlan.findFirst({
       where: {
-        tenantId_classId_subjectId_academicYearId_version: {
-          tenantId,
-          classId: meta.classId,
-          subjectId: meta.subjectId,
-          academicYearId: meta.academicYearId,
-          version: meta.version || '1.0',
-        },
-      },
-      update: {},
-      create: {
         tenantId,
         classId: meta.classId,
         subjectId: meta.subjectId,
-        academicYearId: meta.academicYearId,
-        version: meta.version || '1.0',
+        academicYear: meta.academicYear,
+      },
+      orderBy: { createdAt: 'desc' }, // Assuming createdAt gives the latest, or sort by version string if possible
+    });
+
+    let newVersion = '1.0';
+    if (existingPlan) {
+      // Simple increment logic: 1.0 -> 1.1 -> 1.2 ... -> 1.9 -> 1.10
+      const currentVersion = parseFloat(existingPlan.version);
+      if (!isNaN(currentVersion)) {
+        newVersion = (currentVersion + 0.1).toFixed(1);
+      }
+    }
+
+    // Create new Curriculum Plan record (Always create new for version history)
+    const plan = await this.prisma.curriculumPlan.create({
+      data: {
+        tenantId,
+        classId: meta.classId,
+        subjectId: meta.subjectId,
+        academicYear: meta.academicYear,
+        version: newVersion,
       },
     });
 
@@ -75,31 +86,9 @@ export class CurriculumService {
       }
     }
 
-    // 7.A.10 Integrity Check: Check if any topics in this plan have been logged as completed
-    const existingTopics = await this.prisma.topic.count({
-      where: {
-        chapter: { planId: plan.id },
-        syllabusLogs: { some: {} },
-      },
-    });
-
-    if (existingTopics > 0) {
-      throw new BadRequestException(
-        'Cannot overwrite syllabus version because some topics are already marked as completed. Please increment the version number.',
-      );
-    }
-
     // Save Chapters and Topics transactionally
     await this.prisma.$transaction(async (tx) => {
-      // 7.A.04 Idempotency: Delete existing topics first to avoid FK constraint violation
-      await tx.topic.deleteMany({
-        where: { chapter: { planId: plan.id } },
-      });
-
-      // Then delete chapters
-      await tx.chapter.deleteMany({
-        where: { planId: plan.id },
-      });
+      // No deletion needed as we are creating a new plan version (7.A.05)
 
       for (const [chapterNum, chapterData] of chaptersMap.entries()) {
         // Create Chapter

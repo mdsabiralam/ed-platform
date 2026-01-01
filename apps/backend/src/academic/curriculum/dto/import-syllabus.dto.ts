@@ -15,8 +15,8 @@ export class ImportSyllabusDto {
   @IsNotEmpty()
   subjectId: string;
 
-  @ApiProperty({ example: 'SESSION-UUID', description: 'Academic Year ID' })
+  @ApiProperty({ example: '2024-2025', description: 'Academic Year' })
   @IsString()
   @IsNotEmpty()
-  academicYearId: string;
+  academicYear: string;
 }

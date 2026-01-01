@@ -276,7 +276,6 @@ model AdmissionSession {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   students  Student[]
-  curriculumPlans CurriculumPlan[]
 
   @@map("admission_sessions")
 }
@@ -468,20 +467,19 @@ model CurriculumPlan {
   tenantId        String   @map("school_id")
   classId         String   @map("class_id")
   subjectId       String   @map("subject_id")
-  academicYearId  String   @map("academic_year_id")
+  academicYear    String   @map("academic_year")
   version         String   @default("1.0") // 7.A.05
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   tenant          Tenant           @relation(fields: [tenantId], references: [id])
   class           Class            @relation(fields: [classId], references: [id])
-  academicYear    AdmissionSession @relation(fields: [academicYearId], references: [id])
   subject         Subject          @relation(fields: [subjectId], references: [id])
 
   chapters        Chapter[]
 
   @@map("curriculum_plans")
-  @@unique([tenantId, classId, subjectId, academicYearId, version])
+  @@unique([tenantId, classId, subjectId, academicYear, version])
 }
 
 model Subject {

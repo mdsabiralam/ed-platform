@@ -12,10 +12,10 @@ export class CreateCurriculumPlanDto {
   @IsNotEmpty()
   subjectId: string;
 
-  @ApiProperty({ example: 'SESSION-UUID', description: 'Academic Year ID' })
+  @ApiProperty({ example: '2024-2025', description: 'Academic Year' })
   @IsString()
   @IsNotEmpty()
-  academicYearId: string;
+  academicYear: string;
 
   @ApiProperty({ example: '1.0', description: 'Version of the syllabus', required: false })
   @IsString()
