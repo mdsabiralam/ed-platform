@@ -40,7 +40,8 @@ export class CurriculumController {
     @Req() req: any,
     @Body() body: { topicId: string; orderIndex: number }[]
   ) {
-    return this.curriculumService.reorderTopics(body);
+    const tenantId = req.user?.tenantId;
+    return this.curriculumService.reorderTopics(tenantId, body);
   }
 
   @Post('complete-topic')

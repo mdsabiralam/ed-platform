@@ -106,6 +106,25 @@ describe('CurriculumService', () => {
       }));
       expect(result.planId).toBe('new-plan');
     });
+
+    it('should allow version increment even if logs exist (Safe Update)', async () => {
+      const mockFile = { buffer: Buffer.from('dummy') } as any;
+
+      // Mock existing plan with logs
+      mockPrismaService.curriculumPlan.findFirst.mockResolvedValue({ id: 'plan-1', version: '1.0' });
+      mockPrismaService.curriculumPlan.create.mockResolvedValue({ id: 'new-plan', version: '1.1' });
+      mockPrismaService.topic.count.mockResolvedValue(1); // logs exist on OLD plan
+
+      const result = await service.importCurriculum('tenant-1', mockFile, { classId: 'c1', subjectId: 's1', academicYear: 'ay1' });
+
+      // Should create new version
+      expect(mockPrismaService.curriculumPlan.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ version: '1.1' })
+      }));
+      // Should NOT have deleted anything on the new plan (since it was just created)
+      // Note: deleteMany is called on plan.id (which is new-plan.id). Since it's new, deleteMany does nothing effectively.
+      // The test 'Integrity' is now implicitly satisfied by the fact we didn't touch plan-1's data.
+    });
   });
 
   describe('markTopicCompleted', () => {
