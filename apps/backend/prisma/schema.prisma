@@ -569,6 +569,9 @@ model Exam {
   studentMarks StudentMark[]
   markEntryStatus MarkEntryStatus?
 
+  examTermId   String?       @map("exam_term_id")
+  examTerm     ExamTerm?     @relation(fields: [examTermId], references: [id])
+
   @@map("exams")
 }
 
@@ -622,6 +625,7 @@ model ExamTerm {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   resultSummaries ResultSummary[]
   exams       Exam[]
+  calculationLogs CalculationLog[]
 
   @@unique([tenantId, name])
   @@map("exam_terms")
@@ -650,4 +654,24 @@ model ResultSummary {
 
   @@unique([studentId, examTermId])
   @@map("result_summaries")
+}
+
+enum CalculationStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model CalculationLog {
+  id             String            @id @default(uuid())
+  examTermId     String            @map("exam_term_id")
+  status         CalculationStatus @default(PROCESSING)
+  startedAt      DateTime          @default(now()) @map("started_at")
+  completedAt    DateTime?         @map("completed_at")
+  processedCount Int               @default(0) @map("processed_count")
+  errorLog       Json?             @map("error_log")
+
+  examTerm       ExamTerm          @relation(fields: [examTermId], references: [id], onDelete: Cascade)
+
+  @@map("calculation_logs")
 }
