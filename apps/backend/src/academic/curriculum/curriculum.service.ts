@@ -243,7 +243,7 @@ export class CurriculumService {
     }
 
     // Create Syllabus Log
-    return this.prisma.syllabusLog.create({
+    const log = await this.prisma.syllabusLog.create({
       data: {
         tenantId,
         topicId,
@@ -252,6 +252,23 @@ export class CurriculumService {
         completionDate,
       },
     });
+
+    // 7.B.02 Update Topic's actualCompletionDate
+    await this.prisma.topic.update({
+      where: { id: topicId },
+      data: { actualCompletionDate: completionDate },
+    });
+
+    return log;
+  }
+
+  /**
+   * 7.B.03 Calculate Syllabus Lag (Deviation)
+   * Returns difference in days. Positive = Lag, Negative = Lead.
+   */
+  calculateSyllabusLag(targetDate: Date, actualDate: Date): number {
+    const diffTime = actualDate.getTime() - targetDate.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   /**
@@ -315,11 +332,21 @@ export class CurriculumService {
         totalTopics: chapterTotalTopics,
         completedTopics: chapterCompletedTopics,
         isCompleted: chapterTotalTopics > 0 && chapterTotalTopics === chapterCompletedTopics,
-        topics: chapter.topics.map(t => ({
-          name: t.name,
-          isCompleted: t.syllabusLogs.length > 0,
-          completedAt: t.syllabusLogs[0]?.completionDate || null
-        }))
+        topics: chapter.topics.map(t => {
+          const completedAt = t.syllabusLogs[0]?.completionDate || null;
+          // Calculate lag if completed and target date exists
+          let lagDays = 0;
+          if (completedAt && chapter.targetCompletionDate) {
+            lagDays = this.calculateSyllabusLag(chapter.targetCompletionDate, completedAt);
+          }
+
+          return {
+            name: t.name,
+            isCompleted: t.syllabusLogs.length > 0,
+            completedAt: completedAt,
+            lagDays: lagDays, // 7.B.03
+          };
+        })
       };
     });
 

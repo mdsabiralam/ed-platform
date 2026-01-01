@@ -523,6 +523,7 @@ model Topic {
   name           String
   estimatedHours Float    @map("estimated_hours")
   orderIndex     Int      @default(0) @map("order_index") // For Drag-and-drop 7.A.09
+  actualCompletionDate DateTime? @map("actual_completion_date") // 7.B.02 Denormalized field
 
   chapter        Chapter  @relation(fields: [chapterId], references: [id])
   outcomes       LearningOutcome[]
