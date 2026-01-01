@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -9,13 +9,25 @@ export class UpdateMarkDto {
   @ApiProperty() theory: number;
   @ApiProperty() practical: number;
   @ApiProperty() isAbsent: boolean;
+  @ApiProperty({ required: false }) remarks?: string;
 }
 
 @Injectable()
 export class MarksService {
   constructor(private prisma: PrismaService) {}
 
+  private async checkLockStatus(examId: string) {
+    const status = await this.prisma.markEntryStatus.findUnique({
+        where: { examId }
+    });
+    if (status && (status.status === 'PENDING_APPROVAL' || status.status === 'APPROVED')) {
+        throw new ForbiddenException('Marks are locked for this exam');
+    }
+  }
+
   async updateMark(tenantId: string, dto: UpdateMarkDto) {
+    await this.checkLockStatus(dto.examId);
+
     // 1. Fetch Exam configuration (Source 6.A)
     // We assume examId is valid and exists
     const exam = await this.prisma.exam.findUnique({
@@ -56,6 +68,7 @@ export class MarksService {
         practicalMarks: dto.practical,
         totalMarks: total,
         isAbsent: dto.isAbsent,
+        remarks: dto.remarks,
       },
       create: {
         examId: dto.examId,
@@ -65,6 +78,7 @@ export class MarksService {
         practicalMarks: dto.practical,
         totalMarks: total,
         isAbsent: dto.isAbsent,
+        remarks: dto.remarks,
       },
     });
   }
@@ -77,6 +91,13 @@ export class MarksService {
 
       // Optimization: Fetch unique exams first
       const examIds = [...new Set(dtos.map(d => d.examId))];
+
+      // Check Locks for bulk
+      const locks = await this.prisma.markEntryStatus.findMany({
+          where: { examId: { in: examIds } }
+      });
+      const lockedExamIds = new Set(locks.filter(l => l.status === 'PENDING_APPROVAL' || l.status === 'APPROVED').map(l => l.examId));
+
       const exams = await this.prisma.exam.findMany({
           where: { id: { in: examIds } }
       });
@@ -92,6 +113,10 @@ export class MarksService {
 
       for (const dto of dtos) {
           try {
+              if (lockedExamIds.has(dto.examId)) {
+                  throw new ForbiddenException('Marks are locked for this exam');
+              }
+
               const exam = examMap.get(dto.examId);
               if (!exam) throw new NotFoundException('Exam not found');
               if (exam.tenantId !== tenantId) throw new BadRequestException('Invalid Exam');
@@ -128,6 +153,7 @@ export class MarksService {
                     practicalMarks: dto.practical,
                     totalMarks: total,
                     isAbsent: dto.isAbsent,
+                    remarks: dto.remarks,
                   },
                   create: {
                     examId: dto.examId,
@@ -137,6 +163,7 @@ export class MarksService {
                     practicalMarks: dto.practical,
                     totalMarks: total,
                     isAbsent: dto.isAbsent,
+                    remarks: dto.remarks,
                   },
               });
               successCount++;
@@ -147,5 +174,41 @@ export class MarksService {
       }
 
       return { successCount, errorCount, errors };
+  }
+
+  async getSubmissionStatus(examId: string) {
+      const status = await this.prisma.markEntryStatus.findUnique({
+          where: { examId },
+          include: { exam: true }
+      });
+      return status || { status: 'DRAFT' };
+  }
+
+  async submitMarks(userId: string, examId: string) {
+      const exam = await this.prisma.exam.findUnique({ where: { id: examId } });
+      if (!exam) throw new NotFoundException('Exam not found');
+
+      return this.prisma.markEntryStatus.upsert({
+          where: { examId },
+          update: { status: 'PENDING_APPROVAL', submittedBy: userId },
+          create: {
+              examId,
+              classId: exam.classId,
+              subjectId: exam.subjectId,
+              status: 'PENDING_APPROVAL',
+              submittedBy: userId
+          }
+      });
+  }
+
+  async approveMarks(userId: string, examId: string) {
+      const status = await this.prisma.markEntryStatus.findUnique({ where: { examId } });
+      if (!status || status.status !== 'PENDING_APPROVAL') {
+          throw new BadRequestException('Marks not pending approval');
+      }
+      return this.prisma.markEntryStatus.update({
+          where: { examId },
+          data: { status: 'APPROVED' } // Approver ID logic can be added if needed
+      });
   }
 }

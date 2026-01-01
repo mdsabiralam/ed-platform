@@ -288,6 +288,7 @@ model Class {
   sections  Section[]
   gradingMaps SubjectGradingMap[]
   exams       Exam[]
+  markEntryStatuses MarkEntryStatus[]
 
   @@map("classes")
 }
@@ -476,6 +477,12 @@ enum UserRole {
   SUPPLIER
 }
 
+enum SubmissionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+}
+
 // 6.B.01 Grading Logic Table
 model GradingScale {
   id           String   @id @default(uuid())
@@ -522,6 +529,7 @@ model Subject {
   gradingMaps SubjectGradingMap[]
   exams       Exam[]
   marks       StudentMark[]
+  markEntryStatuses MarkEntryStatus[]
 
   @@unique([tenantId, name])
   @@map("subjects")
@@ -557,8 +565,26 @@ model Exam {
   class        Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
   subject      Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   studentMarks StudentMark[]
+  markEntryStatus MarkEntryStatus?
 
   @@map("exams")
+}
+
+model MarkEntryStatus {
+  id          String           @id @default(uuid())
+  examId      String           @unique @map("exam_id")
+  classId     String           @map("class_id")
+  subjectId   String           @map("subject_id")
+  status      SubmissionStatus @default(DRAFT)
+  submittedBy String?          @map("submitted_by")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  exam        Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class       Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject     Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, classId, subjectId])
+  @@map("mark_entry_statuses")
 }
 
 model StudentMark {

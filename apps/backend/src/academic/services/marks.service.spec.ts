@@ -22,6 +22,9 @@ describe('MarksService', () => {
     studentMark: {
       upsert: jest.fn(),
     },
+    markEntryStatus: {
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
   };
 
   beforeEach(async () => {

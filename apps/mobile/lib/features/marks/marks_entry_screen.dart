@@ -91,6 +91,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
               DataColumn(label: Text('Absent')),
             ],
             rows: _students.asMap().entries.map((entry) {
+              final index = entry.key;
               final student = entry.value;
               final total = (student['isAbsent'] as bool) ? 0 : ((student['theory'] as num) + (student['practical'] as num));
 
