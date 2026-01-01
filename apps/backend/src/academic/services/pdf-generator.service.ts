@@ -1,15 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { MarksheetLayout } from '../interfaces/marksheet-layout.interface';
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 @Injectable()
 export class PdfGeneratorService {
-  async generatePdf(layout: MarksheetLayout, studentData: any): Promise<Uint8Array> {
+  async generatePdf(
+      layout: MarksheetLayout,
+      studentData: any,
+      options?: { backgroundImageUrl?: string; disclaimerText?: string }
+  ): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage(); // Default A4
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 12;
+
+    // 6.F.08: Background Image
+    if (options?.backgroundImageUrl) {
+        try {
+            // Attempt to fetch image. Requires Node 18+ or polyfill.
+            const response = await fetch(options.backgroundImageUrl);
+            if (response.ok) {
+                const imgBuffer = await response.arrayBuffer();
+                // Check format simple logic or try both
+                let image;
+                if (options.backgroundImageUrl.endsWith('.png')) {
+                    image = await pdfDoc.embedPng(imgBuffer);
+                } else {
+                    image = await pdfDoc.embedJpg(imgBuffer);
+                }
+
+                page.drawImage(image, {
+                    x: 0,
+                    y: 0,
+                    width,
+                    height,
+                    opacity: 0.1,
+                });
+            }
+        } catch (e) {
+            console.warn('Could not load background image:', e);
+        }
+    }
 
     let y = height - 50;
 
@@ -68,6 +100,17 @@ export class PdfGeneratorService {
 
             page.drawText(sig.title, { x: sigX, y, size: 10, font });
         }
+    }
+
+    // 6.F.09: Configurable Disclaimer
+    if (options?.disclaimerText) {
+        page.drawText(options.disclaimerText, {
+            x: 50,
+            y: 20,
+            size: 8,
+            font,
+            color: rgb(0.5, 0.5, 0.5)
+        });
     }
 
     return pdfDoc.save();

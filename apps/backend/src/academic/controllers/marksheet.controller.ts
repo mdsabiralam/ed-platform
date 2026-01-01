@@ -1,7 +1,9 @@
-import { Controller, Put, Get, Param, Body, Headers, Res, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Put, Post, Get, Param, Body, Headers, Res, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { PdfGeneratorService } from '../services/pdf-generator.service';
+import { StorageService } from '../services/storage.service';
 import { Response } from 'express';
 import { MarksheetLayout } from '../interfaces/marksheet-layout.interface';
 
@@ -10,8 +12,18 @@ import { MarksheetLayout } from '../interfaces/marksheet-layout.interface';
 export class MarksheetController {
   constructor(
     private prisma: PrismaService,
-    private pdfService: PdfGeneratorService
+    private pdfService: PdfGeneratorService,
+    private storageService: StorageService
   ) {}
+
+  @Post('template/upload-background')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload background image' })
+  async uploadBackground(@UploadedFile() file: any) {
+      if (!file) throw new BadRequestException('File required');
+      const url = await this.storageService.uploadFile(file);
+      return { url };
+  }
 
   @Put('class/:id/assign-template')
   @ApiOperation({ summary: 'Assign marksheet template to class' })
@@ -66,7 +78,14 @@ export class MarksheetController {
         ]
     };
 
-    const pdfBytes = await this.pdfService.generatePdf(template.structureJson as unknown as MarksheetLayout, dummyData);
+    const pdfBytes = await this.pdfService.generatePdf(
+        template.structureJson as unknown as MarksheetLayout,
+        dummyData,
+        {
+            backgroundImageUrl: template.backgroundImageUrl || undefined,
+            disclaimerText: template.disclaimerText || undefined
+        }
+    );
 
     res.set({
         'Content-Type': 'application/pdf',

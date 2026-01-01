@@ -13,6 +13,7 @@ import { CalculationLogService } from './services/calculation-log.service';
 import { SubjectAnalyticsService } from './services/subject-analytics.service';
 import { FinanceService } from './services/finance-mock.service';
 import { PdfGeneratorService } from './services/pdf-generator.service';
+import { StorageService } from './services/storage.service';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { PdfGeneratorService } from './services/pdf-generator.service';
     CalculationLogService,
     SubjectAnalyticsService,
     FinanceService,
-    PdfGeneratorService
+    PdfGeneratorService,
+    StorageService
   ],
   exports: [GradingService, ResultService, MarksService],
 })
