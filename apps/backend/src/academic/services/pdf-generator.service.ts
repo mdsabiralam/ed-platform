@@ -17,5 +17,19 @@ export class PdfGeneratorService {
     layout.marksTable.visible_columns.forEach(col => {
         console.log(`Rendering ${col} column`);
     });
+
+    // 6.F.05: Digital Signature Logic
+    if (layout.footer?.signatures) {
+        for (const sig of layout.footer.signatures) {
+            if (sig.title === 'Principal') {
+                console.log('Fetching Principal Signature from StaffProfile...');
+                // e.g. prisma.staffProfile.findFirst({ where: { designation: 'Principal' } })
+            }
+            if (sig.title === 'Class Teacher') {
+                console.log('Fetching Class Teacher Signature...');
+                // e.g. Fetch ClassTeacher mapping
+            }
+        }
+    }
   }
 }

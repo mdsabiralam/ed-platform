@@ -292,6 +292,9 @@ model Class {
   exams       Exam[]
   markEntryStatuses MarkEntryStatus[]
 
+  templateId   String?            @map("template_id")
+  template     MarksheetTemplate? @relation(fields: [templateId], references: [id])
+
   @@map("classes")
 }
 
@@ -708,6 +711,7 @@ model MarksheetTemplate {
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  classes            Class[]
 
   @@map("marksheet_templates")
 }

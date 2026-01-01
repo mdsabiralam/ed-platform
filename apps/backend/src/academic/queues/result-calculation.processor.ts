@@ -79,7 +79,7 @@ export class ResultCalculationProcessor {
                 );
                 if (!isPassed) failCount++;
             }
-            let status = this.resultService.determinePromotionStatus(failCount);
+            let status: any = this.resultService.determinePromotionStatus(failCount);
 
             // 6.E.07 Check Fees
             const isFeesPaid = await this.financeService.checkFeeStatus(studentId);
