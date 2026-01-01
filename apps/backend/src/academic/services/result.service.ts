@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export interface SubjectResultInput {
   subjectId: string;
@@ -13,6 +14,8 @@ export interface GraceResultOutput {
 
 @Injectable()
 export class ResultService {
+  constructor(private prisma: PrismaService) {}
+
   /**
    * 6.B.06: Pass Criteria Logic
    * A student must score 33% in Theory AND 33% in Practical separately to pass.
@@ -128,5 +131,34 @@ export class ResultService {
     }
 
     throw new Error('Invalid Score: No grade found for this score');
+  }
+
+  async calculateTermAggregation(studentId: string, tenantId: string) {
+    const terms = await this.prisma.examTerm.findMany({
+      where: { tenantId },
+    });
+
+    let finalWeightedScore = 0;
+    let totalWeightUsed = 0;
+
+    for (const term of terms) {
+      if (term.weightage > 0) {
+        const summary = await this.prisma.resultSummary.findUnique({
+          where: {
+            studentId_examTermId: {
+              studentId,
+              examTermId: term.id,
+            },
+          },
+        });
+
+        if (summary) {
+          finalWeightedScore += summary.percentage * term.weightage;
+          totalWeightUsed += term.weightage;
+        }
+      }
+    }
+
+    return { finalWeightedScore, totalWeightUsed };
   }
 }

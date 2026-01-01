@@ -46,6 +46,7 @@ model Tenant {
   subjects           Subject[]
   gradingMaps        SubjectGradingMap[]
   exams              Exam[]
+  examTerms          ExamTerm[]
 
   @@map("tenants")
 }
@@ -328,6 +329,7 @@ model Student {
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
   marks             StudentMark[]
+  resultSummaries   ResultSummary[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -604,4 +606,48 @@ model StudentMark {
 
   @@unique([examId, studentId, subjectId])
   @@map("student_marks")
+}
+
+// 6.E.01 Result Summary
+model ExamTerm {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  name        String
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  weightage   Float    @default(0.0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resultSummaries ResultSummary[]
+  exams       Exam[]
+
+  @@unique([tenantId, name])
+  @@map("exam_terms")
+}
+
+enum ResultStatus {
+  PASS
+  FAIL
+  WITHHELD
+  COMPARTMENT
+}
+
+model ResultSummary {
+  id           String       @id @default(uuid())
+  studentId    String       @map("student_id")
+  examTermId   String       @map("exam_term_id")
+  totalMarks   Float        @map("total_marks")
+  percentage   Float
+  classRank    Int          @map("class_rank")
+  sectionRank  Int          @map("section_rank")
+  resultStatus ResultStatus @map("result_status")
+  calculatedAt DateTime     @default(now()) @map("calculated_at")
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examTerm     ExamTerm     @relation(fields: [examTermId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examTermId])
+  @@map("result_summaries")
 }

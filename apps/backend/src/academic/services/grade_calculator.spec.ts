@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ResultService } from './result.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 describe('GradeCalculator (ResultService)', () => {
   let service: ResultService;
@@ -10,9 +11,17 @@ describe('GradeCalculator (ResultService)', () => {
       { label: 'B1', minScore: 71, maxScore: 80.99 },
   ];
 
+  const mockPrisma = {
+    examTerm: { findMany: jest.fn() },
+    resultSummary: { findUnique: jest.fn() }
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ResultService],
+      providers: [
+        ResultService,
+        { provide: PrismaService, useValue: mockPrisma }
+      ],
     }).compile();
 
     service = module.get<ResultService>(ResultService);
