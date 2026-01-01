@@ -9,7 +9,7 @@ export interface MarksheetLayout {
     layout: 'grid' | 'list';
   };
   marksTable: {
-    columns: ('subject' | 'max_marks' | 'marks_obtained' | 'grade' | 'percentage' | 'remarks')[];
+    visible_columns: ('subject' | 'max_marks' | 'marks_obtained' | 'grade' | 'percentage' | 'remarks' | 'attendance')[];
     showTotal: boolean;
   };
   footer: {
@@ -29,7 +29,7 @@ export const SAMPLE_MARKSHEET_LAYOUT: MarksheetLayout = {
     layout: 'grid',
   },
   marksTable: {
-    columns: ['subject', 'max_marks', 'marks_obtained', 'grade', 'remarks'],
+    visible_columns: ['subject', 'max_marks', 'marks_obtained', 'grade', 'remarks'],
     showTotal: true,
   },
   footer: {
