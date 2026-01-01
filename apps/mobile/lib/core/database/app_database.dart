@@ -34,7 +34,19 @@ class SyncQueue extends Table {
   DateTimeColumn get createdAt => dateTime().named('created_at').withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Students, AttendanceLogs, SyncQueue])
+class ExamSchedules extends Table {
+  TextColumn get id => text()();
+  TextColumn get examName => text().named('exam_name')();
+  TextColumn get subjectName => text().named('subject_name')();
+  DateTimeColumn get startTime => dateTime().named('start_time')();
+  IntColumn get durationMinutes => integer().named('duration_minutes')();
+  TextColumn get classId => text().named('class_id')();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Students, AttendanceLogs, SyncQueue, ExamSchedules])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
