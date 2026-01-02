@@ -39,6 +39,7 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
   gradingScales      GradingScale[]
+  feeLedgers         StudentFeeLedger[]
 
   @@map("tenants")
 }
@@ -317,6 +318,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  feeLedgers        StudentFeeLedger[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -493,4 +495,21 @@ model GradingScaleRule {
   gradingScale   GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
 
   @@map("grading_scale_rules")
+}
+
+// 6.J.03 Student Fee Ledger (For Result Blocking)
+model StudentFeeLedger {
+  id          String   @id @default(uuid())
+  studentId   String   @map("student_id")
+  amountDue   Float    @map("amount_due")
+  status      String   // PAID, PENDING, OVERDUE
+  dueDate     DateTime @map("due_date")
+  tenantId    String   @map("tenant_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  student     Student  @relation(fields: [studentId], references: [id])
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("student_fee_ledgers")
 }
