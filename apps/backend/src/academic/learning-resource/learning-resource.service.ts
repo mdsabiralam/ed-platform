@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLearningResourceDto } from './dto/create-learning-resource.dto';
+import { StorageService } from '../../shared/storage.service';
 
 @Injectable()
 export class LearningResourceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async create(dto: CreateLearningResourceDto) {
     return this.prisma.learningResource.create({
@@ -22,9 +26,21 @@ export class LearningResourceService {
   }
 
   async findAllByTopic(topicId: string) {
-    return this.prisma.learningResource.findMany({
+    const resources = await this.prisma.learningResource.findMany({
       where: { topicId },
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(
+      resources.map(async (resource) => {
+        if (resource.type === 'PDF' || resource.type === 'AUDIO') {
+          return {
+            ...resource,
+            url: await this.storageService.getPresignedUrl(resource.url),
+          };
+        }
+        return resource;
+      }),
+    );
   }
 }

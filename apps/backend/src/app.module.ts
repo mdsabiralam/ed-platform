@@ -9,6 +9,7 @@ import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
 import { AcademicModule } from './academic/academic.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AcademicModule } from './academic/academic.module';
     SaasModule,
     TenantModule,
     AcademicModule,
+    SharedModule,
   ],
   controllers: [AppController],
   providers: [AppService],
