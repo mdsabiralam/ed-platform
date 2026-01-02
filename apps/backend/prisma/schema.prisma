@@ -552,3 +552,68 @@ model StudentActivityLog {
 
   @@map("student_activity_logs")
 }
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model OnlineExam {
+  id              String   @id @default(uuid())
+  title           String
+  subjectId       String   @map("subject_id")
+  durationMinutes Int      @map("duration_minutes")
+  startTime       DateTime @map("start_time")
+  endTime         DateTime @map("end_time")
+  totalMarks      Int      @map("total_marks")
+  status          String   @default("DRAFT")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  subject     Subject                @relation(fields: [subjectId], references: [id])
+  questions   Question[]
+  submissions OnlineExamSubmission[]
+
+  @@map("online_exams")
+}
+
+model Question {
+  id            String          @id @default(uuid())
+  examId        String          @map("exam_id")
+  topicId       String          @map("topic_id")
+  text          String
+  type          QuestionType
+  difficulty    DifficultyLevel @default(MEDIUM)
+  marks         Int
+  options       Json?
+  correctAnswer String          @map("correct_answer")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  exam  OnlineExam @relation(fields: [examId], references: [id])
+  topic Topic      @relation(fields: [topicId], references: [id])
+
+  @@map("questions")
+}
+
+model OnlineExamSubmission {
+  id          String   @id @default(uuid())
+  examId      String   @map("exam_id")
+  studentId   String   @map("student_id")
+  score       Float
+  totalMarks  Float    @map("total_marks")
+  submittedAt DateTime @default(now()) @map("submitted_at")
+  answers     Json     @map("answers") // Array of { questionId, topicId, isCorrect, ... }
+
+  exam    OnlineExam @relation(fields: [examId], references: [id])
+  student Student    @relation(fields: [studentId], references: [id])
+
+  @@map("online_exam_submissions")
+}

@@ -39,4 +39,15 @@ export class LearningResourceController {
   async findAllByTopic(@Param('topicId') topicId: string) {
     return this.learningResourceService.findAllByTopic(topicId);
   }
+
+  @Get('recommended')
+  @ApiOperation({ summary: 'Get recommended resources based on weak topics' })
+  @ApiResponse({ status: 200, description: 'List of recommended resources.' })
+  async getRecommendedResources(@Req() req: any) {
+    const studentId = req.user?.id || req.headers['x-user-id'];
+    if (!studentId) {
+       throw new Error('User ID not found in request');
+    }
+    return this.learningResourceService.getRecommendedResources(studentId);
+  }
 }
