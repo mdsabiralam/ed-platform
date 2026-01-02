@@ -1,11 +1,29 @@
-import { Controller, Put, Post, Get, Param, Body, Headers, Res, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Put, Post, Get, Delete, Param, Body, Headers, Res, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiHeader, ApiProperty } from '@nestjs/swagger';
 import { PdfGeneratorService } from '../services/pdf-generator.service';
 import { StorageService } from '../services/storage.service';
 import { Response } from 'express';
 import { MarksheetLayout } from '../interfaces/marksheet-layout.interface';
+import { PageSize } from '@prisma/client';
+
+class CreateTemplateDto {
+  @ApiProperty() name: string;
+  @ApiProperty() structureJson: any;
+  @ApiProperty({ required: false }) backgroundImageUrl?: string;
+  @ApiProperty({ required: false }) disclaimerText?: string;
+  @ApiProperty({ enum: PageSize, default: PageSize.A4 }) pageSize?: PageSize;
+}
+
+class UpdateTemplateDto {
+  @ApiProperty({ required: false }) name?: string;
+  @ApiProperty({ required: false }) structureJson?: any;
+  @ApiProperty({ required: false }) backgroundImageUrl?: string;
+  @ApiProperty({ required: false }) disclaimerText?: string;
+  @ApiProperty({ enum: PageSize, required: false }) pageSize?: PageSize;
+  @ApiProperty({ required: false }) isActive?: boolean;
+}
 
 @ApiTags('Academic - Marksheet')
 @Controller('api/academic')
@@ -15,6 +33,91 @@ export class MarksheetController {
     private pdfService: PdfGeneratorService,
     private storageService: StorageService
   ) {}
+
+  @Post('template')
+  @ApiOperation({ summary: 'Create marksheet template' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async createTemplate(
+    @Headers('x-tenant-id') tenantId: string,
+    @Body() dto: CreateTemplateDto
+  ) {
+      if (!tenantId) throw new BadRequestException('Tenant ID required');
+      return this.prisma.marksheetTemplate.create({
+          data: {
+              tenantId,
+              name: dto.name,
+              structureJson: dto.structureJson,
+              backgroundImageUrl: dto.backgroundImageUrl,
+              disclaimerText: dto.disclaimerText,
+              pageSize: dto.pageSize || PageSize.A4
+          }
+      });
+  }
+
+  @Get('template')
+  @ApiOperation({ summary: 'List marksheet templates' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async listTemplates(@Headers('x-tenant-id') tenantId: string) {
+      if (!tenantId) throw new BadRequestException('Tenant ID required');
+      return this.prisma.marksheetTemplate.findMany({
+          where: { tenantId, isActive: true }
+      });
+  }
+
+  @Get('template/:id')
+  @ApiOperation({ summary: 'Get marksheet template' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async getTemplate(
+    @Headers('x-tenant-id') tenantId: string,
+    @Param('id') id: string
+  ) {
+      const template = await this.prisma.marksheetTemplate.findFirst({
+          where: { id, tenantId }
+      });
+      if (!template) throw new NotFoundException('Template not found');
+      return template;
+  }
+
+  @Put('template/:id')
+  @ApiOperation({ summary: 'Update marksheet template' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async updateTemplate(
+    @Headers('x-tenant-id') tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateTemplateDto
+  ) {
+      const template = await this.prisma.marksheetTemplate.findFirst({
+          where: { id, tenantId }
+      });
+      if (!template) throw new NotFoundException('Template not found');
+
+      return this.prisma.marksheetTemplate.update({
+          where: { id },
+          data: {
+              name: dto.name,
+              structureJson: dto.structureJson,
+              backgroundImageUrl: dto.backgroundImageUrl,
+              disclaimerText: dto.disclaimerText,
+              pageSize: dto.pageSize,
+              isActive: dto.isActive
+          }
+      });
+  }
+
+  @Delete('template/:id')
+  @ApiOperation({ summary: 'Delete marksheet template' })
+  @ApiHeader({ name: 'x-tenant-id', required: true })
+  async deleteTemplate(
+      @Headers('x-tenant-id') tenantId: string,
+      @Param('id') id: string
+  ) {
+      const template = await this.prisma.marksheetTemplate.findFirst({
+          where: { id, tenantId }
+      });
+      if (!template) throw new NotFoundException('Template not found');
+
+      return this.prisma.marksheetTemplate.delete({ where: { id } });
+  }
 
   @Post('template/upload-background')
   @UseInterceptors(FileInterceptor('file'))

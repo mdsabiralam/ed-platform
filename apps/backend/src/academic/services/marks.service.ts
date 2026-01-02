@@ -162,7 +162,7 @@ export class MarksService {
 
               let theory = dto.theory;
               let practical = dto.practical;
-              let gradeLabel = null;
+              let gradeLabel: string | null = null;
 
               if (gradingScale && !gradingScale.isMarksBased) {
                    if (!dto.gradeLabel) throw new BadRequestException('Grade label is required');
