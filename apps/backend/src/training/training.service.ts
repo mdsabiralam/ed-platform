@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrainingDto } from './dto/create-training.dto';
 import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
@@ -6,10 +6,110 @@ import { TrainingAttendanceStatus } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Express } from 'express';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 @Injectable()
 export class TrainingService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async generateTrainingCertificate(attendanceId: string) {
+    const attendance = await this.prisma.trainingAttendance.findUnique({
+      where: { id: attendanceId },
+      include: {
+        training: true,
+        staff: {
+          include: { user: true },
+        },
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException('Attendance record not found');
+    }
+
+    if (attendance.status !== TrainingAttendanceStatus.PRESENT) {
+      throw new BadRequestException('Certificate can only be generated for PRESENT attendance');
+    }
+
+    // Create a new PDFDocument
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([600, 400]);
+    const { width, height } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Draw Content
+    const fontSize = 30;
+    page.drawText('Certificate of Completion', {
+      x: 50,
+      y: height - 100,
+      size: fontSize,
+      font,
+      color: rgb(0, 0.53, 0.71),
+    });
+
+    page.drawText(`This is to certify that`, {
+      x: 50,
+      y: height - 150,
+      size: 18,
+      font,
+      color: rgb(0, 0, 0),
+    });
+
+    const teacherName = `${attendance.staff.user.firstName || ''} ${attendance.staff.user.lastName || ''}`.trim() || 'Teacher';
+    page.drawText(teacherName, {
+      x: 50,
+      y: height - 180,
+      size: 24,
+      font,
+      color: rgb(0, 0, 0),
+    });
+
+    page.drawText(`has successfully completed the training:`, {
+      x: 50,
+      y: height - 220,
+      size: 18,
+      font,
+      color: rgb(0, 0, 0),
+    });
+
+    page.drawText(attendance.training.title, {
+      x: 50,
+      y: height - 250,
+      size: 24,
+      font,
+      color: rgb(0, 0, 0),
+    });
+
+    const dateStr = attendance.training.date.toDateString();
+    page.drawText(`Date: ${dateStr}`, {
+      x: 50,
+      y: height - 300,
+      size: 14,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+
+    // Serialize the PDFDocument to bytes (a Uint8Array)
+    const pdfBytes = await pdfDoc.save();
+
+    // Save to disk
+    const certDir = path.join(process.cwd(), 'uploads', 'certificates');
+    if (!fs.existsSync(certDir)) {
+      fs.mkdirSync(certDir, { recursive: true });
+    }
+
+    const filename = `cert-${attendanceId}-${Date.now()}.pdf`;
+    const filePath = path.join(certDir, filename);
+
+    fs.writeFileSync(filePath, pdfBytes);
+
+    const certificateUrl = `/uploads/certificates/${filename}`;
+
+    return this.prisma.trainingAttendance.update({
+      where: { id: attendanceId },
+      data: { certificateUrl },
+    });
+  }
 
   async uploadResource(trainingId: string, file: Express.Multer.File) {
     const training = await this.prisma.teacherTraining.findUnique({

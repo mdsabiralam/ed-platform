@@ -11,6 +11,21 @@ jest.mock('fs', () => ({
   writeFileSync: jest.fn(),
 }));
 
+jest.mock('pdf-lib', () => ({
+  PDFDocument: {
+    create: jest.fn().mockResolvedValue({
+      addPage: jest.fn().mockReturnValue({
+        getSize: jest.fn().mockReturnValue({ width: 600, height: 400 }),
+        drawText: jest.fn(),
+      }),
+      embedFont: jest.fn(),
+      save: jest.fn().mockResolvedValue(new Uint8Array([])),
+    }),
+  },
+  StandardFonts: { Helvetica: 'Helvetica' },
+  rgb: jest.fn(),
+}));
+
 describe('TrainingModule', () => {
   let controller: TrainingController;
   let service: TrainingService;
@@ -233,6 +248,37 @@ describe('TrainingModule', () => {
         where: { id: trainingId },
         data: { resourceUrls: { push: expect.stringContaining('.pdf') } }
       });
+    });
+  });
+
+  describe('generateTrainingCertificate', () => {
+    it('should generate PDF and update certificateUrl', async () => {
+      const attendanceId = 'att-1';
+      const mockAttendance = {
+        id: attendanceId,
+        status: 'PRESENT',
+        training: { title: 'Training 1', date: new Date() },
+        staff: { user: { firstName: 'John', lastName: 'Doe' } }
+      };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+      mockPrismaService.trainingAttendance.update.mockResolvedValue({ ...mockAttendance, certificateUrl: '/uploads/certificates/cert.pdf' });
+
+      await controller.generateCertificate(attendanceId);
+
+      expect(fs.mkdirSync).toHaveBeenCalled();
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(prisma.trainingAttendance.update).toHaveBeenCalledWith({
+        where: { id: attendanceId },
+        data: { certificateUrl: expect.stringContaining('.pdf') }
+      });
+    });
+
+    it('should throw BadRequest if status is not PRESENT', async () => {
+        const attendanceId = 'att-2';
+        mockPrismaService.trainingAttendance.findUnique.mockResolvedValue({ id: attendanceId, status: 'ABSENT' });
+
+        await expect(controller.generateCertificate(attendanceId)).rejects.toThrow(BadRequestException);
     });
   });
 });

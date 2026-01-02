@@ -35,6 +35,11 @@ export class TrainingController {
     return this.trainingService.markAttendance(attendanceId, dto.status);
   }
 
+  @Post('attendance/:id/certificate')
+  async generateCertificate(@Param('id') attendanceId: string) {
+    return this.trainingService.generateTrainingCertificate(attendanceId);
+  }
+
   @Post('feedback')
   async submitFeedback(@Body() dto: SubmitFeedbackDto) {
     return this.trainingService.submitFeedback(dto);
