@@ -2,10 +2,40 @@ import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger } 
 import { PrismaService } from '../prisma/prisma.service';
 import puppeteer, { Browser } from 'puppeteer';
 
+export interface TemplateElement {
+  text: string;
+  x: number;
+  y: number;
+  font_size: number;
+  color: string;
+  font_weight?: string;
+  background?: string;
+  padding?: string;
+  border_radius?: string;
+  align?: string;
+  opacity?: number;
+}
+
+export interface SocialTemplate {
+  background: string;
+  elements: TemplateElement[];
+}
+
 @Injectable()
 export class SocialService implements OnModuleInit, OnModuleDestroy {
   private browser: Browser;
   private readonly logger = new Logger(SocialService.name);
+
+  // Default Template Configuration
+  private readonly defaultTemplate: SocialTemplate = {
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    elements: [
+      { text: "Congratulations!", x: 600, y: 150, font_size: 40, color: "#FFFFFF", align: "center" },
+      { text: "{{name}}", x: 600, y: 250, font_size: 60, color: "#FFFFFF", align: "center", font_weight: "bold" },
+      { text: "Rank: {{rank}}", x: 600, y: 380, font_size: 30, color: "#333333", background: "#ffd700", padding: "10px 30px", border_radius: "50px", align: "center" },
+      { text: "{{school}}", x: 600, y: 530, font_size: 24, color: "#FFFFFF", align: "center", opacity: 0.9 }
+    ]
+  };
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -24,6 +54,53 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private renderTemplateHtml(template: SocialTemplate, data: Record<string, string>): string {
+    const elementsHtml = template.elements.map(el => {
+      // Replace placeholders
+      const text = el.text.replace(/{{(\w+)}}/g, (_, key) => data[key] || '');
+
+      const style = [
+        `position: absolute`,
+        `left: ${el.x}px`,
+        `top: ${el.y}px`,
+        `font-size: ${el.font_size}px`,
+        `color: ${el.color}`,
+        el.font_weight ? `font-weight: ${el.font_weight}` : '',
+        el.background ? `background: ${el.background}` : '',
+        el.padding ? `padding: ${el.padding}` : '',
+        el.border_radius ? `border-radius: ${el.border_radius}` : '',
+        el.opacity ? `opacity: ${el.opacity}` : '',
+        el.align === 'center' ? 'transform: translate(-50%, -50%)' : '',
+        'white-space: nowrap'
+      ].filter(Boolean).join(';');
+
+      return `<div style="${style}">${text}</div>`;
+    }).join('\n');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            width: 1200px;
+            height: 630px;
+            background: ${template.background};
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            position: relative;
+          }
+        </style>
+      </head>
+      <body>
+        ${elementsHtml}
+      </body>
+      </html>
+    `;
+  }
+
   async generateStudentOgImage(studentId: string): Promise<Buffer> {
     const student = await this.prisma.student.findUnique({
       where: { id: studentId },
@@ -36,13 +113,8 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
       throw new NotFoundException('Student not found');
     }
 
-    // Try to get rank from ResultSummary if available
-    // We fetch the latest ResultSummary for this student
     let rank = 'N/A';
     try {
-        // Checking if we can access result summaries.
-        // Using 'any' cast to avoid TS errors if ResultSummary type is not yet fully generated in client
-        // but likely exists in DB.
         const resultSummaries = await (this.prisma as any).resultSummary.findMany({
             where: { studentId: studentId },
             orderBy: { createdAt: 'desc' },
@@ -59,76 +131,15 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
     const schoolName = student.tenant.name;
     const studentName = `${student.firstName} ${student.lastName}`;
 
-    // HTML Template with placeholders
-    const htmlTemplate = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            margin: 0;
-            padding: 0;
-            width: 1200px;
-            height: 630px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-          }
-          .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            width: 80%;
-            text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-          }
-          h1 {
-            font-size: 60px;
-            margin: 0 0 20px 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-          }
-          h2 {
-            font-size: 40px;
-            margin: 10px 0;
-            font-weight: normal;
-          }
-          .badge {
-            background: #ffd700;
-            color: #333;
-            padding: 10px 30px;
-            border-radius: 50px;
-            font-size: 30px;
-            font-weight: bold;
-            display: inline-block;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-          }
-          .school {
-            margin-top: 40px;
-            font-size: 24px;
-            opacity: 0.9;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="card">
-          <h2>Congratulations!</h2>
-          <h1 id="studentName"></h1>
+    // Data for template substitution
+    const data = {
+      name: studentName,
+      school: schoolName,
+      rank: rank
+    };
 
-          <div class="badge">
-             Rank: <span id="rank"></span>
-          </div>
-
-          <div class="school" id="schoolName"></div>
-        </div>
-      </body>
-      </html>
-    `;
+    // Render HTML using default template
+    const html = this.renderTemplateHtml(this.defaultTemplate, data);
 
     let page;
     try {
@@ -139,19 +150,7 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
 
         page = await this.browser.newPage();
         await page.setViewport({ width: 1200, height: 630 });
-        await page.setContent(htmlTemplate);
-
-        // Safely inject content
-        await page.evaluate((sName, sRank, scName) => {
-          const elName = document.getElementById('studentName');
-          if (elName) elName.textContent = sName;
-
-          const elRank = document.getElementById('rank');
-          if (elRank) elRank.textContent = sRank;
-
-          const elSchool = document.getElementById('schoolName');
-          if (elSchool) elSchool.textContent = scName;
-        }, studentName, rank, schoolName);
+        await page.setContent(html);
 
         const buffer = await page.screenshot({ type: 'png' });
         return Buffer.from(buffer);
