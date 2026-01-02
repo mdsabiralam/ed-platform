@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  assignments        Assignment[]
 
   @@map("tenants")
 }
@@ -278,6 +279,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  assignments Assignment[]
 
   @@map("classes")
 }
@@ -291,6 +293,7 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  assignments Assignment[]
 
   @@map("sections")
 }
@@ -316,6 +319,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  submissions       AssignmentSubmission[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +362,7 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  assignments  Assignment[]
 
   @@map("staff_profiles")
 }
@@ -463,4 +468,54 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 7.H.01 Assignment
+model Assignment {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  classId     String   @map("class_id")
+  sectionId   String?  @map("section_id") // Optional, if assignment is for specific section
+  teacherId   String   @map("teacher_id") // Creator
+
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date")
+  rubricJson  Json?    @map("rubric_json") // Requested field
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  class       Class    @relation(fields: [classId], references: [id])
+  section     Section? @relation(fields: [sectionId], references: [id])
+  teacher     StaffProfile @relation(fields: [teacherId], references: [id])
+
+  submissions AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+// 7.H.01 Assignment Submission
+model AssignmentSubmission {
+  id               String   @id @default(uuid())
+  assignmentId     String   @map("assignment_id")
+  studentId        String   @map("student_id")
+
+  content          String?  // Text content
+  fileUrl          String?  @map("file_url") // Uploaded file
+  submittedAt      DateTime @default(now()) @map("submitted_at")
+
+  // Requested fields
+  teacherFeedback  String?  @map("teacher_feedback")
+  obtainedMarks    Float?   @map("obtained_marks")
+  audioFeedbackUrl String?  @map("audio_feedback_url")
+  isFeatured       Boolean  @default(false) @map("is_featured")
+
+  assignment       Assignment @relation(fields: [assignmentId], references: [id])
+  student          Student    @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
 }
