@@ -323,6 +323,7 @@ model Student {
   healthProfile     HealthProfile?
   studentMarks      StudentMark[]
   feeLedgers        StudentFeeLedger[]
+  socialArtifacts   SocialArtifact[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -566,4 +567,34 @@ model StudentFeeLedger {
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@map("student_fee_ledgers")
+}
+
+// 2.K.01 Social: Social Artifacts
+model SocialArtifact {
+  id           String   @id @default(uuid())
+  studentId    String   @map("student_id")
+  publicSlug   String   @unique @map("public_slug")
+  metadata     Json?    // Stores context like examId
+  expiry       DateTime?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  analytics    ShareAnalytics[]
+
+  @@map("social_artifacts")
+}
+
+// 2.K.02 Social: Share Analytics
+model ShareAnalytics {
+  id             String   @id @default(uuid())
+  artifactId     String   @map("artifact_id")
+  platform       String   // whatsapp, facebook, browser, bot
+  clicks         Int      @default(0)
+  uniqueVisitors Int      @default(0) @map("unique_visitors")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  artifact       SocialArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, platform])
+  @@map("share_analytics")
 }
