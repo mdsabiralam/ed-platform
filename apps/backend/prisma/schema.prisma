@@ -527,6 +527,7 @@ model StudentExamAttempt {
   exam    OnlineExam @relation(fields: [examId], references: [id])
   student Student    @relation(fields: [studentId], references: [id])
 
+  @@unique([studentId, examId])
   @@map("student_exam_attempts")
 }
 
@@ -535,3 +536,6 @@ model StudentExamAttempt {
 // This is a partial update simulation since we can't edit in place easily with append
 // But since I'm appending, I need to be careful.
 // Actually, I should use git merge diff for schema update to add the field to existing model.
+
+// Added via task 7.E.10
+// Need to add unique constraint to StudentExamAttempt

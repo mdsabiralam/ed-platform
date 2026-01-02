@@ -44,19 +44,7 @@ export class OnlineExamService {
     answers: { questionId: string; selectedOption: string }[],
     timeSpent?: Record<string, number>,
   ) {
-    // 1. Prevent double submission
-    const existingAttempt = await this.prisma.studentExamAttempt.findFirst({
-      where: {
-        studentId,
-        examId,
-      },
-    });
-
-    if (existingAttempt) {
-      throw new ConflictException('Exam already submitted by this student.');
-    }
-
-    // 2. Fetch exam details
+    // 1. Fetch exam details first
     const exam = await this.prisma.onlineExam.findUnique({
       where: { id: examId },
       include: {
@@ -68,7 +56,7 @@ export class OnlineExamService {
       throw new NotFoundException('Exam not found');
     }
 
-    // 3. Time Validation
+    // 2. Time Validation
     const now = new Date();
     const bufferMinutes = 5;
     const endTimeWithBuffer = new Date(exam.endTime.getTime() + bufferMinutes * 60000);
@@ -81,36 +69,40 @@ export class OnlineExamService {
       throw new BadRequestException('Exam submission time has passed.');
     }
 
-    // 4. Grading Logic
+    // 3. Grading Logic (Moved before DB write to keep transaction short)
     let score = 0;
     const questionsMap = new Map(exam.questions.map((q) => [q.id, q]));
 
-    // 2. Loop through user answers
     for (const answer of answers) {
       const question = questionsMap.get(answer.questionId);
       if (question) {
-        // 3. If correct, add marks. If wrong, deduct marks.
         if (question.correctAnswer === answer.selectedOption) {
           score += question.marks;
         } else {
-          // Negative marking
           score -= question.marks * exam.negativeMarkingRate;
         }
       }
     }
 
-    // 4. Save the total score to StudentExamAttempt table immediately
-    const attempt = await this.prisma.studentExamAttempt.create({
-      data: {
-        examId,
-        studentId,
-        score,
-        totalMarks: exam.totalMarks,
-        timeSpent: timeSpent as any, // Cast to any for Json compatibility if needed by Prisma types
-        attemptedAt: new Date(),
-      },
-    });
-
-    return attempt;
+    // 4. Atomic Save with Duplicate Check handling
+    try {
+      const attempt = await this.prisma.studentExamAttempt.create({
+        data: {
+          examId,
+          studentId,
+          score,
+          totalMarks: exam.totalMarks,
+          timeSpent: timeSpent as any,
+          attemptedAt: new Date(),
+        },
+      });
+      return attempt;
+    } catch (error: any) {
+      // P2002: Unique constraint violation
+      if (error.code === 'P2002') {
+        throw new ConflictException('Exam already submitted by this student.');
+      }
+      throw error;
+    }
   }
 }
