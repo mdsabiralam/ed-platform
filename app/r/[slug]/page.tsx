@@ -1,4 +1,5 @@
 import React from 'react';
+import { headers } from 'next/headers';
 
 // This is a Server Component by default in Next.js App Router
 export default async function PublicResultPage({ params }: { params: { slug: string } }) {
@@ -12,7 +13,15 @@ export default async function PublicResultPage({ params }: { params: { slug: str
   let error = null;
 
   try {
-    const res = await fetch(apiUrl, { cache: 'no-store' });
+    const headersList = headers();
+    const userAgent = headersList.get('user-agent') || '';
+
+    const res = await fetch(apiUrl, {
+      cache: 'no-store',
+      headers: {
+        'User-Agent': userAgent // Forward the visitor's User-Agent
+      }
+    });
     if (!res.ok) {
       if (res.status === 404) error = "Result not found.";
       else if (res.status === 400) error = "This link has expired.";

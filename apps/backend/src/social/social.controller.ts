@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Param, Res, Post, Body, Query, Headers } from '@nestjs/common';
 import { SocialService } from './social.service';
 import type { Response } from 'express';
 
@@ -13,8 +13,16 @@ export class SocialController {
   }
 
   @Get('public/:slug')
-  async getPublicArtifact(@Param('slug') slug: string) {
-    return this.socialService.getPublicArtifact(slug);
+  async getPublicArtifact(
+    @Param('slug') slug: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    return this.socialService.getPublicArtifact(slug, userAgent);
+  }
+
+  @Get('analytics/k-factor')
+  async getKFactor() {
+    return this.socialService.getKFactorAnalytics();
   }
 
   @Get('cta/admissions')

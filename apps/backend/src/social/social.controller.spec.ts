@@ -24,6 +24,12 @@ describe('SocialController', () => {
               percentage: '99%'
             }),
             handleAdmissionCta: jest.fn().mockResolvedValue('https://edplatform.com/admissions/apply'),
+            getKFactorAnalytics: jest.fn().mockResolvedValue({
+              kFactor: 1.5,
+              totalShares: 10,
+              totalClicks: 15,
+              platformBreakdown: []
+            }),
           },
         },
         {
@@ -59,7 +65,7 @@ describe('SocialController', () => {
   });
 
   it('should get public artifact', async () => {
-    const result = await controller.getPublicArtifact('xyz123');
+    const result = await controller.getPublicArtifact('xyz123', 'Mozilla/5.0');
     expect(result).toEqual({
       firstName: 'Test',
       className: 'X',
@@ -67,7 +73,18 @@ describe('SocialController', () => {
       rank: '1',
       percentage: '99%'
     });
-    expect(service.getPublicArtifact).toHaveBeenCalledWith('xyz123');
+    expect(service.getPublicArtifact).toHaveBeenCalledWith('xyz123', 'Mozilla/5.0');
+  });
+
+  it('should get k-factor analytics', async () => {
+    const result = await controller.getKFactor();
+    expect(result).toEqual({
+      kFactor: 1.5,
+      totalShares: 10,
+      totalClicks: 15,
+      platformBreakdown: []
+    });
+    expect(service.getKFactorAnalytics).toHaveBeenCalled();
   });
 
   it('should handle admission CTA redirect', async () => {

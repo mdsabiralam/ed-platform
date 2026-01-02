@@ -64,9 +64,18 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
   }
 
   private renderTemplateHtml(template: SocialTemplate, data: Record<string, string>): string {
+    const escapeHtml = (unsafe: string) => {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
     const elementsHtml = template.elements.map(el => {
-      // Replace placeholders
-      const text = el.text.replace(/{{(\w+)}}/g, (_, key) => data[key] || '');
+      // Replace placeholders with sanitized data
+      const text = el.text.replace(/{{(\w+)}}/g, (_, key) => escapeHtml(data[key] || ''));
 
       const style = [
         `position: absolute`,
@@ -202,7 +211,20 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
     return `${baseUrl}/r/${slug}`;
   }
 
-  async getPublicArtifact(slug: string): Promise<PublicArtifactDto> {
+  private detectPlatform(userAgent: string): string {
+    if (!userAgent) return 'web';
+    const ua = userAgent.toLowerCase();
+
+    if (ua.includes('whatsapp')) return 'whatsapp';
+    if (ua.includes('facebook')) return 'facebook';
+    if (ua.includes('twitter') || ua.includes('x-bot')) return 'twitter';
+    if (ua.includes('linkedin')) return 'linkedin';
+    if (ua.includes('bot') || ua.includes('crawl') || ua.includes('spider')) return 'bot';
+
+    return 'browser';
+  }
+
+  async getPublicArtifact(slug: string, userAgent: string = ''): Promise<PublicArtifactDto> {
     const artifact = await this.prisma.socialArtifact.findUnique({
       where: { publicSlug: slug },
       include: {
@@ -242,12 +264,14 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
     let percentage = 'N/A';
 
     try {
+        const platform = this.detectPlatform(userAgent);
+
         // Increment Analytics
         await this.prisma.shareAnalytics.upsert({
           where: {
             artifactId_platform: {
               artifactId: artifact.id,
-              platform: 'web', // Default platform for web visits
+              platform: platform,
             },
           },
           update: {
@@ -256,7 +280,7 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
           },
           create: {
             artifactId: artifact.id,
-            platform: 'web',
+            platform: platform,
             clickCount: 1,
             uniqueVisitors: 1,
           },
@@ -327,5 +351,41 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
     // Ideally, this should be dynamic based on the tenant/school linked to the artifact.
     // For this task, we'll use a placeholder URL.
     return 'https://edplatform.com/admissions/apply';
+  }
+
+  async getKFactorAnalytics() {
+    // K-Factor = Total Clicks / Total Shares
+    // Total Shares = Number of artifacts created
+    // Total Clicks = Sum of click counts (excluding bots/crawlers if preferred, but here we sum all 'clicks' that are potential views)
+
+    const totalShares = await this.prisma.socialArtifact.count();
+
+    const clicksAggregation = await this.prisma.shareAnalytics.aggregate({
+        _sum: {
+            clickCount: true
+        }
+    });
+
+    const totalClicks = clicksAggregation._sum.clickCount || 0;
+
+    const kFactor = totalShares > 0 ? (totalClicks / totalShares) : 0;
+
+    // Optional: Platform breakdown
+    const platformBreakdown = await this.prisma.shareAnalytics.groupBy({
+        by: ['platform'],
+        _sum: {
+            clickCount: true
+        }
+    });
+
+    return {
+        kFactor: parseFloat(kFactor.toFixed(2)),
+        totalShares,
+        totalClicks,
+        platformBreakdown: platformBreakdown.map(p => ({
+            platform: p.platform,
+            clicks: p._sum.clickCount || 0
+        }))
+    };
   }
 }
