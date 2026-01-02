@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsInt, IsOptional, IsNotEmpty, IsJSON, IsUrl } from 'class-validator';
+import { IsString, IsEnum, IsInt, IsOptional, IsNotEmpty, IsJSON, IsUrl, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum QuestionType {
@@ -61,7 +61,8 @@ export class CreateQuestionDto {
   bloomsLevel: BloomsLevel;
 
   @ApiProperty({ required: false })
-  @IsOptional()
+  @ValidateIf(o => o.type === QuestionType.MCQ)
+  @IsNotEmpty({ message: 'Options are required for MCQ questions' })
   options?: any; // JSON
 
   @ApiProperty()
