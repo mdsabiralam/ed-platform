@@ -295,6 +295,7 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  subjectTeachers SubjectTeacherMapping[]
 
   @@map("sections")
 }
@@ -363,6 +364,7 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  subjectTeachers SubjectTeacherMapping[]
 
   @@map("staff_profiles")
 }
@@ -495,6 +497,7 @@ model Subject {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   exams     Exam[]
+  subjectTeachers SubjectTeacherMapping[]
 
   @@unique([tenantId, name])
   @@map("subjects")
@@ -533,4 +536,19 @@ model StudentMark {
 
   @@unique([examId, studentId])
   @@map("student_marks")
+}
+
+// 3.B.01 Subject Teacher Mapping
+model SubjectTeacherMapping {
+  id        String   @id @default(uuid())
+  sectionId String   @map("section_id")
+  subjectId String   @map("subject_id")
+  teacherId String   @map("teacher_id") // References StaffProfile
+
+  section   Section      @relation(fields: [sectionId], references: [id])
+  subject   Subject      @relation(fields: [subjectId], references: [id])
+  teacher   StaffProfile @relation(fields: [teacherId], references: [id])
+
+  @@unique([sectionId, subjectId])
+  @@map("subject_teacher_mappings")
 }

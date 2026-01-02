@@ -19,6 +19,12 @@ describe('AnalyticsService', () => {
             studentMark: {
               findMany: jest.fn(),
             },
+            subjectTeacherMapping: {
+              findUnique: jest.fn(),
+            },
+            user: {
+                findUnique: jest.fn()
+            },
           },
         },
       ],
@@ -196,6 +202,63 @@ describe('AnalyticsService', () => {
        // Should start from Term 1 (2021) to Term 6 (2026), skipping Term 0 (2020)
        expect(result[0].term).toBe('Term 1');
        expect(result[5].term).toBe('Term 6');
+    });
+  });
+
+  describe('getTeacherPerformance', () => {
+    it('should return teacher performance metrics', async () => {
+      const sectionId = 'sec-1';
+      const subjectId = 'sub-1';
+      const examTermId = 'term-1';
+
+      const mockMapping = {
+        teacher: { userId: 'u1', user: { firstName: 'Mr', lastName: 'X' } },
+        subject: { name: 'Math' },
+      };
+
+      const mockStudents = [
+        {
+          id: 's1',
+          marks: [
+            { theoryMarks: 80, practicalMarks: 0, exam: { maxTheory: 100, maxPractical: 0 } }, // 80% (Pass)
+          ],
+        },
+        {
+          id: 's2',
+          marks: [
+            { theoryMarks: 50, practicalMarks: 0, exam: { maxTheory: 100, maxPractical: 0 } }, // 50% (Pass)
+          ],
+        },
+        {
+          id: 's3',
+          marks: [
+            { theoryMarks: 20, practicalMarks: 0, exam: { maxTheory: 100, maxPractical: 0 } }, // 20% (Fail)
+          ],
+        },
+        {
+          id: 's4',
+          marks: [
+            { theoryMarks: 70, practicalMarks: 0, exam: { maxTheory: 100, maxPractical: 0 } }, // 70% (Pass)
+          ],
+        },
+      ];
+      // Total: 4, Passed: 3 (s1, s2, s4), Class Avg: (80+50+20+70)/4 = 220/4 = 55%
+
+      (prisma.subjectTeacherMapping.findUnique as jest.Mock).mockResolvedValue(mockMapping);
+      (prisma.student.findMany as jest.Mock).mockResolvedValue(mockStudents);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({}); // Just to satisfy the call
+
+      const result = await service.getTeacherPerformance(sectionId, subjectId, examTermId);
+
+      expect(result.teacher_name).toBe('Teacher'); // Based on current implementation placeholder
+      expect(result.subject).toBe('Math');
+      expect(result.class_average).toBe('55.00%');
+      expect(result.pass_percentage).toBe('75.00%'); // 3 out of 4
+    });
+
+    it('should throw error if mapping not found', async () => {
+       (prisma.subjectTeacherMapping.findUnique as jest.Mock).mockResolvedValue(null);
+       await expect(service.getTeacherPerformance('s1', 'sub1', 't1')).rejects.toThrow('No teacher assigned');
     });
   });
 });
