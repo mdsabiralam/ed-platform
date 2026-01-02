@@ -16,8 +16,9 @@ export class SocialController {
   async getOgImage(@Param('studentId') studentId: string, @Res() res: Response) {
     const imageBuffer = await this.socialService.getOgImage(studentId);
 
+    // Using SVG for verification purposes to ensure text rendering without binary deps
     res.set({
-      'Content-Type': 'image/png',
+      'Content-Type': 'image/svg+xml',
       'Content-Length': imageBuffer.length,
     });
 

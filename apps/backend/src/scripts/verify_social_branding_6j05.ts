@@ -39,8 +39,8 @@ async function verifySocialBranding() {
   const res = mockResponse();
   await controller.getOgImage(studentId, res as Response);
 
-  if (res.headers['Content-Type'] === 'image/png') {
-     console.log('PASS: Response Content-Type is image/png.');
+  if (res.headers['Content-Type'] === 'image/svg+xml') {
+     console.log('PASS: Response Content-Type is image/svg+xml.');
   } else {
      console.error('FAIL: Incorrect Content-Type:', res.headers['Content-Type']);
      process.exit(1);
@@ -48,6 +48,13 @@ async function verifySocialBranding() {
 
   if (Buffer.isBuffer(res.body)) {
      console.log('PASS: Response body is a Buffer.');
+     const bodyStr = res.body.toString();
+     if (bodyStr.includes('Result for: Student')) {
+         console.log('PASS: Image contains correct student name text.');
+     } else {
+         console.error('FAIL: Image does not contain student name.');
+         process.exit(1);
+     }
   } else {
      console.error('FAIL: Response body is not a Buffer.');
      process.exit(1);
