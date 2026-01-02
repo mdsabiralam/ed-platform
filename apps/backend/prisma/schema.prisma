@@ -478,8 +478,51 @@ model Subject {
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   blueprints QuestionBlueprint[]
+  chapters   Chapter[]
+  questions  Question[]
 
   @@map("subjects")
+}
+
+enum QuestionType {
+  MCQ
+  SHORT_ANSWER
+  LONG_ANSWER
+  TRUE_FALSE
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model Chapter {
+  id        String   @id @default(uuid())
+  subjectId String   @map("subject_id")
+  name      String
+
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  questions Question[]
+
+  @@map("chapters")
+}
+
+model Question {
+  id          String   @id @default(uuid())
+  subjectId   String   @map("subject_id")
+  chapterId   String   @map("chapter_id")
+  type        QuestionType
+  difficulty  DifficultyLevel
+  marks       Int
+  content     String
+  options     Json?    // For MCQs
+  correctAnswer String? @map("correct_answer")
+
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  chapter     Chapter  @relation(fields: [chapterId], references: [id])
+
+  @@map("questions")
 }
 
 // 7.D.01 & 7.D.02 Question Blueprint
