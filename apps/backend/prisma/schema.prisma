@@ -539,3 +539,16 @@ model LearningResource {
 
   @@map("learning_resources")
 }
+
+model StudentActivityLog {
+  id         String   @id @default(uuid())
+  studentId  String   @map("student_id")
+  resourceId String   @map("resource_id")
+  action     String   @default("VIEW")
+  timestamp  DateTime @default(now())
+
+  student    Student          @relation(fields: [studentId], references: [id])
+  resource   LearningResource @relation(fields: [resourceId], references: [id])
+
+  @@map("student_activity_logs")
+}

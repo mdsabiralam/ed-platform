@@ -43,4 +43,14 @@ export class LearningResourceService {
       }),
     );
   }
+
+  async trackView(studentId: string, resourceId: string) {
+    return this.prisma.studentActivityLog.create({
+      data: {
+        studentId,
+        resourceId,
+        action: 'VIEW',
+      },
+    });
+  }
 }
