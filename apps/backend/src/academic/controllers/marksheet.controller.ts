@@ -83,7 +83,8 @@ export class MarksheetController {
         dummyData,
         {
             backgroundImageUrl: template.backgroundImageUrl || undefined,
-            disclaimerText: template.disclaimerText || undefined
+            disclaimerText: template.disclaimerText || undefined,
+            pageSize: template.pageSize
         }
     );
 

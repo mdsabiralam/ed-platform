@@ -606,6 +606,7 @@ model StudentMark {
   practicalMarks Float    @default(0) @map("practical_marks")
   totalMarks     Float    @map("total_marks")
   isAbsent       Boolean  @default(false) @map("is_absent")
+  gradeLabel     String?  @map("grade_label")
   remarks        String?
 
   student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)

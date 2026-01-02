@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MarksService, UpdateMarkDto } from './marks.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { GradingService } from './grading.service';
 import { BadRequestException } from '@nestjs/common';
 
 describe('MarksService', () => {
@@ -12,6 +13,8 @@ describe('MarksService', () => {
     tenantId: 'tenant1',
     maxTheory: 50,
     maxPractical: 20,
+    subjectId: 'sub1',
+    classId: 'class1',
   };
 
   const mockPrisma = {
@@ -27,11 +30,16 @@ describe('MarksService', () => {
     },
   };
 
+  const mockGradingService = {
+      getGradingScaleForSubject: jest.fn().mockResolvedValue(null), // Default (Scholastic)
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MarksService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: GradingService, useValue: mockGradingService },
       ],
     }).compile();
 

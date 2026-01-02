@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { MarksheetLayout } from '../interfaces/marksheet-layout.interface';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PageSizes } from 'pdf-lib';
 
 @Injectable()
 export class PdfGeneratorService {
   async generatePdf(
       layout: MarksheetLayout,
       studentData: any,
-      options?: { backgroundImageUrl?: string; disclaimerText?: string }
+      options?: { backgroundImageUrl?: string; disclaimerText?: string; pageSize?: 'A4' | 'LETTER' }
   ): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage(); // Default A4
+    const size = options?.pageSize === 'LETTER' ? PageSizes.Letter : PageSizes.A4;
+    const page = pdfDoc.addPage(size);
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontSize = 12;
