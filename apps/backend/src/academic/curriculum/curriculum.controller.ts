@@ -75,4 +75,14 @@ export class CurriculumController {
     // classId will be resolved in service
     return this.curriculumService.getSyllabusStatus(tenantId, undefined, subjectId, sectionId);
   }
+
+  @Get('parent/child/:studentId/topics-covered')
+  @ApiOperation({ summary: 'Get Topics Covered This Week for Student (7.B.07)' })
+  async getTopicsCovered(
+    @Req() req: any,
+    @Param('studentId') studentId: string,
+  ) {
+    const tenantId = req.user?.tenantId;
+    return this.curriculumService.getTopicsCoveredForStudent(tenantId, studentId);
+  }
 }

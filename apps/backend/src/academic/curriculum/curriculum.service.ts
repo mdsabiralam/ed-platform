@@ -383,4 +383,66 @@ export class CurriculumService {
       chapters: chaptersStatus,
     };
   }
+
+  /**
+   * 7.B.07 Get Topics Covered This Week (Parent App Widget)
+   */
+  async getTopicsCoveredForStudent(tenantId: string, studentId: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      select: { sectionId: true },
+    });
+
+    if (!student) throw new NotFoundException('Student not found');
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const logs = await this.prisma.syllabusLog.findMany({
+      where: {
+        tenantId,
+        sectionId: student.sectionId,
+        completionDate: {
+          gte: sevenDaysAgo,
+        },
+      },
+      include: {
+        topic: {
+          include: {
+            chapter: {
+              include: {
+                plan: {
+                  include: {
+                    subject: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        teacher: {
+          select: {
+            user: true,
+          },
+        },
+      },
+      orderBy: { completionDate: 'desc' },
+    });
+
+    return logs.map((log) => {
+        const topic = (log as any).topic;
+        const chapter = topic?.chapter;
+        const subject = chapter?.plan?.subject;
+        const teacherUser = (log as any).teacher?.user;
+
+        return {
+            subjectName: subject?.name || 'Unknown',
+            chapterName: chapter?.name || 'Unknown',
+            topicName: topic?.name || 'Unknown',
+            completionDate: log.completionDate,
+            teacherName: teacherUser ? `${teacherUser.firstName} ${teacherUser.lastName}` : 'Unknown',
+            remarks: log.remarks,
+        };
+    });
+  }
 }

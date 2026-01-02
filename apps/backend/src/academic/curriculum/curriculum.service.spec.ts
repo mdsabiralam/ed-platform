@@ -45,6 +45,10 @@ describe('CurriculumService', () => {
     },
     syllabusLog: {
       create: jest.fn(),
+      findMany: jest.fn(),
+    },
+    student: {
+      findUnique: jest.fn(),
     },
     section: {
       findUnique: jest.fn(),
@@ -204,6 +208,28 @@ describe('CurriculumService', () => {
       expect(mockPrismaService.curriculumPlan.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ classId: 'class-1' }) })
       );
+    });
+  });
+
+  describe('getTopicsCoveredForStudent', () => {
+    it('should return topics covered in the last 7 days', async () => {
+      mockPrismaService.student.findUnique.mockResolvedValue({ sectionId: 'section-1' });
+      mockPrismaService.syllabusLog.findMany.mockResolvedValue([
+        {
+          completionDate: new Date(),
+          remarks: 'Good',
+          topic: {
+            name: 'T1',
+            chapter: { name: 'C1', plan: { subject: { name: 'Math' } } },
+          },
+          teacher: { user: { firstName: 'John', lastName: 'Doe' } },
+        },
+      ]);
+
+      const result = await service.getTopicsCoveredForStudent('tenant-1', 'student-1');
+      expect(result).toHaveLength(1);
+      expect(result[0].topicName).toBe('T1');
+      expect(result[0].subjectName).toBe('Math');
     });
   });
 });
