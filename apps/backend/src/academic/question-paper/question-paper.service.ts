@@ -16,7 +16,7 @@ interface DifficultyDistribution {
 export class QuestionPaperService {
   constructor(private prisma: PrismaService) {}
 
-  async generatePaper(blueprintId: string, chapterIds: string[]): Promise<Question[]> {
+  async generatePaper(blueprintId: string, classId: string, chapterIds: string[]): Promise<Question[]> {
     // 1. Fetch the Blueprint
     const blueprint = await this.prisma.questionBlueprint.findUnique({
       where: { id: blueprintId },
@@ -30,6 +30,31 @@ export class QuestionPaperService {
     const difficultyDist = blueprint.difficultyDistribution as unknown as DifficultyDistribution;
 
     let selectedQuestions: Question[] = [];
+
+    // 1.1 Fetch Exclusion List (Questions from last 6 months for this class & subject)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const pastPapers = await this.prisma.generatedPaper.findMany({
+      where: {
+        classId: classId,
+        examDate: {
+          gte: sixMonthsAgo,
+        },
+        blueprint: {
+          subjectId: blueprint.subjectId,
+        },
+      },
+      select: {
+        questionsJson: true,
+      },
+    });
+
+    const excludedIds = pastPapers.flatMap((paper) => {
+      // questionsJson is Json type, need to cast it to array of strings (question IDs)
+      // Assuming it stores simple array of ID strings based on prompt "stores the list of selected Question IDs"
+      return (paper.questionsJson as unknown as string[]) || [];
+    });
 
     // 2. Loop through the structure
     for (const item of structure) {
@@ -72,6 +97,11 @@ export class QuestionPaperService {
           AND "chapter_id" IN (${Prisma.join(chapterIds)})
           AND "type"::text = ${type}
           AND "difficulty"::text = ${diffEnum}
+          ${
+            excludedIds.length > 0
+              ? Prisma.sql`AND "id" NOT IN (${Prisma.join(excludedIds)})`
+              : Prisma.empty
+          }
           ORDER BY RANDOM()
           LIMIT ${requiredCount}
         `;
