@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class AiService {
+export class AiDoubtService {
   constructor(private prisma: PrismaService) {}
 
   async generateEmbedding(text: string): Promise<number[]> {
@@ -16,18 +16,20 @@ export class AiService {
     const vectorString = `[${vector.join(',')}]`;
 
     // Perform similarity search using cosine distance (<=> operator)
-    // Select top 5 relevant chunks
-    const results = await this.prisma.$queryRaw`
-      SELECT id, content_chunk, page_number, 1 - (vector <=> ${vectorString}::vector) as similarity
+    // Select top 3 relevant chunks as requested
+    const results: any[] = await this.prisma.$queryRaw`
+      SELECT content_chunk
       FROM textbook_embeddings
       WHERE subject_id = ${subjectId}
       ORDER BY vector <=> ${vectorString}::vector
-      LIMIT 5;
+      LIMIT 3;
     `;
 
+    // Map results to extracting content_chunk
+    const context = results.map((r) => r.content_chunk);
+
     return {
-      question,
-      relatedContext: results,
+      Context: context,
     };
   }
 }

@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
-import { AiService } from './ai.service';
+import { AiDoubtService } from './ai-doubt.service';
 import { IsString, IsNotEmpty } from 'class-validator';
 
 export class AskDoubtDto {
@@ -19,13 +19,13 @@ export class AskDoubtDto {
 
 @ApiTags('AI Doubt Solver')
 @Controller('api/ai')
-export class AiController {
-  constructor(private readonly aiService: AiService) {}
+export class AiDoubtController {
+  constructor(private readonly aiDoubtService: AiDoubtService) {}
 
   @Post('doubt')
   @ApiOperation({ summary: 'Ask a doubt and get relevant context from textbooks' })
   @ApiBody({ type: AskDoubtDto })
   async askDoubt(@Body() dto: AskDoubtDto) {
-    return this.aiService.solveDoubt(dto.studentId, dto.subjectId, dto.question);
+    return this.aiDoubtService.solveDoubt(dto.studentId, dto.subjectId, dto.question);
   }
 }
