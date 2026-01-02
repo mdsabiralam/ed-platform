@@ -1,9 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PlagiarismCheckService } from './plagiarism-check.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class AssignmentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private plagiarismCheckService: PlagiarismCheckService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   async getSubmission(submissionId: string) {
     const submission = await this.prisma.assignmentSubmission.findUnique({
@@ -20,7 +26,7 @@ export class AssignmentService {
   }
 
   async saveFeedback(submissionId: string, teacherFeedback: string, obtainedMarks: number) {
-    return this.prisma.assignmentSubmission.update({
+    const submission = await this.prisma.assignmentSubmission.update({
       where: { id: submissionId },
       data: {
         teacherFeedback,
@@ -28,6 +34,11 @@ export class AssignmentService {
         status: 'GRADED',
       },
     });
+
+    // Trigger notification
+    this.eventEmitter.emit('submission.graded', { submissionId });
+
+    return submission;
   }
 
   async saveAudioFeedback(submissionId: string, fileUrl: string) {
@@ -91,6 +102,8 @@ export class AssignmentService {
     // Upsert submission: create if new, update if exists (re-submission)
     // If status was REDO_REQUESTED, it will be updated to SUBMITTED again implicitly or explicitly.
     // We should reset status to SUBMITTED on re-submission.
+    const plagiarismScore = content ? this.plagiarismCheckService.checkSimilarity(content) : null;
+
     const submission = await this.prisma.assignmentSubmission.upsert({
       where: {
         assignmentId_studentId: {
@@ -103,6 +116,7 @@ export class AssignmentService {
         fileUrl,
         submittedAt: new Date(),
         status: 'SUBMITTED', // Reset status on re-submission
+        plagiarismScore,
       },
       create: {
         assignmentId,
@@ -110,6 +124,7 @@ export class AssignmentService {
         content,
         fileUrl,
         status: 'SUBMITTED',
+        plagiarismScore,
       },
     });
 
