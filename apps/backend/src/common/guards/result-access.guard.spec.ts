@@ -58,7 +58,7 @@ describe('ResultAccessGuard', () => {
   });
 
   it('should throw ForbiddenException if fees are not paid', async () => {
-    mockFinanceService.checkFeeStatus.mockResolvedValue(false);
+    mockFinanceService.checkFeeStatus.mockResolvedValue('Outstanding Fees Detected: 100');
     mockLibraryService.checkLibraryDues.mockResolvedValue(true);
 
     const context = createMockContext({ id: 'student123' });
@@ -67,6 +67,7 @@ describe('ResultAccessGuard', () => {
     await expect(guard.canActivate(context)).rejects.toMatchObject({
       response: {
         errorCode: 'FEE_DUES_PENDING',
+        message: 'Outstanding Fees Detected: 100',
       },
     });
   });

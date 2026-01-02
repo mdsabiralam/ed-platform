@@ -316,6 +316,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  feeLedger         StudentFeeLedger?
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -429,6 +430,20 @@ model KycDocument {
   tenant          Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("kyc_documents")
+}
+
+// 2.H.01 Finance: Student Fee Ledger
+model StudentFeeLedger {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  totalInvoiced  Float    @default(0.0) @map("total_invoiced")
+  totalPaid      Float    @default(0.0) @map("total_paid")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  student        Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId])
+  @@map("student_fee_ledgers")
 }
 
 // 2.I.06 Table Audit Logs (To prevent drift)

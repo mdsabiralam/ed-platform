@@ -35,10 +35,10 @@ export class ResultAccessGuard implements CanActivate {
       this.libraryService.checkLibraryDues(studentId),
     ]);
 
-    if (!isFeePaid) {
+    if (isFeePaid !== true) {
       throw new ForbiddenException({
         statusCode: 403,
-        message: 'Fees not cleared.',
+        message: typeof isFeePaid === 'string' ? isFeePaid : 'Fees not cleared.',
         errorCode: 'FEE_DUES_PENDING',
       });
     }
