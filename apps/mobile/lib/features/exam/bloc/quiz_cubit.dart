@@ -13,6 +13,7 @@ class QuizState extends Equatable {
   final bool isLoading;
   final bool isSubmitting;
   final bool isCompleted;
+  final int backgroundAttemptCount; // Cheating tracking
 
   const QuizState({
     this.exam,
@@ -22,6 +23,7 @@ class QuizState extends Equatable {
     this.isLoading = false,
     this.isSubmitting = false,
     this.isCompleted = false,
+    this.backgroundAttemptCount = 0,
   });
 
   QuizState copyWith({
@@ -32,6 +34,7 @@ class QuizState extends Equatable {
     bool? isLoading,
     bool? isSubmitting,
     bool? isCompleted,
+    int? backgroundAttemptCount,
   }) {
     return QuizState(
       exam: exam ?? this.exam,
@@ -41,6 +44,7 @@ class QuizState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isCompleted: isCompleted ?? this.isCompleted,
+      backgroundAttemptCount: backgroundAttemptCount ?? this.backgroundAttemptCount,
     );
   }
 
@@ -53,6 +57,7 @@ class QuizState extends Equatable {
         isLoading,
         isSubmitting,
         isCompleted,
+        backgroundAttemptCount,
       ];
 }
 
@@ -64,8 +69,6 @@ class QuizCubit extends Cubit<QuizState> {
   QuizCubit(this._db) : super(const QuizState(isLoading: true));
 
   void loadQuiz(QuizExam exam) {
-    // In a real app, you might fetch details here.
-    // For now, we assume the exam object is passed in or loaded immediately.
     emit(state.copyWith(
       exam: exam,
       remainingSeconds: exam.durationMinutes * 60,
@@ -106,6 +109,19 @@ class QuizCubit extends Cubit<QuizState> {
   void prevQuestion() {
     if (state.currentQuestionIndex > 0) {
       emit(state.copyWith(currentQuestionIndex: state.currentQuestionIndex - 1));
+    }
+  }
+
+  void logCheatingAttempt() {
+    if (state.isCompleted || state.isSubmitting) return;
+
+    final newCount = state.backgroundAttemptCount + 1;
+    emit(state.copyWith(backgroundAttemptCount: newCount));
+
+    // Log to backend would go here (e.g., apiClient.post('/log-event', ...))
+
+    if (newCount > 2) {
+      submitQuiz(); // Auto-submit due to cheating
     }
   }
 

@@ -13,7 +13,6 @@ class QuizScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => QuizCubit(
-        // Assuming AppDatabase is available via dependency injection or a global provider
         RepositoryProvider.of<AppDatabase>(context),
       )..loadQuiz(exam),
       child: const QuizView(),
@@ -21,8 +20,33 @@ class QuizScreen extends StatelessWidget {
   }
 }
 
-class QuizView extends StatelessWidget {
+class QuizView extends StatefulWidget {
   const QuizView({Key? key}) : super(key: key);
+
+  @override
+  State<QuizView> createState() => _QuizViewState();
+}
+
+class _QuizViewState extends State<QuizView> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // User switched apps or minimized
+      context.read<QuizCubit>().logCheatingAttempt();
+    }
+  }
 
   String _formatTime(int totalSeconds) {
     final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
@@ -30,16 +54,45 @@ class QuizView extends StatelessWidget {
     return '$minutes:$seconds';
   }
 
+  void _showCheatingWarning(BuildContext context, int count) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Warning!'),
+        content: Text(
+          'App switching detected! This is considered cheating.\n'
+          'Attempt $count/3.\n\n'
+          'If this happens more than 2 times, your exam will be auto-submitted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('I Understand'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<QuizCubit, QuizState>(
+      listenWhen: (previous, current) {
+        return previous.isCompleted != current.isCompleted ||
+               previous.backgroundAttemptCount != current.backgroundAttemptCount;
+      },
       listener: (context, state) {
         if (state.isCompleted) {
-          // Navigate to result or home
-          Navigator.of(context).pop(); // Or go to ResultScreen
+          Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Quiz Submitted Successfully!')),
           );
+        } else if (state.backgroundAttemptCount > 0 && !state.isSubmitting) {
+          // Show warning if not yet auto-submitting
+          if (state.backgroundAttemptCount <= 2) {
+             _showCheatingWarning(context, state.backgroundAttemptCount);
+          }
         }
       },
       builder: (context, state) {
@@ -51,11 +104,11 @@ class QuizView extends StatelessWidget {
         final totalQuestions = state.exam!.questions.length;
 
         return WillPopScope(
-          onWillPop: () async => false, // Disable back button
+          onWillPop: () async => false,
           child: Scaffold(
             appBar: AppBar(
               title: Text('Time Left: ${_formatTime(state.remainingSeconds)}'),
-              automaticallyImplyLeading: false, // Hide back button
+              automaticallyImplyLeading: false,
               actions: [
                 TextButton(
                   onPressed: () => context.read<QuizCubit>().submitQuiz(),
@@ -68,27 +121,23 @@ class QuizView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Progress
                   LinearProgressIndicator(
                     value: (state.currentQuestionIndex + 1) / totalQuestions,
                   ),
                   const SizedBox(height: 16),
 
-                  // Question Count
                   Text(
                     'Question ${state.currentQuestionIndex + 1} / $totalQuestions',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
 
-                  // Question Text
                   Text(
                     question.text,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 24),
 
-                  // Options
                   Expanded(
                     child: ListView.builder(
                       itemCount: question.options.length,
@@ -113,7 +162,6 @@ class QuizView extends StatelessWidget {
                     ),
                   ),
 
-                  // Navigation
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
