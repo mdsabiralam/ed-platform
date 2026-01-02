@@ -12,4 +12,17 @@ export class PrincipalController {
   ) {
     return this.principalService.getClassPerformance(classId, examTermId);
   }
+
+  @Get('weak-students')
+  async getWeakStudents(
+    @Query('classId') classId: string,
+    @Query('examTermId') examTermId: string,
+    @Query('passPercentage') passPercentage?: number,
+  ) {
+    return this.principalService.getWeakStudents(
+      classId,
+      examTermId,
+      passPercentage ? Number(passPercentage) : undefined,
+    );
+  }
 }

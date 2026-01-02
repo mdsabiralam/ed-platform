@@ -119,4 +119,70 @@ export class PrincipalService {
       })),
     };
   }
+
+  async getWeakStudents(classId: string, examTermId: string, passPercentage: number = 33) {
+    if (!classId || !examTermId) {
+      throw new Error('classId and examTermId are required');
+    }
+
+    const students = await this.prisma.student.findMany({
+      where: {
+        section: {
+          classId: classId,
+        },
+      },
+      include: {
+        marks: {
+          where: {
+            exam: {
+              examTermId: examTermId,
+            },
+          },
+          include: {
+            exam: {
+              include: {
+                subject: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const weakStudents = [];
+
+    for (const student of students) {
+      let failedSubjectsCount = 0;
+      const failedSubjects = [];
+
+      for (const mark of student.marks) {
+        const totalMarks = (mark.theoryMarks || 0) + (mark.practicalMarks || 0);
+        const maxMarks = (mark.exam.maxTheory || 0) + (mark.exam.maxPractical || 0);
+
+        if (maxMarks > 0) {
+          const percentage = (totalMarks / maxMarks) * 100;
+          if (percentage < passPercentage) {
+            failedSubjectsCount++;
+            failedSubjects.push({
+              subject: mark.exam.subject.name,
+              score: totalMarks,
+              maxScore: maxMarks,
+            });
+          }
+        }
+      }
+
+      if (failedSubjectsCount > 2) {
+        weakStudents.push({
+          studentId: student.id,
+          name: `${student.firstName} ${student.lastName}`,
+          admissionNo: student.admissionNo,
+          failedSubjectsCount,
+          failedSubjects,
+        });
+      }
+    }
+
+    return weakStudents;
+  }
 }
