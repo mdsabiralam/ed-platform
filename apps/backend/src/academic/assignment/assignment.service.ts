@@ -5,6 +5,49 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class AssignmentService {
   constructor(private prisma: PrismaService) {}
 
+  async getSubmission(submissionId: string) {
+    const submission = await this.prisma.assignmentSubmission.findUnique({
+      where: { id: submissionId },
+      include: {
+        student: { include: { user: true } },
+        assignment: true,
+      },
+    });
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+    return submission;
+  }
+
+  async saveFeedback(submissionId: string, teacherFeedback: string, obtainedMarks: number) {
+    return this.prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        teacherFeedback,
+        obtainedMarks,
+        status: 'GRADED',
+      },
+    });
+  }
+
+  async saveAudioFeedback(submissionId: string, fileUrl: string) {
+    return this.prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        audioFeedbackUrl: fileUrl,
+      },
+    });
+  }
+
+  async saveAnnotations(submissionId: string, annotations: any) {
+    return this.prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        annotationsJson: annotations,
+      },
+    });
+  }
+
   async requestResubmission(submissionId: string, remarks: string) {
     const submission = await this.prisma.assignmentSubmission.findUnique({
       where: { id: submissionId },

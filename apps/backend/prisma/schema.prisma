@@ -513,6 +513,7 @@ model AssignmentSubmission {
   audioFeedbackUrl String?  @map("audio_feedback_url")
   isFeatured       Boolean  @default(false) @map("is_featured")
   status           String   @default("SUBMITTED") // SUBMITTED, REDO_REQUESTED, GRADED
+  annotationsJson  Json?    @map("annotations_json")
 
   assignment       Assignment @relation(fields: [assignmentId], references: [id])
   student          Student    @relation(fields: [studentId], references: [id])
