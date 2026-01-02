@@ -479,3 +479,68 @@ model GradingScale {
 
   @@map("grading_scales")
 }
+
+// 2.D.02 Academic: Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exams     Exam[]
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+// 2.D.03 Academic: Exam Terms
+model ExamTerm {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String   // e.g., "Mid Term", "Final"
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exams     Exam[]
+
+  @@map("exam_terms")
+}
+
+// 2.D.04 Academic: Exams
+model Exam {
+  id          String   @id @default(uuid())
+  classId     String   @map("class_id")
+  subjectId   String   @map("subject_id")
+  examTermId  String   @map("exam_term_id")
+  maxMarks    Float    @map("max_marks")
+  date        DateTime
+
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  examTerm    ExamTerm @relation(fields: [examTermId], references: [id])
+  studentMarks StudentMark[]
+
+  @@map("exams")
+}
+
+// 2.D.05 Academic: Student Marks
+model StudentMark {
+  id            String   @id @default(uuid())
+  examId        String   @map("exam_id")
+  studentId     String   @map("student_id")
+  marksObtained Float    @map("marks_obtained")
+  isAbsent      Boolean  @default(false) @map("is_absent")
+  remarks       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  exam          Exam     @relation(fields: [examId], references: [id])
+  student       Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([examId, studentId])
+  @@map("student_marks")
+}
