@@ -1,11 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MarksheetController } from './marksheet.controller';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ForbiddenException } from '@nestjs/common';
+import { PdfGeneratorService } from '../services/pdf-generator.service';
+import { ForbiddenException, StreamableFile } from '@nestjs/common';
+import { Response } from 'express';
 
 describe('MarksheetController', () => {
   let controller: MarksheetController;
   let prismaService: PrismaService;
+  let pdfService: PdfGeneratorService;
 
   const mockPrismaService = {
     studentFeeLedger: {
@@ -13,16 +16,26 @@ describe('MarksheetController', () => {
     },
   };
 
+  const mockPdfService = {
+    generateMarksheet: jest.fn().mockResolvedValue(Buffer.from('dummy-pdf')),
+  };
+
+  const mockResponse = {
+    set: jest.fn(),
+  } as unknown as Response;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MarksheetController],
       providers: [
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: PdfGeneratorService, useValue: mockPdfService },
       ],
     }).compile();
 
     controller = module.get<MarksheetController>(MarksheetController);
     prismaService = module.get<PrismaService>(PrismaService);
+    pdfService = module.get<PdfGeneratorService>(PdfGeneratorService);
   });
 
   afterEach(() => {
@@ -44,17 +57,23 @@ describe('MarksheetController', () => {
       status: 'PENDING',
     });
 
-    await expect(controller.getMarksheetPdf(studentId)).rejects.toThrow(ForbiddenException);
-    await expect(controller.getMarksheetPdf(studentId)).rejects.toThrow('Please clear outstanding dues to view result');
+    await expect(controller.getMarksheetPdf(studentId, mockResponse)).rejects.toThrow(ForbiddenException);
+    await expect(controller.getMarksheetPdf(studentId, mockResponse)).rejects.toThrow('Please clear outstanding dues to view result');
   });
 
-  it('should return success if student has NO dues', async () => {
+  it('should return PDF stream if student has NO dues', async () => {
     const studentId = 'student-clear';
 
     // Mock finding NO record with dues
     (mockPrismaService.studentFeeLedger.findFirst as jest.Mock).mockResolvedValue(null);
 
-    const result = await controller.getMarksheetPdf(studentId);
-    expect(result).toEqual({ message: 'Marksheet PDF generated successfully', studentId });
+    const result = await controller.getMarksheetPdf(studentId, mockResponse);
+
+    expect(pdfService.generateMarksheet).toHaveBeenCalledWith({ studentId });
+    expect(mockResponse.set).toHaveBeenCalledWith(expect.objectContaining({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="marksheet-${studentId}.pdf"`,
+    }));
+    expect(result).toBeInstanceOf(StreamableFile);
   });
 });
