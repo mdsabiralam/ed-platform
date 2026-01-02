@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  subjects           Subject[]
 
   @@map("tenants")
 }
@@ -463,4 +464,36 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 7.D.01 Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  blueprints QuestionBlueprint[]
+
+  @@map("subjects")
+}
+
+// 7.D.01 & 7.D.02 Question Blueprint
+model QuestionBlueprint {
+  id                  String   @id @default(uuid())
+  name                String
+  subjectId           String   @map("subject_id")
+  totalMarks          Int      @map("total_marks")
+  durationMinutes     Int      @map("duration_minutes")
+  structure           Json
+  difficultyDistribution Json  @map("difficulty_distribution")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  subject             Subject  @relation(fields: [subjectId], references: [id])
+
+  @@map("question_blueprints")
 }
