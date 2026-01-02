@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  gradingScales      GradingScale[]
 
   @@map("tenants")
 }
@@ -463,4 +464,18 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 2.D.01 Grading Scales
+model GradingScale {
+  id           String   @id @default(uuid())
+  tenantId     String?  @map("school_id")
+  name         String
+  isMarksBased Boolean  @default(true) @map("is_marks_based")
+  rules        Json     // Structure: GradingScaleRule[]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("grading_scales")
 }
