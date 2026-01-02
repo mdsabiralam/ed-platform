@@ -41,6 +41,7 @@ describe('TrainingModule', () => {
     trainingAttendance: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      findMany: jest.fn(),
     },
     serviceBook: {
       create: jest.fn(),
@@ -279,6 +280,28 @@ describe('TrainingModule', () => {
         mockPrismaService.trainingAttendance.findUnique.mockResolvedValue({ id: attendanceId, status: 'ABSENT' });
 
         await expect(controller.generateCertificate(attendanceId)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('getAbsenteeismAnalytics', () => {
+    it('should return staff with > 50% absenteeism', async () => {
+      const schoolId = 's-1';
+      const mockAttendances = [
+        { staffId: 'st-1', status: 'ABSENT', staff: { user: { firstName: 'A', lastName: 'B' } } },
+        { staffId: 'st-1', status: 'ABSENT', staff: { user: { firstName: 'A', lastName: 'B' } } }, // 2/2 = 100%
+        { staffId: 'st-2', status: 'PRESENT', staff: { user: { firstName: 'C', lastName: 'D' } } },
+        { staffId: 'st-2', status: 'ABSENT', staff: { user: { firstName: 'C', lastName: 'D' } } }, // 1/2 = 50% (not > 50%)
+        { staffId: 'st-3', status: 'PRESENT', staff: { user: { firstName: 'E', lastName: 'F' } } }, // 0/1 = 0%
+      ];
+
+      mockPrismaService.trainingAttendance.findMany.mockResolvedValue(mockAttendances);
+
+      const result = await controller.getAbsenteeismAnalytics(schoolId);
+
+      expect(prisma.trainingAttendance.findMany).toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+      expect(result[0].staffId).toBe('st-1');
+      expect(result[0].absenteeismRate).toBe(1);
     });
   });
 });

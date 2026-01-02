@@ -12,6 +12,58 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 export class TrainingService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getAbsenteeismAnalytics(schoolId: string) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const attendances = await this.prisma.trainingAttendance.findMany({
+      where: {
+        training: {
+          tenantId: schoolId,
+          date: {
+            gte: sixMonthsAgo,
+          },
+        },
+      },
+      include: {
+        staff: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    const staffStats = new Map<string, { total: number; absent: number; staff: any }>();
+
+    for (const record of attendances) {
+      if (!staffStats.has(record.staffId)) {
+        staffStats.set(record.staffId, { total: 0, absent: 0, staff: record.staff });
+      }
+      const stats = staffStats.get(record.staffId)!;
+      stats.total++;
+      if (record.status === TrainingAttendanceStatus.ABSENT) {
+        stats.absent++;
+      }
+    }
+
+    const report = [];
+    for (const [staffId, stats] of staffStats.entries()) {
+      const absenteeismRate = stats.total > 0 ? stats.absent / stats.total : 0;
+      if (absenteeismRate > 0.5) {
+        report.push({
+          staffId,
+          name: `${stats.staff.user.firstName} ${stats.staff.user.lastName}`,
+          totalScheduled: stats.total,
+          totalAbsent: stats.absent,
+          absenteeismRate: parseFloat(absenteeismRate.toFixed(2)),
+        });
+      }
+    }
+
+    return report;
+  }
+
   async generateTrainingCertificate(attendanceId: string) {
     const attendance = await this.prisma.trainingAttendance.findUnique({
       where: { id: attendanceId },

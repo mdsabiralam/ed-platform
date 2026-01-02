@@ -10,6 +10,14 @@ import { Express } from 'express';
 export class TrainingController {
   constructor(private readonly trainingService: TrainingService) {}
 
+  @Get('analytics/absenteeism')
+  async getAbsenteeismAnalytics(@Query('schoolId') schoolId: string) {
+    if (!schoolId) {
+      throw new BadRequestException('schoolId is required');
+    }
+    return this.trainingService.getAbsenteeismAnalytics(schoolId);
+  }
+
   @Post(':id/upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadResource(
