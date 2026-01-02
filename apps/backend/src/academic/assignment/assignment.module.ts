@@ -6,11 +6,13 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { PlagiarismCheckService } from './plagiarism-check.service';
 import { NotificationModule } from '../../notification/notification.module';
 import { SubmissionGradedListener } from './listeners/submission-graded.listener';
+import { AssignmentAnalyticsController } from './analytics.controller';
+import { AssignmentAnalyticsService } from './analytics.service';
 
 @Module({
   imports: [PrismaModule, NotificationModule],
-  controllers: [AssignmentController, SubmissionController],
-  providers: [AssignmentService, PlagiarismCheckService, SubmissionGradedListener],
+  controllers: [AssignmentController, SubmissionController, AssignmentAnalyticsController],
+  providers: [AssignmentService, PlagiarismCheckService, SubmissionGradedListener, AssignmentAnalyticsService],
   exports: [AssignmentService],
 })
 export class AssignmentModule {}
