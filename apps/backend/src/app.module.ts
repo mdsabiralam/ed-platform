@@ -12,6 +12,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { MarksheetModule } from './marksheet/marksheet.module';
 import { FinanceModule } from './finance/finance.module';
 import { LibraryModule } from './library/library.module';
+import { AcademicMarksheetModule } from './academic/marksheet/marksheet.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { LibraryModule } from './library/library.module';
     SaasModule,
     TenantModule,
     MarksheetModule,
+    AcademicMarksheetModule,
     FinanceModule,
     LibraryModule,
   ],
