@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
-import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_tex/flutter_tex.dart';
 
 // Enums (replicating backend enums)
 enum QuestionType {
@@ -216,12 +216,19 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(8),
+                height: 200,
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Html(data: _previewContent),
+                child: TeXView(
+                  child: TeXViewDocument(_previewContent),
+                  style: const TeXViewStyle(
+                    contentColor: Colors.black,
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 
