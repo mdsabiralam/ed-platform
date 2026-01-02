@@ -464,3 +464,14 @@ enum UserRole {
   MCM
   SUPPLIER
 }
+
+model TextbookEmbedding {
+  id           String                 @id @default(uuid())
+  subjectId    String                 @map("subject_id")
+  chapterId    String                 @map("chapter_id")
+  contentChunk String                 @map("content_chunk")
+  pageNumber   Int                    @map("page_number")
+  vector       Unsupported("vector(1536)")
+
+  @@map("textbook_embeddings")
+}
