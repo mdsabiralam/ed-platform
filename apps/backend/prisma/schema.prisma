@@ -319,6 +319,7 @@ model Student {
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
   feeLedgers        StudentFeeLedger[]
+  socialArtifacts   SocialArtifact[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -512,4 +513,35 @@ model StudentFeeLedger {
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
 
   @@map("student_fee_ledgers")
+}
+
+// 6.I.07 Viral K-Factor Tracking
+model SocialArtifact {
+  id           String   @id @default(uuid())
+  studentId    String   @map("student_id")
+  publicSlug   String   @unique @map("public_slug")
+  metadata     Json?
+  expiryDate   DateTime? @map("expiry_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  student      Student  @relation(fields: [studentId], references: [id])
+  analytics    ShareAnalytics[]
+
+  @@map("social_artifacts")
+}
+
+model ShareAnalytics {
+  id           String   @id @default(uuid())
+  artifactId   String   @map("artifact_id")
+  platform     String   // e.g., "WHATSAPP", "FACEBOOK", "BROWSER"
+  clickCount   Int      @default(0) @map("click_count")
+  shareCount   Int      @default(0) @map("share_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  artifact     SocialArtifact @relation(fields: [artifactId], references: [id])
+
+  @@unique([artifactId, platform]) // Track per platform
+  @@map("share_analytics")
 }
