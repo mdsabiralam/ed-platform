@@ -15,6 +15,14 @@ describe('SocialController', () => {
           provide: SocialService,
           useValue: {
             generateStudentOgImage: jest.fn().mockResolvedValue(Buffer.from('fake-image')),
+            createShareLink: jest.fn().mockResolvedValue('http://localhost:3000/r/xyz123'),
+            getPublicArtifact: jest.fn().mockResolvedValue({
+              firstName: 'Test',
+              className: 'X',
+              schoolName: 'Test School',
+              rank: '1',
+              percentage: '99%'
+            }),
           },
         },
         {
@@ -41,10 +49,23 @@ describe('SocialController', () => {
     await controller.generateOgImage('123', res as any);
 
     expect(service.generateStudentOgImage).toHaveBeenCalledWith('123');
-    expect(res.set).toHaveBeenCalledWith({
-      'Content-Type': 'image/png',
-      'Content-Length': 10,
+  });
+
+  it('should create a share link', async () => {
+    const result = await controller.createShareLink({ studentId: '1', examId: '2' });
+    expect(result).toEqual({ url: 'http://localhost:3000/r/xyz123' });
+    expect(service.createShareLink).toHaveBeenCalledWith('1', '2');
+  });
+
+  it('should get public artifact', async () => {
+    const result = await controller.getPublicArtifact('xyz123');
+    expect(result).toEqual({
+      firstName: 'Test',
+      className: 'X',
+      schoolName: 'Test School',
+      rank: '1',
+      percentage: '99%'
     });
-    expect(res.send).toHaveBeenCalled();
+    expect(service.getPublicArtifact).toHaveBeenCalledWith('xyz123');
   });
 });

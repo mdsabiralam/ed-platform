@@ -452,6 +452,7 @@ model SocialArtifact {
   studentId   String   @map("student_id")
   type        String   // Result, Certificate
   publicSlug  String   @unique @map("public_slug")
+  metadata    Json?
   expiresAt   DateTime? @map("expires_at")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -459,6 +460,20 @@ model SocialArtifact {
   analytics   ShareAnalytics[]
 
   @@map("social_artifacts")
+}
+
+// Result Summary for Analytics (Placeholder to support types)
+model ResultSummary {
+  id          String   @id @default(uuid())
+  studentId   String   @map("student_id")
+  classRank   Int?     @map("class_rank")
+  percentage  Float?   @map("percentage")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Minimal relation setup if needed, or standalone
+  // student     Student  @relation(fields: [studentId], references: [id])
+
+  @@map("result_summaries")
 }
 
 // 6.I.01 Share Analytics

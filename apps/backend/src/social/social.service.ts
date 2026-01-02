@@ -1,6 +1,15 @@
-import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import puppeteer, { Browser } from 'puppeteer';
+import * as crypto from 'crypto';
+
+export interface PublicArtifactDto {
+  firstName: string;
+  className: string;
+  schoolName: string;
+  rank: string;
+  percentage: string;
+}
 
 export interface TemplateElement {
   text: string;
@@ -115,7 +124,7 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
 
     let rank = 'N/A';
     try {
-        const resultSummaries = await (this.prisma as any).resultSummary.findMany({
+        const resultSummaries = await this.prisma.resultSummary.findMany({
             where: { studentId: studentId },
             orderBy: { createdAt: 'desc' },
             take: 1
@@ -162,5 +171,120 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
             await page.close().catch(e => this.logger.error(`Error closing page: ${e.message}`));
         }
     }
+  }
+
+  async createShareLink(studentId: string, examId: string): Promise<string> {
+    const student = await this.prisma.student.findUnique({ where: { id: studentId } });
+    if (!student) throw new NotFoundException('Student not found');
+
+    const slug = crypto.randomBytes(4).toString('hex'); // 8 chars unique
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days expiry
+
+    // Check if duplicate slug (very rare but possible)
+    // For simplicity we assume it's unique or DB constraint will fail, usually we might retry.
+    // Given UUID is 4 billion combinations, 8 hex chars is 4 billion too (16^8 = 4.29B). Enough for now.
+
+    // We store examId in metadata
+    await this.prisma.socialArtifact.create({
+      data: {
+        studentId,
+        type: 'Result',
+        publicSlug: slug,
+        expiresAt,
+        metadata: { examId },
+      },
+    });
+
+    // Assuming Frontend URL is configurable, defaulting to http://localhost:3000
+    // In production this should come from env.
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    return `${baseUrl}/r/${slug}`;
+  }
+
+  async getPublicArtifact(slug: string): Promise<PublicArtifactDto> {
+    const artifact = await this.prisma.socialArtifact.findUnique({
+      where: { publicSlug: slug },
+      include: {
+        student: {
+          include: {
+            tenant: true,
+            section: {
+                include: {
+                    class: true
+                }
+            }
+          },
+        },
+      },
+    });
+
+    if (!artifact) {
+      throw new NotFoundException('Artifact not found');
+    }
+
+    if (artifact.expiresAt && artifact.expiresAt < new Date()) {
+      throw new BadRequestException('Link expired');
+    }
+
+    const { student } = artifact;
+    const metadata = artifact.metadata as any;
+    const examId = metadata?.examId;
+
+    // Fetch Result/Marks
+    // Logic: Fetch ResultSummary if available for this student (and exam if we could link it)
+    // For now, we reuse the logic from image generator: fetch latest ResultSummary
+    // Ideally we filter by examId if ResultSummary has it.
+    // Assuming ResultSummary might not have examId directly linked in previous schema,
+    // we will just take the latest one or mock if missing.
+
+    let rank = 'N/A';
+    let percentage = 'N/A';
+
+    try {
+        // Increment Analytics
+        await this.prisma.shareAnalytics.upsert({
+          where: {
+            artifactId_platform: {
+              artifactId: artifact.id,
+              platform: 'web', // Default platform for web visits
+            },
+          },
+          update: {
+            clickCount: { increment: 1 },
+            uniqueVisitors: { increment: 1 }, // Simplistic unique visitor tracking
+          },
+          create: {
+            artifactId: artifact.id,
+            platform: 'web',
+            clickCount: 1,
+            uniqueVisitors: 1,
+          },
+        });
+
+        // Now types are generated, we can access resultSummary safely
+        const resultSummaries = await this.prisma.resultSummary.findMany({
+            where: { studentId: student.id },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+        });
+
+        if (resultSummaries && resultSummaries.length > 0) {
+            const summary = resultSummaries[0];
+            rank = summary.classRank?.toString() || 'N/A';
+            percentage = summary.percentage ? summary.percentage.toFixed(2) + '%' : 'N/A';
+        }
+    } catch (e) {
+        this.logger.warn(`Could not fetch result details or update analytics: ${e.message}`);
+    }
+
+    // Masking: Return only allowed fields
+    return {
+      firstName: student.firstName, // Only first name
+      className: student.section?.class?.name || 'N/A',
+      schoolName: student.tenant.name,
+      rank,
+      percentage,
+    };
   }
 }
