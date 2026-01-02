@@ -10,6 +10,8 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Pat
 import { TenantModule } from './tenants/tenant.module';
 import { BullModule } from '@nestjs/bullmq';
 import { MarksheetModule } from './marksheet/marksheet.module';
+import { FinanceModule } from './finance/finance.module';
+import { LibraryModule } from './library/library.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { MarksheetModule } from './marksheet/marksheet.module';
     SaasModule,
     TenantModule,
     MarksheetModule,
+    FinanceModule,
+    LibraryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
