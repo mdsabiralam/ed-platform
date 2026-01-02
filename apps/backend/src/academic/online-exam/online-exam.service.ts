@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -43,7 +43,19 @@ export class OnlineExamService {
     studentId: string,
     answers: { questionId: string; selectedOption: string }[],
   ) {
-    // 1. Fetch correct answers from DB
+    // 1. Prevent double submission
+    const existingAttempt = await this.prisma.studentExamAttempt.findFirst({
+      where: {
+        studentId,
+        examId,
+      },
+    });
+
+    if (existingAttempt) {
+      throw new ConflictException('Exam already submitted by this student.');
+    }
+
+    // 2. Fetch exam details
     const exam = await this.prisma.onlineExam.findUnique({
       where: { id: examId },
       include: {
@@ -52,9 +64,23 @@ export class OnlineExamService {
     });
 
     if (!exam) {
-      throw new Error('Exam not found');
+      throw new NotFoundException('Exam not found');
     }
 
+    // 3. Time Validation
+    const now = new Date();
+    const bufferMinutes = 5;
+    const endTimeWithBuffer = new Date(exam.endTime.getTime() + bufferMinutes * 60000);
+
+    if (now < exam.startTime) {
+      throw new BadRequestException('Exam has not started yet.');
+    }
+
+    if (now > endTimeWithBuffer) {
+      throw new BadRequestException('Exam submission time has passed.');
+    }
+
+    // 4. Grading Logic
     let score = 0;
     const questionsMap = new Map(exam.questions.map((q) => [q.id, q]));
 
