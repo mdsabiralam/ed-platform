@@ -9,6 +9,8 @@ describe('QuestionBankController', () => {
 
   const mockService = {
     create: jest.fn(),
+    findAll: jest.fn(),
+    importQuestions: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -49,6 +51,40 @@ describe('QuestionBankController', () => {
 
       expect(await controller.create(dto)).toBe(result);
       expect(mockService.create).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return matching questions', async () => {
+      const filters = { topicTag: 'Algebra', difficulty: DifficultyLevel.MEDIUM };
+      const result = [{ id: 'q-1', content: 'Test', ...filters }];
+      mockService.findAll.mockResolvedValue(result);
+
+      expect(await controller.findAll(filters)).toBe(result);
+      expect(mockService.findAll).toHaveBeenCalledWith(filters);
+    });
+  });
+
+  describe('importQuestions', () => {
+    it('should import questions in bulk', async () => {
+      const questions: CreateQuestionDto[] = [
+        {
+          subjectId: 'sub-1',
+          topicTag: 'Tag1',
+          type: QuestionType.MCQ,
+          difficulty: DifficultyLevel.EASY,
+          marks: 1,
+          content: 'Q1',
+          bloomsLevel: BloomsLevel.REMEMBER,
+          correctAnswer: 'A',
+          options: { a: 'A' },
+        },
+      ];
+      const result = { count: 1 };
+      mockService.importQuestions.mockResolvedValue(result);
+
+      expect(await controller.importQuestions(questions)).toBe(result);
+      expect(mockService.importQuestions).toHaveBeenCalledWith(questions);
     });
   });
 });
