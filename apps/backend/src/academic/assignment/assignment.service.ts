@@ -1,0 +1,75 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+
+@Injectable()
+export class AssignmentService {
+  constructor(private prisma: PrismaService) {}
+
+  async requestResubmission(submissionId: string, remarks: string) {
+    const submission = await this.prisma.assignmentSubmission.findUnique({
+      where: { id: submissionId },
+      include: { student: { include: { user: true } } },
+    });
+
+    if (!submission) {
+      throw new NotFoundException('Submission not found');
+    }
+
+    const updatedSubmission = await this.prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        status: 'REDO_REQUESTED',
+        teacherFeedback: remarks, // Append or overwrite? Using overwrite as per simple logic, or append if needed.
+      },
+    });
+
+    // Notify student logic (Mocked)
+    if (submission.student?.user?.email) {
+      console.log(`Notification: Sent REDO_REQUESTED to student ${submission.student.user.email} for submission ${submissionId}. Remarks: ${remarks}`);
+    }
+
+    return updatedSubmission;
+  }
+
+  async submitAssignment(
+    assignmentId: string,
+    studentId: string,
+    content?: string,
+    fileUrl?: string,
+  ) {
+    // Check if assignment exists
+    const assignment = await this.prisma.assignment.findUnique({
+      where: { id: assignmentId },
+    });
+    if (!assignment) {
+      throw new NotFoundException('Assignment not found');
+    }
+
+    // Upsert submission: create if new, update if exists (re-submission)
+    // If status was REDO_REQUESTED, it will be updated to SUBMITTED again implicitly or explicitly.
+    // We should reset status to SUBMITTED on re-submission.
+    const submission = await this.prisma.assignmentSubmission.upsert({
+      where: {
+        assignmentId_studentId: {
+          assignmentId,
+          studentId,
+        },
+      },
+      update: {
+        content,
+        fileUrl,
+        submittedAt: new Date(),
+        status: 'SUBMITTED', // Reset status on re-submission
+      },
+      create: {
+        assignmentId,
+        studentId,
+        content,
+        fileUrl,
+        status: 'SUBMITTED',
+      },
+    });
+
+    return submission;
+  }
+}
