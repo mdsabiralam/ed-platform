@@ -11,10 +11,44 @@ export class SocialController {
 
   @Get('public/:slug')
   async getPublicResult(@Param('slug') slug: string) {
-    // This endpoint represents visiting the link.
-    // The middleware tracks the click.
-    // Logic to return result data would be here.
-    return { message: 'Public Result Data', slug };
+    // 6.I.10: PII Safety Test
+    // Fetch Artifact and Student Data
+    const artifact = await this.prisma.socialArtifact.findUnique({
+        where: { publicSlug: slug },
+        include: {
+            student: {
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    admissionNo: true,
+                    // Explicitly NOT selecting: phone, email, address, dob, healthProfile
+                    tenant: {
+                        select: {
+                            name: true,
+                            logoUrl: true
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    if (!artifact) {
+        return { message: 'Result not found' };
+    }
+
+    // Return only safe data
+    return {
+        studentName: `${artifact.student.firstName} ${artifact.student.lastName}`,
+        schoolName: artifact.student.tenant.name,
+        schoolLogo: artifact.student.tenant.logoUrl,
+        // Mock result data for now as Result summary linking is separate
+        resultSummary: {
+            percentage: 85.5,
+            rank: 2,
+            status: 'PASS'
+        }
+    };
   }
 
   @Post('share/create-link')
