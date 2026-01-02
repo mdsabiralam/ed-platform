@@ -82,4 +82,56 @@ export class AnalyticsService {
     // 5. Return Top 3 Students (Rank <= 3)
     return rankedStudents.filter((s) => s.rank <= 3);
   }
+
+  async getStudentProgress(studentId: string) {
+    if (!studentId) {
+      throw new Error('studentId is required');
+    }
+
+    const marks = await this.prisma.studentMark.findMany({
+      where: {
+        studentId: studentId,
+      },
+      include: {
+        exam: {
+          include: {
+            examTerm: true,
+          },
+        },
+      },
+    });
+
+    const termStatsMap = new Map<string, { totalObtained: number; totalMax: number; startDate: Date; name: string }>();
+
+    for (const mark of marks) {
+      const termId = mark.exam.examTermId;
+      if (!termStatsMap.has(termId)) {
+        termStatsMap.set(termId, {
+          totalObtained: 0,
+          totalMax: 0,
+          startDate: mark.exam.examTerm.startDate || new Date(0),
+          name: mark.exam.examTerm.name,
+        });
+      }
+
+      const stats = termStatsMap.get(termId);
+      stats.totalObtained += (mark.theoryMarks || 0) + (mark.practicalMarks || 0);
+      stats.totalMax += (mark.exam.maxTheory || 0) + (mark.exam.maxPractical || 0);
+    }
+
+    const progress = Array.from(termStatsMap.values()).map((stat) => {
+      const percentage = stat.totalMax > 0 ? (stat.totalObtained / stat.totalMax) * 100 : 0;
+      return {
+        term: stat.name,
+        percent: Number(percentage.toFixed(2)),
+        startDate: stat.startDate,
+      };
+    });
+
+    // Sort chronologically
+    progress.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+
+    // Return last 6 terms
+    return progress.slice(-6).map(({ term, percent }) => ({ term, percent }));
+  }
 }
