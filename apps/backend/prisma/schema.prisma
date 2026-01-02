@@ -39,6 +39,9 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
   gradingScales      GradingScale[]
+  subjects           Subject[]
+  examTerms          ExamTerm[]
+  studentFeeLedgers  StudentFeeLedger[]
 
   @@map("tenants")
 }
@@ -279,6 +282,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  exams     Exam[]
 
   @@map("classes")
 }
@@ -317,6 +321,8 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  studentMarks      StudentMark[]
+  feeLedgers        StudentFeeLedger[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -543,4 +549,21 @@ model StudentMark {
 
   @@unique([examId, studentId])
   @@map("student_marks")
+}
+
+// 2.H.08 Finance: Student Fee Ledger
+model StudentFeeLedger {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  studentId String   @map("student_id")
+  amountDue Float    @map("amount_due")
+  status    String   // PAID, PENDING, OVERDUE
+  dueDate   DateTime @map("due_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("student_fee_ledgers")
 }
