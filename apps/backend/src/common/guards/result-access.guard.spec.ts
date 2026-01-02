@@ -74,7 +74,7 @@ describe('ResultAccessGuard', () => {
 
   it('should throw ForbiddenException if library dues are pending', async () => {
     mockFinanceService.checkFeeStatus.mockResolvedValue(true);
-    mockLibraryService.checkLibraryDues.mockResolvedValue(false);
+    mockLibraryService.checkLibraryDues.mockResolvedValue('Library books not returned');
 
     const context = createMockContext({ id: 'student123' });
 
@@ -82,6 +82,22 @@ describe('ResultAccessGuard', () => {
     await expect(guard.canActivate(context)).rejects.toMatchObject({
         response: {
             errorCode: 'LIBRARY_DUES_PENDING',
+            message: 'Library books not returned',
+        }
+    });
+  });
+
+  it('should throw ForbiddenException if outstanding library fines', async () => {
+    mockFinanceService.checkFeeStatus.mockResolvedValue(true);
+    mockLibraryService.checkLibraryDues.mockResolvedValue('Outstanding Library Fines');
+
+    const context = createMockContext({ id: 'student123' });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    await expect(guard.canActivate(context)).rejects.toMatchObject({
+        response: {
+            errorCode: 'LIBRARY_DUES_PENDING',
+            message: 'Outstanding Library Fines',
         }
     });
   });

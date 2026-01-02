@@ -317,6 +317,7 @@ model Student {
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
   feeLedger         StudentFeeLedger?
+  libraryRecords    LibraryCirculation[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -444,6 +445,23 @@ model StudentFeeLedger {
 
   @@unique([studentId])
   @@map("student_fee_ledgers")
+}
+
+// 2.H.02 Facilities: Library Circulation
+model LibraryCirculation {
+  id           String   @id @default(uuid())
+  studentId    String   @map("student_id")
+  bookId       String   @map("book_id") // Placeholder for Book Relation
+  status       String   // ISSUED, RETURNED, LOST
+  dueDate      DateTime @map("due_date")
+  fineAmount   Float    @default(0.0) @map("fine_amount")
+  isFinePaid   Boolean  @default(true) @map("is_fine_paid")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  student      Student  @relation(fields: [studentId], references: [id])
+
+  @@map("library_circulations")
 }
 
 // 2.I.06 Table Audit Logs (To prevent drift)

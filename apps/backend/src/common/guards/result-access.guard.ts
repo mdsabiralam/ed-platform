@@ -43,10 +43,10 @@ export class ResultAccessGuard implements CanActivate {
       });
     }
 
-    if (!hasNoLibraryDues) {
+    if (hasNoLibraryDues !== true) {
       throw new ForbiddenException({
         statusCode: 403,
-        message: 'Library dues pending.',
+        message: typeof hasNoLibraryDues === 'string' ? hasNoLibraryDues : 'Library dues pending.',
         errorCode: 'LIBRARY_DUES_PENDING',
       });
     }

@@ -24,4 +24,36 @@ export class ResultService {
 
     return true;
   }
+
+  async checkLibraryDues(studentId: string): Promise<boolean | string> {
+    const overdueBooks = await this.prisma.libraryCirculation.findFirst({
+      where: {
+        studentId,
+        status: 'ISSUED',
+        dueDate: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    if (overdueBooks) {
+      return 'Library books not returned';
+    }
+
+    const unpaidFines = await this.prisma.libraryCirculation.findFirst({
+      where: {
+        studentId,
+        fineAmount: {
+          gt: 0,
+        },
+        isFinePaid: false,
+      },
+    });
+
+    if (unpaidFines) {
+      return 'Outstanding Library Fines';
+    }
+
+    return true;
+  }
 }
