@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TrainingController } from './training.controller';
 import { TrainingService } from './training.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('TrainingModule', () => {
   let controller: TrainingController;
@@ -13,6 +13,10 @@ describe('TrainingModule', () => {
     teacherTraining: {
       create: jest.fn(),
       findMany: jest.fn(),
+    },
+    trainingAttendance: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
     },
   };
 
@@ -92,6 +96,31 @@ describe('TrainingModule', () => {
 
     it('should throw BadRequestException if schoolId is missing', async () => {
         await expect(controller.getUpcoming('')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('submitFeedback', () => {
+    it('should update feedback for existing attendance', async () => {
+      const dto = { attendanceId: 'att-1', score: 5, comments: 'Great!' };
+      const mockAttendance = { id: 'att-1' };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+      mockPrismaService.trainingAttendance.update.mockResolvedValue({ ...mockAttendance, feedbackScore: 5 });
+
+      await controller.submitFeedback(dto);
+
+      expect(prisma.trainingAttendance.findUnique).toHaveBeenCalledWith({ where: { id: dto.attendanceId } });
+      expect(prisma.trainingAttendance.update).toHaveBeenCalledWith({
+        where: { id: dto.attendanceId },
+        data: { feedbackScore: dto.score, feedbackComments: dto.comments },
+      });
+    });
+
+    it('should throw NotFoundException if attendance record missing', async () => {
+       const dto = { attendanceId: 'att-2', score: 5 };
+       mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(null);
+
+       await expect(controller.submitFeedback(dto)).rejects.toThrow(NotFoundException);
     });
   });
 });
