@@ -118,4 +118,71 @@ export class QuestionPaperService {
 
     return selectedQuestions;
   }
+
+  async swapQuestion(currentQuestionId: string, classId: string): Promise<Question> {
+    // 1. Fetch current question to get criteria
+    const currentQuestion = await this.prisma.question.findUnique({
+      where: { id: currentQuestionId },
+    });
+
+    if (!currentQuestion) {
+      throw new NotFoundException('Current question not found');
+    }
+
+    // 2. Fetch Exclusion List (Questions from last 6 months for this class & subject)
+    // We want to avoid picking a question that was recently used, similar to generatePaper.
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    // Note: We need to find papers for the SAME subject as the question.
+    // The current question has a subjectId.
+    const pastPapers = await this.prisma.generatedPaper.findMany({
+      where: {
+        classId: classId,
+        examDate: {
+          gte: sixMonthsAgo,
+        },
+        blueprint: {
+          subjectId: currentQuestion.subjectId,
+        },
+      },
+      select: {
+        questionsJson: true,
+      },
+    });
+
+    const excludedIds = pastPapers.flatMap((paper) => {
+      return (paper.questionsJson as unknown as string[]) || [];
+    });
+
+    // Add the current question ID to excluded list to ensure we don't pick it again
+    excludedIds.push(currentQuestionId);
+
+    // 3. Find a replacement
+    // Matches: Subject, Type, Difficulty, Marks
+    // Excludes: excludedIds
+    // Order: Random
+    // Limit: 1
+
+    const replacements = await this.prisma.$queryRaw<Question[]>`
+      SELECT * FROM "questions"
+      WHERE "subject_id" = ${currentQuestion.subjectId}
+      AND "type"::text = ${currentQuestion.type}
+      AND "difficulty"::text = ${currentQuestion.difficulty}
+      AND "marks" = ${currentQuestion.marks}
+      ${
+        excludedIds.length > 0
+          ? Prisma.sql`AND "id" NOT IN (${Prisma.join(excludedIds)})`
+          : Prisma.empty
+      }
+      ORDER BY RANDOM()
+      LIMIT 1
+    `;
+
+    if (replacements.length === 0) {
+      throw new NotFoundException('No suitable replacement question found');
+    }
+
+    return replacements[0];
+  }
 }
