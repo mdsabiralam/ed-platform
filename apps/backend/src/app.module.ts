@@ -10,6 +10,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Pat
 import { TenantModule } from './tenants/tenant.module';
 import { PrincipalModule } from './principal/principal.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { BroadsheetModule } from './academic/analytics/broadsheet/broadsheet.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     TenantModule,
     PrincipalModule,
     AnalyticsModule,
+    BroadsheetModule,
   ],
   controllers: [AppController],
   providers: [AppService],
