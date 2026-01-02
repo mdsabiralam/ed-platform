@@ -9,14 +9,21 @@ import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
 import { BullModule } from '@nestjs/bullmq';
+import { CacheModule } from '@nestjs/cache-manager';
 import { MarksheetModule } from './marksheet/marksheet.module';
 import { FinanceModule } from './finance/finance.module';
 import { LibraryModule } from './library/library.module';
 import { AcademicMarksheetModule } from './academic/marksheet/marksheet.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+      max: 100, // max number of items in cache
+    }),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -34,6 +41,7 @@ import { AcademicMarksheetModule } from './academic/marksheet/marksheet.module';
     AcademicMarksheetModule,
     FinanceModule,
     LibraryModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
