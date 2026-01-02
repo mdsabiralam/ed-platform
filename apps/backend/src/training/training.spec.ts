@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TrainingController } from './training.controller';
 import { TrainingService } from './training.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import * as fs from 'fs';
 
 jest.mock('fs', () => ({
@@ -302,6 +302,37 @@ describe('TrainingModule', () => {
       expect(result).toHaveLength(1);
       expect(result[0].staffId).toBe('st-1');
       expect(result[0].absenteeismRate).toBe(1);
+    });
+  });
+
+  describe('getAttendanceDetails (RLS)', () => {
+    it('should return attendance if userId matches', async () => {
+      const attendanceId = 'att-1';
+      const userId = 'user-1';
+      const mockAttendance = {
+        id: attendanceId,
+        staff: { userId: userId },
+      };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+
+      const result = await controller.getAttendance(attendanceId, userId);
+      expect(result).toEqual(mockAttendance);
+    });
+
+    it('should throw ForbiddenException if userId does not match', async () => {
+      const attendanceId = 'att-1';
+      const userId = 'user-1';
+      const otherUser = 'user-2';
+      const mockAttendance = {
+        id: attendanceId,
+        staff: { userId: otherUser },
+      };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+
+      await expect(controller.getAttendance(attendanceId, userId))
+        .rejects.toThrow(ForbiddenException);
     });
   });
 });

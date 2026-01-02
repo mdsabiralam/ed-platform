@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrainingDto } from './dto/create-training.dto';
 import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
@@ -11,6 +11,26 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 @Injectable()
 export class TrainingService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getAttendanceDetails(attendanceId: string, userId: string) {
+    const attendance = await this.prisma.trainingAttendance.findUnique({
+      where: { id: attendanceId },
+      include: {
+        staff: true,
+        training: true,
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException('Attendance record not found');
+    }
+
+    if (attendance.staff.userId !== userId) {
+      throw new ForbiddenException('Access Denied: You cannot view this attendance record');
+    }
+
+    return attendance;
+  }
 
   async getAbsenteeismAnalytics(schoolId: string) {
     const sixMonthsAgo = new Date();

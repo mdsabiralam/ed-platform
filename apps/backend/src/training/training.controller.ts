@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, BadRequestException, Put, Param, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, BadRequestException, Put, Param, UseInterceptors, UploadedFile, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Headers } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TrainingService } from './training.service';
 import { CreateTrainingDto } from './dto/create-training.dto';
@@ -9,6 +9,17 @@ import { Express } from 'express';
 @Controller('academic/training')
 export class TrainingController {
   constructor(private readonly trainingService: TrainingService) {}
+
+  @Get('attendance/:id')
+  async getAttendance(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException('x-user-id header is required');
+    }
+    return this.trainingService.getAttendanceDetails(id, userId);
+  }
 
   @Get('analytics/absenteeism')
   async getAbsenteeismAnalytics(@Query('schoolId') schoolId: string) {
