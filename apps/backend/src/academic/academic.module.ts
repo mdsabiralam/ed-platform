@@ -6,6 +6,7 @@ import { ResultService } from './services/result.service';
 import { MarksService } from './services/marks.service';
 import { ResultController } from './controllers/result.controller';
 import { MarksheetController } from './controllers/marksheet.controller';
+import { StaffController } from './controllers/staff.controller';
 import { ResultCalculationProcessor } from './queues/result-calculation.processor';
 import { PrismaModule } from '../prisma/prisma.module';
 import { BullModule } from '@nestjs/bull';
@@ -22,7 +23,7 @@ import { StorageService } from './services/storage.service';
       name: 'result-calculation',
     }),
   ],
-  controllers: [GradingController, MarksController, ResultController, MarksheetController],
+  controllers: [GradingController, MarksController, ResultController, MarksheetController, StaffController],
   providers: [
     GradingService,
     ResultService,

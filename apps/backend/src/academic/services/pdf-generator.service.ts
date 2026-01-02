@@ -7,7 +7,12 @@ export class PdfGeneratorService {
   async generatePdf(
       layout: MarksheetLayout,
       studentData: any,
-      options?: { backgroundImageUrl?: string; disclaimerText?: string; pageSize?: 'A4' | 'LETTER' }
+      options?: {
+          backgroundImageUrl?: string;
+          disclaimerText?: string;
+          pageSize?: 'A4' | 'LETTER';
+          signatureImages?: Record<string, string>;
+      }
   ): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
     const size = options?.pageSize === 'LETTER' ? PageSizes.Letter : PageSizes.A4;
@@ -100,6 +105,29 @@ export class PdfGeneratorService {
             if (sig.position === 'right') sigX = width - 150;
 
             page.drawText(sig.title, { x: sigX, y, size: 10, font });
+
+            // Signature Image
+            if (options?.signatureImages && options.signatureImages[sig.title]) {
+                const sigUrl = options.signatureImages[sig.title];
+                try {
+                     const response = await fetch(sigUrl);
+                     if (response.ok) {
+                         const imgBuffer = await response.arrayBuffer();
+                         let image;
+                         if (sigUrl.endsWith('.png')) image = await pdfDoc.embedPng(imgBuffer);
+                         else image = await pdfDoc.embedJpg(imgBuffer);
+
+                         page.drawImage(image, {
+                             x: sigX,
+                             y: y + 15,
+                             width: 100,
+                             height: 50,
+                         });
+                     }
+                } catch (e) {
+                    console.warn(`Could not load signature for ${sig.title}:`, e);
+                }
+            }
         }
     }
 

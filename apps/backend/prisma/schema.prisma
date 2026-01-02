@@ -308,6 +308,9 @@ model Section {
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
 
+  classTeacherId String?       @map("class_teacher_id")
+  classTeacher   StaffProfile? @relation(fields: [classTeacherId], references: [id])
+
   @@map("sections")
 }
 
@@ -374,6 +377,9 @@ model StaffProfile {
   joiningDate  DateTime @map("joining_date")
   deletedAt    DateTime? @map("deleted_at")
   
+  signatureUrl String?  @map("signature_url")
+  sections     Section[]
+
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 

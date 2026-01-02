@@ -169,6 +169,22 @@ export class MarksheetController {
     });
     if (!template) throw new NotFoundException('Template not found');
 
+    const signatureImages: Record<string, string> = {};
+    const layout = template.structureJson as unknown as MarksheetLayout;
+
+    if (layout.footer?.signatures) {
+        for (const sig of layout.footer.signatures) {
+            if (sig.title.toLowerCase().includes('principal')) {
+                const principal = await this.prisma.staffProfile.findFirst({
+                    where: { designation: 'Principal', tenantId }
+                });
+                if (principal?.signatureUrl) {
+                    signatureImages[sig.title] = principal.signatureUrl;
+                }
+            }
+        }
+    }
+
     const dummyData = {
         name: 'John Doe',
         roll: '1',
@@ -182,12 +198,13 @@ export class MarksheetController {
     };
 
     const pdfBytes = await this.pdfService.generatePdf(
-        template.structureJson as unknown as MarksheetLayout,
+        layout,
         dummyData,
         {
             backgroundImageUrl: template.backgroundImageUrl || undefined,
             disclaimerText: template.disclaimerText || undefined,
-            pageSize: template.pageSize
+            pageSize: template.pageSize,
+            signatureImages
         }
     );
 
