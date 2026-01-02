@@ -48,6 +48,10 @@ export class AnalyticsService {
 
             if (lagDays > 10) {
               const teacherName = log.teacher?.user ? `${log.teacher.user.firstName} ${log.teacher.user.lastName}` : 'Unknown Teacher';
+              // 7.B.06 Pacing Guide Logic
+              const classesNeeded = Math.ceil(topic.estimatedHours || 1);
+              const suggestion = `Schedule ${classesNeeded} Extra Classes this week`;
+
               report.push({
                 subject: subjectName,
                 class: className,
@@ -57,6 +61,7 @@ export class AnalyticsService {
                 targetDate: chapter.targetCompletionDate,
                 completionDate: log.completionDate,
                 lagDays,
+                suggestion,
               });
             }
           }

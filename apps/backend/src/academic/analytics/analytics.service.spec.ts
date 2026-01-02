@@ -61,6 +61,7 @@ describe('AnalyticsService', () => {
       expect(report).toHaveLength(1);
       expect(report[0].lagDays).toBe(14);
       expect(report[0].subject).toBe('Math');
+      expect(report[0].suggestion).toContain('Schedule');
     });
 
     it('should ignore topics with lag <= 10 days', async () => {

@@ -24,4 +24,7 @@ export class LagReportItemDto {
 
   @ApiProperty()
   lagDays: number;
+
+  @ApiProperty({ required: false })
+  suggestion?: string;
 }
