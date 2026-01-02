@@ -3,6 +3,13 @@ import { TrainingController } from './training.controller';
 import { TrainingService } from './training.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import * as fs from 'fs';
+
+jest.mock('fs', () => ({
+  existsSync: jest.fn(),
+  mkdirSync: jest.fn(),
+  writeFileSync: jest.fn(),
+}));
 
 describe('TrainingModule', () => {
   let controller: TrainingController;
@@ -13,6 +20,8 @@ describe('TrainingModule', () => {
     teacherTraining: {
       create: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
     },
     trainingAttendance: {
       findUnique: jest.fn(),
@@ -20,6 +29,7 @@ describe('TrainingModule', () => {
     },
     serviceBook: {
       create: jest.fn(),
+      findFirst: jest.fn(),
     },
   };
 
@@ -145,6 +155,7 @@ describe('TrainingModule', () => {
 
       mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
       mockPrismaService.trainingAttendance.update.mockResolvedValue({ ...mockAttendance, status });
+      mockPrismaService.serviceBook.findFirst.mockResolvedValue(null);
 
       await controller.markAttendance(attendanceId, { status } as any);
 
@@ -164,6 +175,24 @@ describe('TrainingModule', () => {
       });
     });
 
+    it('should NOT create ServiceBook entry if it already exists', async () => {
+      const attendanceId = 'att-1';
+      const status = 'PRESENT';
+      const mockAttendance = {
+         id: attendanceId,
+         staffId: 'staff-1',
+         training: { title: 'T1', date: new Date(), tenantId: 's1', durationHours: 1 }
+      };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+      mockPrismaService.trainingAttendance.update.mockResolvedValue({ ...mockAttendance, status });
+      mockPrismaService.serviceBook.findFirst.mockResolvedValue({ id: 'sb-1' });
+
+      await controller.markAttendance(attendanceId, { status } as any);
+
+      expect(prisma.serviceBook.create).not.toHaveBeenCalled();
+    });
+
     it('should update status but NOT create ServiceBook entry if ABSENT', async () => {
       const attendanceId = 'att-1';
       const status = 'ABSENT';
@@ -180,6 +209,30 @@ describe('TrainingModule', () => {
 
       expect(prisma.trainingAttendance.update).toHaveBeenCalled();
       expect(prisma.serviceBook.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('uploadResource', () => {
+    it('should save file and update resourceUrls', async () => {
+      const trainingId = 't-1';
+      const file = {
+        originalname: 'test.pdf',
+        buffer: Buffer.from('test'),
+      } as any;
+
+      mockPrismaService.teacherTraining.findUnique.mockResolvedValue({ id: trainingId });
+      mockPrismaService.teacherTraining.update.mockResolvedValue({ id: trainingId, resourceUrls: ['/uploads/training/timestamp-test.pdf'] });
+
+      (fs.existsSync as jest.Mock).mockReturnValue(false);
+
+      await controller.uploadResource(trainingId, file);
+
+      expect(fs.mkdirSync).toHaveBeenCalled();
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(prisma.teacherTraining.update).toHaveBeenCalledWith({
+        where: { id: trainingId },
+        data: { resourceUrls: { push: expect.stringContaining('.pdf') } }
+      });
     });
   });
 });

@@ -3,10 +3,47 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrainingDto } from './dto/create-training.dto';
 import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
 import { TrainingAttendanceStatus } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Express } from 'express';
 
 @Injectable()
 export class TrainingService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async uploadResource(trainingId: string, file: Express.Multer.File) {
+    const training = await this.prisma.teacherTraining.findUnique({
+      where: { id: trainingId },
+    });
+
+    if (!training) {
+      throw new NotFoundException('Training session not found');
+    }
+
+    const uploadDir = path.join(process.cwd(), 'uploads', 'training');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Security Fix: Use random ID instead of original filename to prevent directory traversal
+    const fileExt = path.extname(file.originalname);
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExt}`;
+    const filePath = path.join(uploadDir, filename);
+
+    fs.writeFileSync(filePath, file.buffer);
+
+    // In a real scenario, this would be a CDN or public URL
+    const fileUrl = `/uploads/training/${filename}`;
+
+    return this.prisma.teacherTraining.update({
+      where: { id: trainingId },
+      data: {
+        resourceUrls: {
+          push: fileUrl,
+        },
+      },
+    });
+  }
 
   async markAttendance(attendanceId: string, status: TrainingAttendanceStatus) {
     const attendance = await this.prisma.trainingAttendance.findUnique({
@@ -25,18 +62,28 @@ export class TrainingService {
 
     // 7.F.04: Integration with ServiceBook
     if (status === TrainingAttendanceStatus.PRESENT) {
-      // Check if entry already exists to avoid duplicates (optional but good practice)
-      // For now, we assume simple append log logic as per requirement
-      await this.prisma.serviceBook.create({
-        data: {
+      // Check if entry already exists to avoid duplicates
+      const existingEntry = await this.prisma.serviceBook.findFirst({
+        where: {
           staffId: attendance.staffId,
-          tenantId: attendance.training.tenantId,
+          date: attendance.training.date,
           entryType: 'Professional Development',
           description: `Attended Training: ${attendance.training.title}`,
-          date: attendance.training.date,
-          durationHours: attendance.training.durationHours,
         },
       });
+
+      if (!existingEntry) {
+        await this.prisma.serviceBook.create({
+          data: {
+            staffId: attendance.staffId,
+            tenantId: attendance.training.tenantId,
+            entryType: 'Professional Development',
+            description: `Attended Training: ${attendance.training.title}`,
+            date: attendance.training.date,
+            durationHours: attendance.training.durationHours,
+          },
+        });
+      }
     }
 
     return updatedAttendance;
