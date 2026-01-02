@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { QuestionType, DifficultyLevel, Question, Prisma } from '@prisma/client';
 
 interface BlueprintStructureItem {

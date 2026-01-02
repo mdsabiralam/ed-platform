@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Question } from '@prisma/client';
 
