@@ -85,8 +85,9 @@ export class OnlineExamService {
     }
 
     // 4. Atomic Save with Duplicate Check handling
+    let attempt;
     try {
-      const attempt = await this.prisma.studentExamAttempt.create({
+      attempt = await this.prisma.studentExamAttempt.create({
         data: {
           examId,
           studentId,
@@ -96,7 +97,6 @@ export class OnlineExamService {
           attemptedAt: new Date(),
         },
       });
-      return attempt;
     } catch (error: any) {
       // P2002: Unique constraint violation
       if (error.code === 'P2002') {
@@ -104,5 +104,16 @@ export class OnlineExamService {
       }
       throw error;
     }
+
+    // 5. Check if results should be published
+    if (!exam.isPublished) {
+      return {
+        message: 'Submission Successful. Results will be published later.',
+        status: 'SUBMITTED',
+        attemptId: attempt.id,
+      };
+    }
+
+    return attempt;
   }
 }

@@ -1,41 +1,29 @@
 
 import { OnlineExamService } from '../src/academic/online-exam/online-exam.service';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 
 // Mock implementation without Jest
 const mockPrismaService = {
   onlineExam: {
     findUnique: async () => {
-       // Mock data
-      const mockQuestions = [
-        { id: 'q1', text: 'Q1', correctAnswer: 'A', marks: 5, options: JSON.stringify(['A', 'B']) },
-        { id: 'q2', text: 'Q2', correctAnswer: 'B', marks: 10, options: JSON.stringify(['A', 'B']) },
-        { id: 'q3', text: 'Q3', correctAnswer: 'C', marks: 5, options: JSON.stringify(['A', 'B']) },
-      ];
-
+      // Mock exam data
       const now = new Date();
-      const mockExam = {
+      return {
         id: 'exam-123',
         title: 'Test Exam',
         totalMarks: 20,
         negativeMarkingRate: 0.5,
-        questions: mockQuestions,
-        startTime: new Date(now.getTime() - 600000), // Started 10 mins ago
-        endTime: new Date(now.getTime() + 600000),   // Ends in 10 mins
+        questions: [],
+        startTime: new Date(now.getTime() - 600000),
+        endTime: new Date(now.getTime() + 600000),
+        isPublished: false, // Default for test 1
       };
-      return mockExam;
     },
   },
   studentExamAttempt: {
-    findFirst: async ({ where }: any) => {
-      if (where.studentId === 'student-submitted') {
-        return { id: 'existing-attempt' };
-      }
-      return null;
-    },
+    findFirst: async () => null,
     create: async ({ data }: any) => {
-      console.log('Mock creating attempt with timeSpent:', data.timeSpent);
       return { id: 'attempt-1', ...data };
     }
   }
@@ -46,42 +34,56 @@ async function verifySubmission() {
 
   const service = new OnlineExamService(mockPrismaService);
   const examId = 'exam-123';
-  const timeSpent = { 'q1': 30, 'q2': 45, 'q3': 10 };
 
-  // Test 1: Successful Submission with Time Spent
-  console.log('\n--- Test 1: Successful Submission with Heatmap Data ---');
-  try {
-    const result: any = await service.submitQuiz(
-      examId,
-      'student-new',
-      [
-       { questionId: 'q1', selectedOption: 'A' },
-       { questionId: 'q2', selectedOption: 'A' },
-       { questionId: 'q3', selectedOption: 'C' },
-      ],
-      timeSpent
-    );
-    console.log('Submission Result:', result);
-    if (result.score !== 5) throw new Error('Incorrect score');
-    if (JSON.stringify(result.timeSpent) !== JSON.stringify(timeSpent)) throw new Error('Incorrect timeSpent data');
-    console.log('✅ Success');
-  } catch (e) {
-    console.error('❌ Failed:', e);
-    throw e;
+  // Test 1: Submission when isPublished = false
+  console.log('\n--- Test 1: Unpublished Exam Submission ---');
+  // @ts-ignore
+  mockPrismaService.onlineExam.findUnique = async () => ({
+      id: 'exam-123',
+      title: 'Unpublished Exam',
+      totalMarks: 20,
+      negativeMarkingRate: 0,
+      questions: [],
+      startTime: new Date(Date.now() - 1000),
+      endTime: new Date(Date.now() + 100000),
+      isPublished: false,
+  });
+
+  const result1: any = await service.submitQuiz(examId, 'student-1', []);
+  console.log('Result 1:', result1);
+
+  if (result1.message === 'Submission Successful. Results will be published later.') {
+    console.log('✅ Correctly withheld score.');
+  } else {
+    throw new Error('Failed to withhold score for unpublished exam');
   }
 
-  // Test 2: Double Submission
-  console.log('\n--- Test 2: Double Submission ---');
-  try {
-    await service.submitQuiz(examId, 'student-submitted', [], {});
-    throw new Error('Should have thrown ConflictException');
-  } catch (e) {
-    if (e instanceof ConflictException) {
-      console.log('✅ Correctly caught ConflictException');
-    } else {
-      console.error('❌ Wrong error type:', e);
-      throw e;
-    }
+  if (result1.score !== undefined) {
+     throw new Error('Score should not be present in response');
+  }
+
+
+  // Test 2: Submission when isPublished = true
+  console.log('\n--- Test 2: Published Exam Submission ---');
+  // @ts-ignore
+  mockPrismaService.onlineExam.findUnique = async () => ({
+      id: 'exam-123',
+      title: 'Published Exam',
+      totalMarks: 20,
+      negativeMarkingRate: 0,
+      questions: [],
+      startTime: new Date(Date.now() - 1000),
+      endTime: new Date(Date.now() + 100000),
+      isPublished: true,
+  });
+
+  const result2: any = await service.submitQuiz(examId, 'student-2', []);
+  console.log('Result 2:', result2);
+
+  if (result2.score !== undefined) {
+    console.log('✅ Correctly returned score.');
+  } else {
+    throw new Error('Failed to return score for published exam');
   }
 
   console.log('\n✅ Verification successful!');

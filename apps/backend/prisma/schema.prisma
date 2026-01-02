@@ -493,6 +493,7 @@ model OnlineExam {
   totalMarks          Float    @map("total_marks")
   negativeMarkingRate Float    @default(0.0) @map("negative_marking_rate")
   isActive            Boolean  @default(false) @map("is_active")
+  isPublished         Boolean  @default(false) @map("is_published")
 
   subject            Subject              @relation(fields: [subjectId], references: [id])
   class              Class                @relation(fields: [classId], references: [id])
