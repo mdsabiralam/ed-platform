@@ -7,16 +7,38 @@ class AiChatMessage extends Equatable {
   final AiChatMessageSender sender;
   final DateTime timestamp;
   final int? sourcePage;
+  final String? interactionId;
+  final bool? isHelpful; // null = no feedback, true = up, false = down
 
   const AiChatMessage({
     required this.text,
     required this.sender,
     required this.timestamp,
     this.sourcePage,
+    this.interactionId,
+    this.isHelpful,
   });
 
+  AiChatMessage copyWith({
+    String? text,
+    AiChatMessageSender? sender,
+    DateTime? timestamp,
+    int? sourcePage,
+    String? interactionId,
+    bool? isHelpful,
+  }) {
+    return AiChatMessage(
+      text: text ?? this.text,
+      sender: sender ?? this.sender,
+      timestamp: timestamp ?? this.timestamp,
+      sourcePage: sourcePage ?? this.sourcePage,
+      interactionId: interactionId ?? this.interactionId,
+      isHelpful: isHelpful ?? this.isHelpful,
+    );
+  }
+
   @override
-  List<Object?> get props => [text, sender, timestamp, sourcePage];
+  List<Object?> get props => [text, sender, timestamp, sourcePage, interactionId, isHelpful];
 }
 
 abstract class AiChatState extends Equatable {

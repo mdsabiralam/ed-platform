@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { AiDoubtService } from './ai-doubt.service';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean } from 'class-validator';
 import { AiRateLimitGuard } from '../common/guards/ai-rate-limit.guard';
 
 export class AskDoubtDto {
@@ -18,6 +18,16 @@ export class AskDoubtDto {
   question: string;
 }
 
+export class FeedbackDto {
+  @IsString()
+  @IsNotEmpty()
+  interactionId: string;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  isHelpful: boolean;
+}
+
 @ApiTags('AI Doubt Solver')
 @Controller('api/ai')
 export class AiDoubtController {
@@ -29,5 +39,12 @@ export class AiDoubtController {
   @ApiBody({ type: AskDoubtDto })
   async askDoubt(@Body() dto: AskDoubtDto) {
     return this.aiDoubtService.solveDoubt(dto.studentId, dto.subjectId, dto.question);
+  }
+
+  @Post('feedback')
+  @ApiOperation({ summary: 'Submit feedback for an AI interaction' })
+  @ApiBody({ type: FeedbackDto })
+  async submitFeedback(@Body() dto: FeedbackDto) {
+    return this.aiDoubtService.submitFeedback(dto.interactionId, dto.isHelpful);
   }
 }

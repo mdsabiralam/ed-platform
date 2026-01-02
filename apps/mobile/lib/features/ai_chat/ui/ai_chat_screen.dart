@@ -140,19 +140,53 @@ class _AiChatViewState extends State<AiChatView> {
                                 ),
                               ),
                             ),
-                            if (!isUser && message.sourcePage != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4.0, left: 4.0),
-                                child: Chip(
-                                  label: Text(
-                                    'Source: Page ${message.sourcePage}',
-                                    style: const TextStyle(fontSize: 10, color: Colors.white),
-                                  ),
-                                  backgroundColor: Colors.blueGrey,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                  padding: EdgeInsets.zero,
-                                ),
+                            if (!isUser)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (message.sourcePage != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4.0, left: 4.0),
+                                      child: Chip(
+                                        label: Text(
+                                          'Source: Page ${message.sourcePage}',
+                                          style: const TextStyle(fontSize: 10, color: Colors.white),
+                                        ),
+                                        backgroundColor: Colors.blueGrey,
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  if (message.interactionId != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4.0, left: 8.0),
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.thumb_up,
+                                              size: 16,
+                                              color: message.isHelpful == true ? Colors.green : Colors.grey,
+                                            ),
+                                            onPressed: () {
+                                              context.read<AiChatCubit>().submitFeedback(message.interactionId!, true);
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.thumb_down,
+                                              size: 16,
+                                              color: message.isHelpful == false ? Colors.red : Colors.grey,
+                                            ),
+                                            onPressed: () {
+                                              context.read<AiChatCubit>().submitFeedback(message.interactionId!, false);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
                               ),
                           ],
                         ),

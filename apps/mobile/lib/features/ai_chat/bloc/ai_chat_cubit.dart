@@ -22,7 +22,6 @@ class AiChatCubit extends Cubit<AiChatState> {
   Future<void> askDoubt(String question) async {
     if (question.trim().isEmpty) return;
 
-    // Add user message immediately
     _currentMessages = List.from(_currentMessages)
       ..add(AiChatMessage(
         text: question,
@@ -43,9 +42,9 @@ class AiChatCubit extends Cubit<AiChatState> {
       );
 
       final data = response.data;
-      // Assuming response format: { answer: "...", context: [...], sourcePage: 123 }
       final String answer = data['answer'] ?? "Sorry, I couldn't generate an answer.";
       final int? sourcePage = data['sourcePage'];
+      final String? interactionId = data['interactionId'];
 
       _currentMessages = List.from(_currentMessages)
         ..add(AiChatMessage(
@@ -53,13 +52,13 @@ class AiChatCubit extends Cubit<AiChatState> {
           sender: AiChatMessageSender.ai,
           timestamp: DateTime.now(),
           sourcePage: sourcePage,
+          interactionId: interactionId,
         ));
 
       emit(AiChatLoaded(_currentMessages));
     } catch (e) {
       String errorMessage = 'Failed to get answer';
       if (e is DioException) {
-        // Handle 429 Too Many Requests specifically
         if (e.response?.statusCode == 429) {
           errorMessage = 'Daily limit reached. Upgrade to Gold for more queries!';
         } else {
@@ -67,6 +66,28 @@ class AiChatCubit extends Cubit<AiChatState> {
         }
       }
       emit(AiChatError(errorMessage, _currentMessages));
+    }
+  }
+
+  Future<void> submitFeedback(String interactionId, bool isHelpful) async {
+    try {
+      await _apiClient.dio.post(
+        '/ai/feedback',
+        data: {
+          'interactionId': interactionId,
+          'isHelpful': isHelpful,
+        },
+      );
+
+      // Update local message state to reflect feedback given
+      final index = _currentMessages.indexWhere((m) => m.interactionId == interactionId);
+      if (index != -1) {
+        _currentMessages[index] = _currentMessages[index].copyWith(isHelpful: isHelpful);
+        emit(AiChatLoaded(List.from(_currentMessages)));
+      }
+    } catch (e) {
+      // Silently fail or show toast - feedback is non-critical
+      print('Feedback submission failed: $e');
     }
   }
 }

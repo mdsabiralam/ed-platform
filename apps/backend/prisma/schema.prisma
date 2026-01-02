@@ -483,3 +483,16 @@ model AiRequestLog {
 
   @@map("ai_request_logs")
 }
+
+model AiInteraction {
+  id        String   @id @default(uuid())
+  studentId String   @map("student_id")
+  question  String
+  answer    String
+  context   Json?
+  sourcePage Int?    @map("source_page")
+  isHelpful Boolean? @map("is_helpful")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_interactions")
+}
