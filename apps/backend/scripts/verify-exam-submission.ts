@@ -35,7 +35,7 @@ const mockPrismaService = {
       return null;
     },
     create: async ({ data }: any) => {
-      console.log('Mock creating attempt:', data);
+      console.log('Mock creating attempt with timeSpent:', data.timeSpent);
       return { id: 'attempt-1', ...data };
     }
   }
@@ -46,17 +46,24 @@ async function verifySubmission() {
 
   const service = new OnlineExamService(mockPrismaService);
   const examId = 'exam-123';
+  const timeSpent = { 'q1': 30, 'q2': 45, 'q3': 10 };
 
-  // Test 1: Successful Submission
-  console.log('\n--- Test 1: Successful Submission ---');
+  // Test 1: Successful Submission with Time Spent
+  console.log('\n--- Test 1: Successful Submission with Heatmap Data ---');
   try {
-    const result = await service.submitQuiz(examId, 'student-new', [
+    const result: any = await service.submitQuiz(
+      examId,
+      'student-new',
+      [
        { questionId: 'q1', selectedOption: 'A' },
        { questionId: 'q2', selectedOption: 'A' },
        { questionId: 'q3', selectedOption: 'C' },
-    ]);
+      ],
+      timeSpent
+    );
     console.log('Submission Result:', result);
     if (result.score !== 5) throw new Error('Incorrect score');
+    if (JSON.stringify(result.timeSpent) !== JSON.stringify(timeSpent)) throw new Error('Incorrect timeSpent data');
     console.log('✅ Success');
   } catch (e) {
     console.error('❌ Failed:', e);
@@ -66,7 +73,7 @@ async function verifySubmission() {
   // Test 2: Double Submission
   console.log('\n--- Test 2: Double Submission ---');
   try {
-    await service.submitQuiz(examId, 'student-submitted', []);
+    await service.submitQuiz(examId, 'student-submitted', [], {});
     throw new Error('Should have thrown ConflictException');
   } catch (e) {
     if (e instanceof ConflictException) {
@@ -77,8 +84,6 @@ async function verifySubmission() {
     }
   }
 
-  // Test 3: Time Validation (Manual check via mock modification would be needed for complex cases,
-  // but here we trust the service logic if Test 1 passed as it checks time range)
   console.log('\n✅ Verification successful!');
 }
 

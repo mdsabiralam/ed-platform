@@ -14,6 +14,8 @@ class QuizState extends Equatable {
   final bool isSubmitting;
   final bool isCompleted;
   final int backgroundAttemptCount; // Cheating tracking
+  final Map<String, int> timeSpent; // questionId -> seconds
+  final DateTime? currentQuestionStartTime;
 
   const QuizState({
     this.exam,
@@ -24,6 +26,8 @@ class QuizState extends Equatable {
     this.isSubmitting = false,
     this.isCompleted = false,
     this.backgroundAttemptCount = 0,
+    this.timeSpent = const {},
+    this.currentQuestionStartTime,
   });
 
   QuizState copyWith({
@@ -35,6 +39,8 @@ class QuizState extends Equatable {
     bool? isSubmitting,
     bool? isCompleted,
     int? backgroundAttemptCount,
+    Map<String, int>? timeSpent,
+    DateTime? currentQuestionStartTime,
   }) {
     return QuizState(
       exam: exam ?? this.exam,
@@ -45,6 +51,8 @@ class QuizState extends Equatable {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isCompleted: isCompleted ?? this.isCompleted,
       backgroundAttemptCount: backgroundAttemptCount ?? this.backgroundAttemptCount,
+      timeSpent: timeSpent ?? this.timeSpent,
+      currentQuestionStartTime: currentQuestionStartTime ?? this.currentQuestionStartTime,
     );
   }
 
@@ -58,6 +66,8 @@ class QuizState extends Equatable {
         isSubmitting,
         isCompleted,
         backgroundAttemptCount,
+        timeSpent,
+        currentQuestionStartTime,
       ];
 }
 
@@ -73,6 +83,7 @@ class QuizCubit extends Cubit<QuizState> {
       exam: exam,
       remainingSeconds: exam.durationMinutes * 60,
       isLoading: false,
+      currentQuestionStartTime: DateTime.now(), // Start tracking first question
     ));
     _startTimer();
   }
@@ -100,14 +111,33 @@ class QuizCubit extends Cubit<QuizState> {
     }
   }
 
+  void _recordTimeSpent() {
+    if (state.exam == null || state.currentQuestionStartTime == null) return;
+
+    final currentQuestion = state.exam!.questions[state.currentQuestionIndex];
+    final now = DateTime.now();
+    final duration = now.difference(state.currentQuestionStartTime!).inSeconds;
+
+    final newTimeSpent = Map<String, int>.from(state.timeSpent);
+    // Add to existing time if user revisited the question
+    newTimeSpent[currentQuestion.id] = (newTimeSpent[currentQuestion.id] ?? 0) + duration;
+
+    emit(state.copyWith(
+      timeSpent: newTimeSpent,
+      currentQuestionStartTime: now, // Reset for next/prev question
+    ));
+  }
+
   void nextQuestion() {
     if (state.exam != null && state.currentQuestionIndex < state.exam!.questions.length - 1) {
+      _recordTimeSpent();
       emit(state.copyWith(currentQuestionIndex: state.currentQuestionIndex + 1));
     }
   }
 
   void prevQuestion() {
     if (state.currentQuestionIndex > 0) {
+      _recordTimeSpent();
       emit(state.copyWith(currentQuestionIndex: state.currentQuestionIndex - 1));
     }
   }
@@ -128,6 +158,7 @@ class QuizCubit extends Cubit<QuizState> {
   Future<void> submitQuiz() async {
     if (state.isSubmitting || state.isCompleted) return;
 
+    _recordTimeSpent(); // Capture time for the final question
     emit(state.copyWith(isSubmitting: true));
     _timer?.cancel();
 
@@ -135,8 +166,13 @@ class QuizCubit extends Cubit<QuizState> {
       // Mock API call simulation
       await Future.delayed(const Duration(seconds: 2));
 
-      // Here you would call ApiClient to submit `state.answers`
-      // await apiClient.post('/academic/online-exam/submit', data: { ... });
+      // Here you would call ApiClient to submit
+      // final payload = {
+      //   'examId': state.exam!.id,
+      //   'answers': state.answers,
+      //   'timeSpent': state.timeSpent, // Sending heatmap data
+      // };
+      // await apiClient.post('/academic/online-exam/submit', data: payload);
 
       emit(state.copyWith(isSubmitting: false, isCompleted: true));
     } catch (e) {

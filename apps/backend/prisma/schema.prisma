@@ -521,6 +521,7 @@ model StudentExamAttempt {
   studentId   String   @map("student_id")
   score       Float
   totalMarks  Float    @map("total_marks")
+  timeSpent   Json?    @map("time_spent") // Map<questionId, seconds>
   attemptedAt DateTime @default(now()) @map("attempted_at")
 
   exam    OnlineExam @relation(fields: [examId], references: [id])
@@ -528,3 +529,9 @@ model StudentExamAttempt {
 
   @@map("student_exam_attempts")
 }
+
+// Added via task 7.E.08
+// Update StudentExamAttempt to include timeSpent
+// This is a partial update simulation since we can't edit in place easily with append
+// But since I'm appending, I need to be careful.
+// Actually, I should use git merge diff for schema update to add the field to existing model.

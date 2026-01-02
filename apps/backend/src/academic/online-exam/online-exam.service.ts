@@ -42,6 +42,7 @@ export class OnlineExamService {
     examId: string,
     studentId: string,
     answers: { questionId: string; selectedOption: string }[],
+    timeSpent?: Record<string, number>,
   ) {
     // 1. Prevent double submission
     const existingAttempt = await this.prisma.studentExamAttempt.findFirst({
@@ -105,6 +106,7 @@ export class OnlineExamService {
         studentId,
         score,
         totalMarks: exam.totalMarks,
+        timeSpent: timeSpent as any, // Cast to any for Json compatibility if needed by Prisma types
         attemptedAt: new Date(),
       },
     });

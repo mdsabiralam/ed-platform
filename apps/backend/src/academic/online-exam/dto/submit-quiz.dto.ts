@@ -24,4 +24,7 @@ export class SubmitQuizDto {
   @ValidateNested({ each: true })
   @Type(() => AnswerDto)
   answers: AnswerDto[];
+
+  @IsNotEmpty()
+  timeSpent: Record<string, number>;
 }

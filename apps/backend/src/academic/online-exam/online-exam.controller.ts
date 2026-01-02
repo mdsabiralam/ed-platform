@@ -8,6 +8,11 @@ export class OnlineExamController {
 
   @Post('submit')
   async submitQuiz(@Body() dto: SubmitQuizDto) {
-    return this.onlineExamService.submitQuiz(dto.examId, dto.studentId, dto.answers);
+    return this.onlineExamService.submitQuiz(
+      dto.examId,
+      dto.studentId,
+      dto.answers,
+      dto.timeSpent,
+    );
   }
 }
