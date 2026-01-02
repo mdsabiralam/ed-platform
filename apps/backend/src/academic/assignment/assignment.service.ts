@@ -130,4 +130,23 @@ export class AssignmentService {
 
     return submission;
   }
+
+  async getFeaturedSubmissions(assignmentId: string) {
+    const submissions = await this.prisma.assignmentSubmission.findMany({
+      where: {
+        assignmentId,
+        isFeatured: true,
+      },
+      include: {
+        student: true,
+      },
+    });
+
+    // Map to a cleaner DTO if needed, but returning raw Prisma result is fine for now
+    // Flattening student name could be helpful for frontend
+    return submissions.map(sub => ({
+      ...sub,
+      studentName: sub.student ? `${sub.student.firstName || ''} ${sub.student.lastName || ''}`.trim() : 'Unknown Student',
+    }));
+  }
 }

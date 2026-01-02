@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, Put, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Put, Req } from '@nestjs/common';
 import { AssignmentService } from './assignment.service';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 
@@ -30,5 +30,11 @@ export class AssignmentController {
       body.content,
       body.fileUrl,
     );
+  }
+
+  @Get(':id/featured')
+  @ApiOperation({ summary: 'Get featured submissions for an assignment' })
+  async getFeaturedSubmissions(@Param('id') assignmentId: string) {
+    return this.assignmentService.getFeaturedSubmissions(assignmentId);
   }
 }

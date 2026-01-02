@@ -46,4 +46,11 @@ class AssignmentRepository {
       },
     );
   }
+
+  Future<List<AssignmentSubmission>> getFeaturedSubmissions(String assignmentId) async {
+    final response = await _apiClient.get('/academic/assignment/$assignmentId/featured');
+    return (response.data as List)
+        .map((e) => AssignmentSubmission.fromJson(e))
+        .toList();
+  }
 }

@@ -9,6 +9,7 @@ class AssignmentSubmission {
   final double? obtainedMarks;
   final String? audioFeedbackUrl;
   final bool isFeatured;
+  final String? studentName;
 
   AssignmentSubmission({
     required this.id,
@@ -21,6 +22,7 @@ class AssignmentSubmission {
     this.obtainedMarks,
     this.audioFeedbackUrl,
     this.isFeatured = false,
+    this.studentName,
   });
 
   factory AssignmentSubmission.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class AssignmentSubmission {
       obtainedMarks: json['obtainedMarks']?.toDouble(),
       audioFeedbackUrl: json['audioFeedbackUrl'],
       isFeatured: json['isFeatured'] ?? false,
+      studentName: json['studentName'],
     );
   }
 
