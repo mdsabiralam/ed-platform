@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:html_editor_enhanced/html_editor.dart';
 import 'package:flutter_tex/flutter_tex.dart';
+import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 
@@ -44,6 +45,9 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
   DifficultyLevel _selectedDifficulty = DifficultyLevel.EASY;
   BloomsLevel _selectedBlooms = BloomsLevel.REMEMBER;
   final TextEditingController _marksController = TextEditingController();
+  final TextEditingController _optionsController = TextEditingController();
+  final TextEditingController _correctAnswerController = TextEditingController();
+  final TextEditingController _topicController = TextEditingController();
   final HtmlEditorController _htmlController = HtmlEditorController();
   String _previewContent = '';
   File? _selectedImage;
@@ -58,6 +62,9 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
   @override
   void dispose() {
     _marksController.dispose();
+    _optionsController.dispose();
+    _correctAnswerController.dispose();
+    _topicController.dispose();
     super.dispose();
   }
 
@@ -111,19 +118,46 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
         return;
       }
 
-      // Logic to submit data to backend API would go here
-      // For now, just print the values
-      print('Subject: $_selectedSubjectId');
-      print('Type: $_selectedType');
-      print('Difficulty: $_selectedDifficulty');
-      print('Marks: ${_marksController.text}');
-      print('Content: $content');
-      print('Blooms: $_selectedBlooms');
-      print('ImageUrl: $_imageUrl');
+      try {
+        final dio = Dio();
+        const url = 'http://10.0.2.2:3000/api/academic/question-bank';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Processing Data')),
-      );
+        Map<String, dynamic> data = {
+          'subjectId': _selectedSubjectId,
+          'topicTag': _topicController.text,
+          'type': _selectedType.name,
+          'difficulty': _selectedDifficulty.name,
+          'marks': int.parse(_marksController.text),
+          'content': content,
+          'bloomsLevel': _selectedBlooms.name,
+          'correctAnswer': _correctAnswerController.text,
+          'imageUrl': _imageUrl,
+        };
+
+        if (_selectedType == QuestionType.MCQ) {
+          try {
+            data['options'] = jsonDecode(_optionsController.text);
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Invalid JSON in Options')),
+            );
+            return;
+          }
+        }
+
+        final response = await dio.post(url, data: data);
+
+        if (response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Question Created Successfully!')),
+          );
+          // Optional: Clear form or navigate back
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Creation Failed: $e')),
+        );
+      }
     }
   }
 
@@ -212,6 +246,14 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Topic Tag
+              TextFormField(
+                controller: _topicController,
+                decoration: const InputDecoration(labelText: 'Topic Tag'),
+                validator: (value) => value == null || value.isEmpty ? 'Please enter a topic' : null,
+              ),
+              const SizedBox(height: 16),
+
               // Marks Text Field
               TextFormField(
                 controller: _marksController,
@@ -228,6 +270,33 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // Correct Answer
+              TextFormField(
+                controller: _correctAnswerController,
+                decoration: const InputDecoration(labelText: 'Correct Answer'),
+                validator: (value) => value == null || value.isEmpty ? 'Please enter correct answer' : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Options (MCQ only)
+              if (_selectedType == QuestionType.MCQ) ...[
+                TextFormField(
+                  controller: _optionsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Options (JSON format)',
+                    hintText: '{"a": "Option A", "b": "Option B"}',
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter options for MCQ';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Image Upload Section
               const Text('Question Image', style: TextStyle(fontWeight: FontWeight.bold)),
