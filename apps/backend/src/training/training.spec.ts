@@ -18,6 +18,9 @@ describe('TrainingModule', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    serviceBook: {
+      create: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -121,6 +124,62 @@ describe('TrainingModule', () => {
        mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(null);
 
        await expect(controller.submitFeedback(dto)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('markAttendance', () => {
+    it('should update status and create ServiceBook entry if PRESENT', async () => {
+      const attendanceId = 'att-1';
+      const status = 'PRESENT';
+      const mockTraining = {
+         title: 'Training 1',
+         date: new Date(),
+         durationHours: 4,
+         tenantId: 'school-1'
+      };
+      const mockAttendance = {
+         id: attendanceId,
+         staffId: 'staff-1',
+         training: mockTraining
+      };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+      mockPrismaService.trainingAttendance.update.mockResolvedValue({ ...mockAttendance, status });
+
+      await controller.markAttendance(attendanceId, { status } as any);
+
+      expect(prisma.trainingAttendance.update).toHaveBeenCalledWith({
+        where: { id: attendanceId },
+        data: { status },
+      });
+      expect(prisma.serviceBook.create).toHaveBeenCalledWith({
+        data: {
+          staffId: mockAttendance.staffId,
+          tenantId: mockTraining.tenantId,
+          entryType: 'Professional Development',
+          description: `Attended Training: ${mockTraining.title}`,
+          date: mockTraining.date,
+          durationHours: mockTraining.durationHours,
+        },
+      });
+    });
+
+    it('should update status but NOT create ServiceBook entry if ABSENT', async () => {
+      const attendanceId = 'att-1';
+      const status = 'ABSENT';
+      const mockAttendance = {
+         id: attendanceId,
+         staffId: 'staff-1',
+         training: { title: 'T1' }
+      };
+
+      mockPrismaService.trainingAttendance.findUnique.mockResolvedValue(mockAttendance);
+      mockPrismaService.trainingAttendance.update.mockResolvedValue({ ...mockAttendance, status });
+
+      await controller.markAttendance(attendanceId, { status } as any);
+
+      expect(prisma.trainingAttendance.update).toHaveBeenCalled();
+      expect(prisma.serviceBook.create).not.toHaveBeenCalled();
     });
   });
 });

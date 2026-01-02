@@ -39,6 +39,7 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
   teacherTrainings   TeacherTraining[]
+  serviceBooks       ServiceBook[]
 
   @@map("tenants")
 }
@@ -360,6 +361,7 @@ model StaffProfile {
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
   trainingAttendances TrainingAttendance[]
+  serviceBooks ServiceBook[]
 
   @@map("staff_profiles")
 }
@@ -484,6 +486,23 @@ model TrainingAttendance {
 enum TrainingAttendanceStatus {
   PRESENT
   ABSENT
+}
+
+// 7.F.04 Service Book
+model ServiceBook {
+  id            String   @id @default(uuid())
+  staffId       String   @map("staff_id")
+  tenantId      String   @map("school_id")
+  entryType     String   @map("entry_type")
+  description   String
+  date          DateTime
+  durationHours Int?     @map("duration_hours")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  staff         StaffProfile @relation(fields: [staffId], references: [id])
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@map("service_books")
 }
 
 // 2.C.03 Roles Enum
