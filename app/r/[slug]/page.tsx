@@ -75,6 +75,16 @@ export default async function PublicResultPage({ params }: { params: { slug: str
         <div className="text-xs text-gray-400 mt-8">
             Verified Result via EdPlatform
         </div>
+
+        <div className="mt-8 border-t pt-6">
+            <h3 className="text-gray-700 font-semibold mb-3">Interested in our programs?</h3>
+            <a
+              href={`${baseUrl}/api/social/cta/admissions?slug=${slug}`}
+              className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md transform hover:-translate-y-0.5"
+            >
+              Admissions Open
+            </a>
+        </div>
       </div>
     </div>
   );

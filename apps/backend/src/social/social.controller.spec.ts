@@ -23,6 +23,7 @@ describe('SocialController', () => {
               rank: '1',
               percentage: '99%'
             }),
+            handleAdmissionCta: jest.fn().mockResolvedValue('https://edplatform.com/admissions/apply'),
           },
         },
         {
@@ -67,5 +68,12 @@ describe('SocialController', () => {
       percentage: '99%'
     });
     expect(service.getPublicArtifact).toHaveBeenCalledWith('xyz123');
+  });
+
+  it('should handle admission CTA redirect', async () => {
+    const res = { redirect: jest.fn() };
+    await controller.handleAdmissionCta('xyz123', res as any);
+    expect(service.handleAdmissionCta).toHaveBeenCalledWith('xyz123');
+    expect(res.redirect).toHaveBeenCalledWith('https://edplatform.com/admissions/apply');
   });
 });

@@ -287,4 +287,45 @@ export class SocialService implements OnModuleInit, OnModuleDestroy {
       percentage,
     };
   }
+
+  async handleAdmissionCta(slug: string): Promise<string> {
+    const artifact = await this.prisma.socialArtifact.findUnique({
+        where: { publicSlug: slug },
+    });
+
+    if (!artifact) {
+        // Fallback to generic admission page if slug is invalid
+        return 'https://edplatform.com/admissions';
+    }
+
+    // Track Conversion
+    try {
+        await this.prisma.shareAnalytics.upsert({
+            where: {
+                artifactId_platform: {
+                    artifactId: artifact.id,
+                    platform: 'cta_admission',
+                },
+            },
+            update: {
+                clickCount: { increment: 1 },
+                uniqueVisitors: { increment: 1 },
+            },
+            create: {
+                artifactId: artifact.id,
+                platform: 'cta_admission',
+                clickCount: 1,
+                uniqueVisitors: 1,
+            },
+        });
+    } catch (e) {
+        this.logger.error(`Failed to track CTA click: ${e.message}`);
+    }
+
+    // Redirect to Division 4 (Admission Form)
+    // Assuming a standard URL pattern or external link.
+    // Ideally, this should be dynamic based on the tenant/school linked to the artifact.
+    // For this task, we'll use a placeholder URL.
+    return 'https://edplatform.com/admissions/apply';
+  }
 }

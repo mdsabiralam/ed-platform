@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Res, Post, Body, Query } from '@nestjs/common';
 import { SocialService } from './social.service';
 import type { Response } from 'express';
 
@@ -15,6 +15,12 @@ export class SocialController {
   @Get('public/:slug')
   async getPublicArtifact(@Param('slug') slug: string) {
     return this.socialService.getPublicArtifact(slug);
+  }
+
+  @Get('cta/admissions')
+  async handleAdmissionCta(@Query('slug') slug: string, @Res() res: Response) {
+    const url = await this.socialService.handleAdmissionCta(slug);
+    res.redirect(url);
   }
 
   @Get('og-image/:studentId')
