@@ -39,6 +39,9 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  examTerms          ExamTerm[]
+  subjects           Subject[]
+
   @@map("tenants")
 }
 
@@ -278,6 +281,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  exams     Exam[]
 
   @@map("classes")
 }
@@ -316,6 +320,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  marks             StudentMark[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -463,4 +468,69 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 3.A.01 Academic: Exam Terms
+model ExamTerm {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  weightage Float    @default(0.0)
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  exams     Exam[]
+
+  @@map("exam_terms")
+}
+
+// 3.A.02 Academic: Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  exams     Exam[]
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+// 3.A.03 Academic: Exams
+model Exam {
+  id          String   @id @default(uuid())
+  examTermId  String   @map("exam_term_id")
+  classId     String   @map("class_id")
+  subjectId   String   @map("subject_id")
+  maxTheory   Float    @default(0.0) @map("max_theory")
+  maxPractical Float   @default(0.0) @map("max_practical")
+
+  examTerm    ExamTerm @relation(fields: [examTermId], references: [id])
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  marks       StudentMark[]
+
+  @@map("exams")
+}
+
+// 3.A.04 Academic: Student Marks
+model StudentMark {
+  id          String   @id @default(uuid())
+  examId      String   @map("exam_id")
+  studentId   String   @map("student_id")
+  theoryMarks Float    @default(0.0) @map("theory_marks")
+  practicalMarks Float @default(0.0) @map("practical_marks")
+  totalMarks  Float    @default(0.0) @map("total_marks")
+  gradeLabel  String?  @map("grade_label")
+  isAbsent    Boolean  @default(false) @map("is_absent")
+
+  exam        Exam     @relation(fields: [examId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([examId, studentId])
+  @@map("student_marks")
 }
