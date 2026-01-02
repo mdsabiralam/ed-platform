@@ -482,6 +482,8 @@ model Assignment {
   description String?
   dueDate     DateTime? @map("due_date")
   rubricJson  Json?    @map("rubric_json") // Requested field
+  allowLateSubmission Boolean @default(true) @map("allow_late_submission")
+  isLocked    Boolean  @default(false) @map("is_locked")
 
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
