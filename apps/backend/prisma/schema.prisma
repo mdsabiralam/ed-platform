@@ -475,3 +475,11 @@ model TextbookEmbedding {
 
   @@map("textbook_embeddings")
 }
+model AiRequestLog {
+  id        String   @id @default(uuid())
+  studentId String   @map("student_id")
+  endpoint  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_request_logs")
+}
