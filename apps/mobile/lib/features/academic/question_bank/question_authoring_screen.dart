@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:html_editor_enhanced/html_editor.dart';
+import 'package:flutter_html/flutter_html.dart';
 
 // Enums (replicating backend enums)
 enum QuestionType {
@@ -39,7 +41,8 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
   DifficultyLevel _selectedDifficulty = DifficultyLevel.EASY;
   BloomsLevel _selectedBlooms = BloomsLevel.REMEMBER;
   final TextEditingController _marksController = TextEditingController();
-  final TextEditingController _contentController = TextEditingController();
+  final HtmlEditorController _htmlController = HtmlEditorController();
+  String _previewContent = '';
 
   // Placeholder data for Subjects
   final List<Map<String, String>> _subjects = [
@@ -50,19 +53,26 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
   @override
   void dispose() {
     _marksController.dispose();
-    _contentController.dispose();
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
+    final content = await _htmlController.getText();
     if (_formKey.currentState!.validate()) {
+      if (content.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter content')),
+        );
+        return;
+      }
+
       // Logic to submit data to backend API would go here
       // For now, just print the values
       print('Subject: $_selectedSubjectId');
       print('Type: $_selectedType');
       print('Difficulty: $_selectedDifficulty');
       print('Marks: ${_marksController.text}');
-      print('Content: ${_contentController.text}');
+      print('Content: $content');
       print('Blooms: $_selectedBlooms');
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,20 +183,45 @@ class _QuestionAuthoringScreenState extends State<QuestionAuthoringScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Content Text Field (Supports Rich Text conceptual placeholder)
-              TextFormField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  labelText: 'Question Content (HTML/LaTeX supported)',
-                  alignLabelWithHint: true,
+              // Rich Text Editor
+              const Text('Question Content (HTML/LaTeX supported)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                maxLines: 5,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter content';
-                  }
-                  return null;
-                },
+                child: HtmlEditor(
+                  controller: _htmlController,
+                  htmlEditorOptions: const HtmlEditorOptions(
+                    hint: "Type your question here...",
+                  ),
+                  otherOptions: const OtherOptions(
+                    height: 300,
+                  ),
+                  callbacks: Callbacks(
+                    onChangeContent: (String? changed) {
+                      setState(() {
+                        _previewContent = changed ?? '';
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Live Preview
+              const Text('Live Preview', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Html(data: _previewContent),
               ),
               const SizedBox(height: 24),
 
