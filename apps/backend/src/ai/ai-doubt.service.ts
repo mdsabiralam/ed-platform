@@ -28,7 +28,7 @@ export class AiDoubtService {
     // Perform similarity search using cosine distance (<=> operator)
     // Select top 3 relevant chunks as requested
     const results: any[] = await this.prisma.$queryRaw`
-      SELECT content_chunk
+      SELECT content_chunk, page_number
       FROM textbook_embeddings
       WHERE subject_id = ${subjectId}
       ORDER BY vector <=> ${vectorString}::vector
@@ -37,6 +37,9 @@ export class AiDoubtService {
 
     // Map results to extracting content_chunk
     const context = results.map((r) => r.content_chunk);
+
+    // Get the page number of the most relevant chunk (index 0)
+    const topPage = results.length > 0 ? results[0].page_number : null;
 
     // Form the prompt
     const prompt = `Context: ${context.join('\n')} Question: ${question} Answer the question using ONLY the provided context.`;
@@ -47,6 +50,7 @@ export class AiDoubtService {
     return {
       answer,
       context, // Returning context for transparency/debugging
+      sourcePage: topPage, // Return page number of the most relevant chunk
     };
   }
 }

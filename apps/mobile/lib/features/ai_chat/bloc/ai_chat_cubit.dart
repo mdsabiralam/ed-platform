@@ -43,14 +43,16 @@ class AiChatCubit extends Cubit<AiChatState> {
       );
 
       final data = response.data;
-      // Assuming response format: { answer: "...", context: [...] }
+      // Assuming response format: { answer: "...", context: [...], sourcePage: 123 }
       final String answer = data['answer'] ?? "Sorry, I couldn't generate an answer.";
+      final int? sourcePage = data['sourcePage'];
 
       _currentMessages = List.from(_currentMessages)
         ..add(AiChatMessage(
           text: answer,
           sender: AiChatMessageSender.ai,
           timestamp: DateTime.now(),
+          sourcePage: sourcePage,
         ));
 
       emit(AiChatLoaded(_currentMessages));

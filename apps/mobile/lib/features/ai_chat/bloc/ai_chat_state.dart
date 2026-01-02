@@ -6,15 +6,17 @@ class AiChatMessage extends Equatable {
   final String text;
   final AiChatMessageSender sender;
   final DateTime timestamp;
+  final int? sourcePage;
 
   const AiChatMessage({
     required this.text,
     required this.sender,
     required this.timestamp,
+    this.sourcePage,
   });
 
   @override
-  List<Object?> get props => [text, sender, timestamp];
+  List<Object?> get props => [text, sender, timestamp, sourcePage];
 }
 
 abstract class AiChatState extends Equatable {
