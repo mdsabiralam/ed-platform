@@ -617,3 +617,21 @@ model OnlineExamSubmission {
 
   @@map("online_exam_submissions")
 }
+
+model CurriculumPlan {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  classId      String   @map("class_id")
+  subjectId    String   @map("subject_id")
+  academicYear String   @map("academic_year")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
+  subject Subject @relation(fields: [subjectId], references: [id])
+  chapters Chapter[]
+
+  @@unique([tenantId, classId, subjectId, academicYear])
+  @@map("curriculum_plans")
+}
