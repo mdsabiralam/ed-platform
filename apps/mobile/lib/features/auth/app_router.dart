@@ -3,6 +3,7 @@ import 'package:mobile/features/auth/login_screen.dart';
 import 'package:mobile/features/saas/plan_list_screen.dart';
 import '../academic/learning_resources/ui/teacher_resource_upload_screen.dart';
 import '../academic/learning_resources/ui/student_library_screen.dart';
+import '../academic/learning_resources/ui/video_player_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -22,6 +23,16 @@ final GoRouter appRouter = GoRouter(
         topicId: state.pathParameters['topicId']!,
         topicName: state.pathParameters['topicName']!,
       ),
+    ),
+    GoRoute(
+      path: '/academic/video-player',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return VideoPlayerScreen(
+          url: extra['url'],
+          isYouTube: extra['isYouTube'],
+        );
+      },
     ),
   ],
 );

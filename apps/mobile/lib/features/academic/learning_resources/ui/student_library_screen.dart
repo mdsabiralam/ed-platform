@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/api_client.dart';
 import '../data/learning_resource_repository.dart';
@@ -55,6 +56,15 @@ class _StudentLibraryScreenState extends State<StudentLibraryScreen> {
   Future<void> _launchUrl(LearningResource resource) async {
     // Track view
     _repository.trackView(resource.id);
+
+    if (resource.type == ResourceType.VIDEO) {
+      final isYouTube = resource.url.contains('youtube.com') || resource.url.contains('youtu.be');
+      context.push(
+        '/academic/video-player',
+        extra: {'url': resource.url, 'isYouTube': isYouTube},
+      );
+      return;
+    }
 
     final Uri url = Uri.parse(resource.url);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
