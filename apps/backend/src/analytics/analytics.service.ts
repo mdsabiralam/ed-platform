@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -135,7 +135,7 @@ export class AnalyticsService {
     return progress.slice(-6).map(({ term, percent }) => ({ term, percent }));
   }
 
-  async getTeacherPerformance(sectionId: string, subjectId: string, examTermId: string) {
+  async getTeacherPerformance(sectionId: string, subjectId: string, examTermId: string, requesterUserId?: string) {
     // 1. Fetch Teacher for the Subject/Section
     const mapping = await this.prisma.subjectTeacherMapping.findUnique({
       where: {
@@ -152,6 +152,11 @@ export class AnalyticsService {
 
     if (!mapping) {
       throw new Error('No teacher assigned for this subject and section');
+    }
+
+    // RLS Check: If requesterUserId is provided, ensure it matches the assigned teacher
+    if (requesterUserId && mapping.teacher.userId !== requesterUserId) {
+        throw new ForbiddenException('You are not authorized to view analytics for this subject.');
     }
 
     // 2. Fetch Students and their Marks for this Subject/Term

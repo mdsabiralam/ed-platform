@@ -1,5 +1,5 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { Controller, Get, Query, Param, Headers } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiHeader } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 
 @ApiTags('Analytics')
@@ -27,6 +27,7 @@ export class AnalyticsController {
 
   @Get('analytics/teacher/performance')
   @ApiOperation({ summary: 'Get teacher performance for a subject in a section' })
+  @ApiHeader({ name: 'x-user-id', required: false, description: 'Simulated User ID for RLS Check' })
   @ApiQuery({ name: 'sectionId', required: true })
   @ApiQuery({ name: 'subjectId', required: true })
   @ApiQuery({ name: 'examTermId', required: true })
@@ -34,8 +35,9 @@ export class AnalyticsController {
     @Query('sectionId') sectionId: string,
     @Query('subjectId') subjectId: string,
     @Query('examTermId') examTermId: string,
+    @Headers('x-user-id') userId?: string,
   ) {
-    return this.analyticsService.getTeacherPerformance(sectionId, subjectId, examTermId);
+    return this.analyticsService.getTeacherPerformance(sectionId, subjectId, examTermId, userId);
   }
 
   @Get('analytics/result-engagement')
