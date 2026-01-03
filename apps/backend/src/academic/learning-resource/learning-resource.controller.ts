@@ -1,10 +1,13 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, Get, Param, UseGuards, Req, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes } from '@nestjs/swagger';
 import { LearningResourceService } from './learning-resource.service';
 import { CreateLearningResourceDto } from './dto/create-learning-resource.dto';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
 @ApiTags('Academic - Learning Resources')
 @Controller('academic/learning-resource')
+@UseGuards(JwtAuthGuard)
 export class LearningResourceController {
   constructor(private readonly learningResourceService: LearningResourceService) {}
 
@@ -28,9 +31,17 @@ export class LearningResourceController {
 
   @Post()
   @ApiOperation({ summary: 'Create a learning resource' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
   @ApiResponse({ status: 201, description: 'The resource has been successfully created.' })
-  async create(@Body() dto: CreateLearningResourceDto) {
-    return this.learningResourceService.create(dto);
+  async create(
+    @Body() dto: CreateLearningResourceDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file && !dto.url) {
+      throw new BadRequestException('Either file or url must be provided');
+    }
+    return this.learningResourceService.create(dto, file);
   }
 
   @Get('topic/:topicId')

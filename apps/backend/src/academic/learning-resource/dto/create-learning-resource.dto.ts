@@ -18,10 +18,10 @@ export class CreateLearningResourceDto {
   @IsNotEmpty()
   type: ResourceType;
 
-  @ApiProperty({ example: 'https://example.com/video.mp4' })
+  @ApiProperty({ example: 'https://example.com/video.mp4', required: false })
   @IsUrl()
-  @IsNotEmpty()
-  url: string;
+  @IsOptional()
+  url?: string;
 
   @ApiProperty({ example: 'https://example.com/thumbnail.jpg', required: false })
   @IsUrl()

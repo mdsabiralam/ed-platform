@@ -10,13 +10,18 @@ export class LearningResourceService {
     private readonly storageService: StorageService,
   ) {}
 
-  async create(dto: CreateLearningResourceDto) {
+  async create(dto: CreateLearningResourceDto, file?: Express.Multer.File) {
+    let url = dto.url;
+    if (file) {
+      url = await this.storageService.uploadFile(file);
+    }
+
     return this.prisma.learningResource.create({
       data: {
         title: dto.title,
         description: dto.description,
         type: dto.type,
-        url: dto.url,
+        url: url,
         thumbnailUrl: dto.thumbnailUrl,
         chapter: { connect: { id: dto.chapterId } },
         topic: { connect: { id: dto.topicId } },

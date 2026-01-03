@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/auth/login_screen.dart';
 import 'package:mobile/features/saas/plan_list_screen.dart';
+import '../academic/learning_resources/ui/teacher_resource_upload_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -9,6 +10,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/plans',
       builder: (context, state) => const PlanListScreen(),
+    ),
+    GoRoute(
+      path: '/academic/resource/upload',
+      builder: (context, state) => const TeacherResourceUploadScreen(),
     ),
   ],
 );
