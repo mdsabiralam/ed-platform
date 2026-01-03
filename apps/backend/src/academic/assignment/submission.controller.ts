@@ -60,6 +60,37 @@ export class SubmissionController {
     return this.assignmentService.saveAudioFeedback(submissionId, fileUrl);
   }
 
+  @Post(':id/feedback-file')
+  @ApiOperation({ summary: 'Upload feedback file (annotated PDF)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads/feedback',
+      filename: (req, file, cb) => {
+        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+        return cb(null, `${randomName}${extname(file.originalname)}`);
+      },
+    }),
+  }))
+  async uploadFeedbackFile(
+    @Param('id') submissionId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const fileUrl = `/uploads/feedback/${file.filename}`;
+    return this.assignmentService.saveFeedbackFile(submissionId, fileUrl);
+  }
+
   @Post(':id/annotations')
   @ApiOperation({ summary: 'Save PDF annotations' })
   @ApiBody({ schema: { type: 'object', properties: { annotations: { type: 'object' } } } })

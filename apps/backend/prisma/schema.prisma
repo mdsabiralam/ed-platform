@@ -517,6 +517,7 @@ model AssignmentSubmission {
   status           String   @default("SUBMITTED") // SUBMITTED, REDO_REQUESTED, GRADED
   annotationsJson  Json?    @map("annotations_json")
   plagiarismScore  Float?   @map("plagiarism_score")
+  feedbackFileUrl  String?  @map("feedback_file_url")
 
   assignment       Assignment @relation(fields: [assignmentId], references: [id])
   student          Student    @relation(fields: [studentId], references: [id])

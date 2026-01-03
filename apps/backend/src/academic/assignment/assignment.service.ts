@@ -50,6 +50,15 @@ export class AssignmentService {
     });
   }
 
+  async saveFeedbackFile(submissionId: string, fileUrl: string) {
+    return this.prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        feedbackFileUrl: fileUrl,
+      },
+    });
+  }
+
   async saveAnnotations(submissionId: string, annotations: any) {
     return this.prisma.assignmentSubmission.update({
       where: { id: submissionId },
