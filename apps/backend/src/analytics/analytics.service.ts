@@ -291,4 +291,38 @@ export class AnalyticsService {
       pass_percentage: `${passPercentage.toFixed(2)}%`,
     };
   }
+
+  async getResultEngagement(examTermId: string) {
+    if (!examTermId) {
+      throw new Error('examTermId is required');
+    }
+
+    // 1. Total Published: Count students with marks for this term
+    // Assuming distinct students in StudentMark for this examTerm
+    const publishedCount = await this.prisma.studentMark.groupBy({
+      by: ['studentId'],
+      where: {
+        exam: {
+          examTermId: examTermId,
+        },
+      },
+    });
+    const totalPublished = publishedCount.length;
+
+    // 2. Total Viewed: Count distinct studentIds in logs
+    const viewedCount = await this.prisma.studentActivityLog.groupBy({
+      by: ['studentId'],
+      where: {
+        resourceType: 'RESULT_VIEW',
+        resourceId: examTermId,
+      },
+    });
+    const totalViewed = viewedCount.length;
+
+    return {
+      total_published: totalPublished,
+      total_viewed: totalViewed,
+      message: `${totalViewed}/${totalPublished} parents have viewed the report card`,
+    };
+  }
 }

@@ -322,6 +322,7 @@ model Student {
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
   marks             StudentMark[]
+  activityLogs      StudentActivityLog[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -551,4 +552,19 @@ model SubjectTeacherMapping {
 
   @@unique([sectionId, subjectId])
   @@map("subject_teacher_mappings")
+}
+
+// 4.A.01 Student Activity Logs (Super-App Architecture)
+model StudentActivityLog {
+  id           String   @id @default(uuid())
+  studentId    String   @map("student_id")
+  resourceType String   @map("resource_type") // e.g., 'RESULT_VIEW'
+  resourceId   String   @map("resource_id")   // e.g., examTermId
+  action       String   @default("VIEW")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  student      Student  @relation(fields: [studentId], references: [id])
+
+  @@map("student_activity_logs")
 }

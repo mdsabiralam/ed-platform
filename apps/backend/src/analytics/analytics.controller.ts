@@ -37,4 +37,11 @@ export class AnalyticsController {
   ) {
     return this.analyticsService.getTeacherPerformance(sectionId, subjectId, examTermId);
   }
+
+  @Get('analytics/result-engagement')
+  @ApiOperation({ summary: 'Get result engagement metrics (views vs published)' })
+  @ApiQuery({ name: 'examTermId', required: true })
+  async getResultEngagement(@Query('examTermId') examTermId: string) {
+    return this.analyticsService.getResultEngagement(examTermId);
+  }
 }

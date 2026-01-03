@@ -18,12 +18,17 @@ describe('AnalyticsService', () => {
             },
             studentMark: {
               findMany: jest.fn(),
+              groupBy: jest.fn(),
             },
             subjectTeacherMapping: {
               findUnique: jest.fn(),
             },
             user: {
                 findUnique: jest.fn()
+            },
+            studentActivityLog: {
+                create: jest.fn(),
+                groupBy: jest.fn(),
             },
           },
         },
@@ -261,4 +266,22 @@ describe('AnalyticsService', () => {
        await expect(service.getTeacherPerformance('s1', 'sub1', 't1')).rejects.toThrow('No teacher assigned');
     });
   });
+
+   describe('getResultEngagement', () => {
+    it('should calculate result engagement metrics', async () => {
+      const examTermId = 'term-1';
+
+      // Mock Published: 50 students
+      (prisma.studentMark.groupBy as jest.Mock).mockResolvedValue(new Array(50).fill({ studentId: 's' }));
+
+      // Mock Viewed: 20 students
+      (prisma.studentActivityLog.groupBy as jest.Mock).mockResolvedValue(new Array(20).fill({ studentId: 's' }));
+
+      const result = await service.getResultEngagement(examTermId);
+
+      expect(result.total_published).toBe(50);
+      expect(result.total_viewed).toBe(20);
+      expect(result.message).toBe('20/50 parents have viewed the report card');
+    });
+   });
 });
