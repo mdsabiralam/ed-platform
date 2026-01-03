@@ -84,4 +84,22 @@ class LearningResourceRepository {
       rethrow;
     }
   }
+
+  Future<List<LearningResource>> getStudentResources(String topicId) async {
+    try {
+      final response = await _apiClient.dio.get('/academic/learning-resource/topic/$topicId');
+      final data = response.data as List<dynamic>;
+      return data.map((json) => LearningResource.fromJson(json)).toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> trackView(String resourceId) async {
+    try {
+      await _apiClient.dio.post('/academic/learning-resource/$resourceId/view');
+    } catch (e) {
+      // Ignore errors for analytics
+    }
+  }
 }
