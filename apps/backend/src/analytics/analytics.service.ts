@@ -325,4 +325,59 @@ export class AnalyticsService {
       message: `${totalViewed}/${totalPublished} parents have viewed the report card`,
     };
   }
+
+  async getDistinctionHolders(classId: string, examTermId: string, threshold: number = 75) {
+    if (!classId || !examTermId) {
+      throw new Error('classId and examTermId are required');
+    }
+
+    const students = await this.prisma.student.findMany({
+      where: {
+        section: {
+          classId: classId,
+        },
+      },
+      include: {
+        marks: {
+          where: {
+            exam: {
+              examTermId: examTermId,
+            },
+          },
+          include: {
+            exam: {
+              include: {
+                subject: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const distinctionList: Record<string, { name: string; mark: number }[]> = {};
+
+    for (const student of students) {
+      for (const mark of student.marks) {
+        const totalObtained = (mark.theoryMarks || 0) + (mark.practicalMarks || 0);
+        const totalMax = (mark.exam.maxTheory || 0) + (mark.exam.maxPractical || 0);
+
+        if (totalMax > 0) {
+          const percentage = (totalObtained / totalMax) * 100;
+          if (percentage >= threshold) {
+            const subjectName = mark.exam.subject.name;
+            if (!distinctionList[subjectName]) {
+              distinctionList[subjectName] = [];
+            }
+            distinctionList[subjectName].push({
+              name: `${student.firstName} ${student.lastName}`.trim(),
+              mark: Number(percentage.toFixed(2)),
+            });
+          }
+        }
+      }
+    }
+
+    return distinctionList;
+  }
 }

@@ -44,4 +44,21 @@ export class AnalyticsController {
   async getResultEngagement(@Query('examTermId') examTermId: string) {
     return this.analyticsService.getResultEngagement(examTermId);
   }
+
+  @Get('analytics/distinction-holders')
+  @ApiOperation({ summary: 'Get subject-wise distinction holders' })
+  @ApiQuery({ name: 'classId', required: true })
+  @ApiQuery({ name: 'examTermId', required: true })
+  @ApiQuery({ name: 'threshold', required: false, description: 'Percentage threshold (default 75)' })
+  async getDistinctionHolders(
+    @Query('classId') classId: string,
+    @Query('examTermId') examTermId: string,
+    @Query('threshold') threshold?: number,
+  ) {
+    return this.analyticsService.getDistinctionHolders(
+      classId,
+      examTermId,
+      threshold ? Number(threshold) : undefined,
+    );
+  }
 }
