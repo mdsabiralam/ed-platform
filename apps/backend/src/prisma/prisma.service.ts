@@ -1,5 +1,6 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Optional } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { ClsService } from 'nestjs-cls';
 import * as crypto from 'crypto';
 
 // Encryption helpers for 2.I.01
@@ -38,7 +39,9 @@ function decrypt(text: string): string {
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
-  constructor() {
+  constructor(
+    @Optional() private readonly cls?: ClsService,
+  ) {
     // 2.G.05 High Concurrency & Connection Pooling
     // Connection pooling is configured via the DATABASE_URL environment variable.
     // Example: postgresql://user:pass@host:5432/db?connection_limit=20&pool_timeout=10
@@ -66,6 +69,71 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+
+    // 2.G.09 Application Level RLS Middleware
+    // Automatically injects instituteId filter based on CLS context
+    this.$use(async (params, next) => {
+      // Check if we have an active CLS context and an instituteId
+      const instituteId = this.cls?.get('instituteId');
+
+      // List of models that should be scoped by instituteId
+      // Note: 'Institute' model itself is scoped by 'id' usually, handled separately or excluded if admin access
+      // Removed 'User' (Global) and 'Section' (Nested via Class) as they lack direct instituteId
+      const instituteScopedModels = [
+        'Student', 'StaffProfile', 'Class', 'Profile',
+        'AdmissionSession', 'InstituteSubscription', 'SaasInvoice',
+        'ChartOfAccount', 'LeaveType', 'KycDocument', 'ReferralLinkage'
+      ];
+
+      // Skip if no institute context (e.g. system background jobs, or public routes)
+      // Also skip if model is not one of the scoped ones
+      if (instituteId && params.model && instituteScopedModels.includes(params.model)) {
+
+        // Handle Find operations
+        if (['findUnique', 'findFirst', 'findMany', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
+          if (params.action === 'findUnique') {
+            // findUnique only accepts unique fields. If we add a non-unique filter, we must use findFirst.
+            params.action = 'findFirst';
+            params.args.where = { ...params.args.where, instituteId };
+          } else {
+            if (!params.args.where) {
+              params.args.where = { instituteId };
+            } else {
+              // Ensure we don't overwrite existing where clauses, but merge them
+              // And enforce instituteId. If creating a complex query, manual handling might be needed,
+              // but for top-level filter this is usually sufficient.
+              // Note: This overrides any manual 'instituteId' passed in 'where', which is good for security.
+              params.args.where = { ...params.args.where, instituteId };
+            }
+          }
+        }
+
+        // Handle Create operations - Auto-assign instituteId
+        if (['create', 'createMany'].includes(params.action)) {
+          if (params.action === 'create') {
+            params.args.data = { ...params.args.data, instituteId };
+          }
+          if (params.action === 'createMany') {
+             if (Array.isArray(params.args.data)) {
+               params.args.data = params.args.data.map(item => ({ ...item, instituteId }));
+             } else {
+               params.args.data = { ...params.args.data, instituteId };
+             }
+          }
+        }
+
+        // Handle Update/Delete operations - Ensure scope
+        if (['update', 'updateMany', 'delete', 'deleteMany'].includes(params.action)) {
+           if (!params.args.where) {
+             params.args.where = { instituteId };
+           } else {
+             params.args.where = { ...params.args.where, instituteId };
+           }
+        }
+      }
+
+      return next(params);
+    });
 
     // 2.I.01 & 2.I.07 Column-level encryption (HealthProfile & KycDocument)
     this.$use(async (params, next) => {
