@@ -225,17 +225,24 @@ model ReferralLinkage {
 
 // 2.E.10 Marketing Templates
 model MarketingTemplate {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   name         String
-  category     String   // e.g., "Admission", "Festival"
-  contentHtml  String   @map("content_html")
+  category     MarketingCategory @default(GENERAL)
+  contentHtml  String            @map("content_html")
+  svgContent   String?           @map("svg_content")
   variables    Json?
-  thumbnailUrl String?  @map("thumbnail_url")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  thumbnailUrl String?           @map("thumbnail_url")
+  isActive     Boolean           @default(true) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
 
   @@map("marketing_templates")
+}
+
+enum MarketingCategory {
+  FESTIVAL
+  ADMISSION
+  GENERAL
 }
 
 // 2.C.06 Permissions
