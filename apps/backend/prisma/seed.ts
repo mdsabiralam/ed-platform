@@ -6,6 +6,8 @@ const prisma = new PrismaClient();
 async function cleanUp() {
   console.log('Cleaning up database...');
   // Delete in reverse order of dependencies to avoid foreign key constraints
+  await prisma.rolePermission.deleteMany({});
+  await prisma.permission.deleteMany({});
   await prisma.parentStudentMapping.deleteMany({});
   await prisma.guardian.deleteMany({});
   await prisma.student.deleteMany({});
@@ -19,9 +21,61 @@ async function cleanUp() {
   console.log('Database cleanup completed.');
 }
 
+async function seedPermissions() {
+  console.log('Seeding permissions...');
+
+  // Define permissions
+  const permissions = [
+    { action: 'can_mark_attendance', description: 'Allows marking student attendance' },
+    { action: 'can_view_own_schedule', description: 'Allows viewing own class schedule' },
+    { action: 'can_collect_fees', description: 'Allows collecting student fees' },
+  ];
+
+  // Create Permission records
+  for (const perm of permissions) {
+    await prisma.permission.create({
+      data: perm,
+    });
+  }
+
+  // Define Role Mappings
+  const roleMappings = [
+    {
+      role: UserRole.TEACHER,
+      actions: ['can_mark_attendance', 'can_view_own_schedule'],
+    },
+    {
+      role: UserRole.STAFF, // Mapping ACCOUNTANT use case to STAFF role
+      actions: ['can_collect_fees'],
+    },
+  ];
+
+  // Create RolePermission records
+  for (const mapping of roleMappings) {
+    for (const action of mapping.actions) {
+      const permission = await prisma.permission.findUnique({
+        where: { action },
+      });
+
+      if (permission) {
+        await prisma.rolePermission.create({
+          data: {
+            role: mapping.role,
+            permissionId: permission.id,
+          },
+        });
+      }
+    }
+  }
+  console.log('Permissions and Role Mappings seeded.');
+}
+
 async function main() {
   // 1. Clean up existing data
   await cleanUp();
+
+  // 2. Seed Permissions
+  await seedPermissions();
 
   console.log('Seeding database...');
 
