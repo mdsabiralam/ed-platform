@@ -8,9 +8,9 @@ async function main() {
 
   // 2.B.09 Seed Plans
   const plans = [
-    { name: 'Silver', priceMonthly: 2000, featuresConfig: { students: 100, storage: '5GB' } },
-    { name: 'Gold', priceMonthly: 5000, featuresConfig: { students: 500, storage: '20GB' } },
-    { name: 'Platinum', priceMonthly: 10000, featuresConfig: { students: 'Unlimited', storage: '100GB' } },
+    { name: 'Silver', priceMonthly: 2000, priceYearly: 20000, featuresConfig: { students: 100, storage: '5GB' } },
+    { name: 'Gold', priceMonthly: 5000, priceYearly: 50000, featuresConfig: { students: 500, storage: '20GB' } },
+    { name: 'Platinum', priceMonthly: 10000, priceYearly: 100000, featuresConfig: { students: 'Unlimited', storage: '100GB' } },
   ];
 
   for (const plan of plans) {
@@ -20,6 +20,7 @@ async function main() {
       create: {
         name: plan.name,
         priceMonthly: plan.priceMonthly,
+        priceYearly: plan.priceYearly,
         featuresConfig: plan.featuresConfig,
       },
     });

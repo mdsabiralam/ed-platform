@@ -47,6 +47,7 @@ model Plan {
   id            String               @id @default(uuid())
   name          String               @unique
   priceMonthly  Float                @map("price_monthly")
+  priceYearly   Float                @map("price_yearly")
   featuresConfig Json                @map("features_config")
   subscriptions InstituteSubscription[]
 
