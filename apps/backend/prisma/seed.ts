@@ -15,6 +15,7 @@ async function cleanUp() {
   await prisma.profile.deleteMany({});
   await prisma.platformAdmin.deleteMany({});
   await prisma.user.deleteMany({});
+  await prisma.chartOfAccount.deleteMany({}); // Finance
   await prisma.tenantSubscription.deleteMany({});
   await prisma.plan.deleteMany({});
   await prisma.tenant.deleteMany({});
@@ -68,6 +69,36 @@ async function seedPermissions() {
     }
   }
   console.log('Permissions and Role Mappings seeded.');
+}
+
+async function seedChartOfAccounts(tenantId: string) {
+  console.log('Seeding Chart of Accounts...');
+  const coaData = [
+    // Assets
+    { code: '1001', name: 'Cash in Hand', type: 'ASSET' },
+    { code: '1002', name: 'Bank Accounts', type: 'ASSET' },
+    // Revenue
+    { code: '4001', name: 'Tuition Fees', type: 'REVENUE' },
+    { code: '4002', name: 'Transport Fees', type: 'REVENUE' },
+    { code: '4003', name: 'Admission Fees', type: 'REVENUE' },
+    // Expenses
+    { code: '5001', name: 'Staff Salary', type: 'EXPENSE' },
+    { code: '5002', name: 'Utility Bills', type: 'EXPENSE' },
+    { code: '5003', name: 'Maintenance', type: 'EXPENSE' },
+  ];
+
+  for (const acc of coaData) {
+    await prisma.chartOfAccount.create({
+      data: {
+        tenantId: tenantId,
+        code: acc.code,
+        name: acc.name,
+        type: acc.type,
+        isSystem: true, // Mark as template/system default
+      },
+    });
+  }
+  console.log('Chart of Accounts seeded.');
 }
 
 async function main() {
@@ -150,6 +181,9 @@ async function main() {
     tenant: eduMatrixHQ.name,
     role: superAdmin.profiles[0].role,
   });
+
+  // 2.H.06: Seed Chart of Accounts for the Template Institute
+  await seedChartOfAccounts(eduMatrixHQ.id);
 }
 
 main()
