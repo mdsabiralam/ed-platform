@@ -370,13 +370,14 @@ enum ParentRelationship {
 
 // 2.F.08 Staff Profiles
 model StaffProfile {
-  id          String    @id @default(uuid())
-  instituteId String    @map("institute_id")
-  userId      String    @unique @map("user_id")
-  designation String
-  department  String?
-  joiningDate DateTime  @map("joining_date")
-  deletedAt   DateTime? @map("deleted_at")
+  id              String    @id @default(uuid())
+  instituteId     String    @map("institute_id")
+  userId          String    @unique @map("user_id")
+  designation     String
+  department      String?
+  isTeachingStaff Boolean   @default(false) @map("is_teaching_staff")
+  joiningDate     DateTime  @map("joining_date")
+  deletedAt       DateTime? @map("deleted_at")
 
   institute Institute @relation(fields: [instituteId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
