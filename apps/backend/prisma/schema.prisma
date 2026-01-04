@@ -76,8 +76,9 @@ model SaasInvoice {
   instituteId String   @map("institute_id")
   amount      Float
   status      String   // PAID, PENDING, FAILED
+  paymentDate DateTime? @map("payment_date")
+  invoiceUrl  String?   @map("invoice_url")
   issuedAt    DateTime @default(now()) @map("issued_at")
-  paidAt      DateTime? @map("paid_at")
   
   institute   Institute @relation(fields: [instituteId], references: [id])
 
