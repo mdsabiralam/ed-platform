@@ -8,7 +8,7 @@ export class TenantService {
   constructor(private prisma: PrismaService) {}
 
   async create(createTenantDto: CreateTenantDto) {
-    const existing = await this.prisma.tenant.findUnique({
+    const existing = await this.prisma.institute.findUnique({
       where: { subdomain: createTenantDto.subdomain },
     });
 
@@ -16,7 +16,7 @@ export class TenantService {
       throw new ConflictException('Subdomain already taken');
     }
 
-    return this.prisma.tenant.create({
+    return this.prisma.institute.create({
       data: {
         ...createTenantDto,
         subscriptionStatus: 'ACTIVE',
@@ -25,21 +25,21 @@ export class TenantService {
   }
 
   async findAll() {
-    return this.prisma.tenant.findMany();
+    return this.prisma.institute.findMany();
   }
 
   async findOne(id: string) {
-    return this.prisma.tenant.findUnique({ where: { id } });
+    return this.prisma.institute.findUnique({ where: { id } });
   }
 
   async update(id: string, updateTenantDto: UpdateTenantDto) {
-    return this.prisma.tenant.update({
+    return this.prisma.institute.update({
       where: { id },
       data: updateTenantDto,
     });
   }
 
   async remove(id: string) {
-    return this.prisma.tenant.delete({ where: { id } });
+    return this.prisma.institute.delete({ where: { id } });
   }
 }
