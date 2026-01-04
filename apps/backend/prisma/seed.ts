@@ -30,20 +30,48 @@ async function main() {
   const saltRounds = 10;
   const password = await bcrypt.hash('SuperSecretPassword123!', saltRounds);
 
-  // 2.C.10 Create Super Admin User
-  // Note: In real scenario, Super Admin might not need a profile linked to a tenant immediately, 
-  // or linked to a default "Admin Tenant". For now, creating just the User.
+  // 2.C.10 Create Super Admin User and EduMatrix Tenant
+
+  // Create EduMatrix Tenant
+  const eduMatrixTenant = await prisma.tenant.upsert({
+    where: { subdomain: 'edumatrix' },
+    update: {},
+    create: {
+      name: 'EduMatrix HQ',
+      subdomain: 'edumatrix',
+      subscriptionStatus: 'ACTIVE',
+    },
+  });
+
+  // Create Super Admin User
   const superAdmin = await prisma.user.upsert({
     where: { email: 'admin@edplatform.com' },
-    update: {}, // ইউজার ইতিমধ্যে থাকলে কিছু আপডেট করার দরকার নেই
+    update: {},
     create: {
       email: 'admin@edplatform.com',
       passwordHash: password,
       phone: '+8801700000000',
+      isActive: true,
     },
   });
 
-  console.log({ superAdmin });
+  // Create Profile for Super Admin
+  await prisma.profile.upsert({
+    where: {
+      userId_tenantId: {
+        userId: superAdmin.id,
+        tenantId: eduMatrixTenant.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: superAdmin.id,
+      tenantId: eduMatrixTenant.id,
+      role: 'SUPER_ADMIN',
+    },
+  });
+
+  console.log({ superAdmin, eduMatrixTenant });
 }
 
 main()
