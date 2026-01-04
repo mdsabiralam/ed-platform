@@ -32,7 +32,7 @@ model Institute {
   profiles          Profile[]
   referral          ReferralLinkage?
   admissionSessions AdmissionSession[]
-  classes           Class[]
+  academicClasses   AcademicClass[]
   sections          Section[]
   students          Student[]
   staff             StaffProfile[]
@@ -271,29 +271,30 @@ model AdmissionSession {
 }
 
 // 2.F.02 Classes
-model Class {
-  id          String    @id @default(uuid())
-  instituteId String    @map("institute_id")
-  name        String // e.g., "Grade 1"
-  deletedAt   DateTime? @map("deleted_at")
+model AcademicClass {
+  id           String    @id @default(uuid())
+  instituteId  String    @map("institute_id")
+  name         String // e.g., "Grade 1"
+  numericOrder Int       @map("numeric_order")
+  deletedAt    DateTime? @map("deleted_at")
 
   institute Institute @relation(fields: [instituteId], references: [id])
   sections  Section[]
 
-  @@map("classes")
+  @@map("academic_classes")
 }
 
 // 2.F.03 Sections
 model Section {
-  id          String    @id @default(uuid())
-  instituteId String    @map("institute_id")
-  classId     String    @map("class_id")
-  name        String // e.g., "Section A"
-  deletedAt   DateTime? @map("deleted_at")
+  id              String    @id @default(uuid())
+  instituteId     String    @map("institute_id")
+  academicClassId String    @map("academic_class_id")
+  name            String // e.g., "Section A"
+  deletedAt       DateTime? @map("deleted_at")
 
-  institute Institute @relation(fields: [instituteId], references: [id])
-  class     Class     @relation(fields: [classId], references: [id])
-  students  Student[]
+  institute     Institute     @relation(fields: [instituteId], references: [id])
+  academicClass AcademicClass @relation(fields: [academicClassId], references: [id])
+  students      Student[]
 
   @@map("sections")
 }
