@@ -22,7 +22,7 @@ model Institute {
   subdomain          String              @unique
   logoUrl            String?             @map("logo_url")
   isActive           Boolean             @default(true) @map("is_active")
-  subscriptionStatus String              @default("ACTIVE") @map("subscription_status")
+  subscriptionStatus SubscriptionStatus  @default(ACTIVE) @map("subscription_status")
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
   deletedAt          DateTime?           @map("deleted_at") // 2.I.02 Soft Delete
@@ -463,4 +463,11 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 2.B.03 Subscription Status Enum
+enum SubscriptionStatus {
+  ACTIVE
+  GRACE_PERIOD
+  LOCKED
 }
