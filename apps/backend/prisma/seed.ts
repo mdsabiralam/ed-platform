@@ -3,7 +3,27 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+async function cleanUp() {
+  console.log('Cleaning up database...');
+  // Delete in reverse order of dependencies to avoid foreign key constraints
+  // Note: This list might need to be expanded as more tables are added
+  await prisma.parentStudentMapping.deleteMany({});
+  await prisma.guardian.deleteMany({});
+  await prisma.student.deleteMany({});
+  await prisma.staffProfile.deleteMany({});
+  await prisma.profile.deleteMany({});
+  await prisma.platformAdmin.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.tenantSubscription.deleteMany({});
+  await prisma.plan.deleteMany({});
+  await prisma.tenant.deleteMany({});
+  console.log('Database cleanup completed.');
+}
+
 async function main() {
+  // 1. Clean up existing data to prevent duplicate key errors during development
+  await cleanUp();
+
   console.log('Seeding database...');
 
   // 2.B.09 Seed Plans
@@ -14,10 +34,8 @@ async function main() {
   ];
 
   for (const plan of plans) {
-    await prisma.plan.upsert({
-      where: { name: plan.name },
-      update: {},
-      create: {
+    await prisma.plan.create({
+      data: {
         name: plan.name,
         priceMonthly: plan.priceMonthly,
         featuresConfig: plan.featuresConfig,
@@ -26,17 +44,13 @@ async function main() {
   }
   console.log('Plans seeded.');
 
-  // ১. পাসওয়ার্ড হ্যাশ করা (নিরাপত্তার জন্য)
+  // Password hashing
   const saltRounds = 10;
   const password = await bcrypt.hash('SuperSecretPassword123!', saltRounds);
 
   // 2.C.10 Create Super Admin User
-  // Note: In real scenario, Super Admin might not need a profile linked to a tenant immediately, 
-  // or linked to a default "Admin Tenant". For now, creating just the User.
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@edplatform.com' },
-    update: {}, // ইউজার ইতিমধ্যে থাকলে কিছু আপডেট করার দরকার নেই
-    create: {
+  const superAdmin = await prisma.user.create({
+    data: {
       email: 'admin@edplatform.com',
       passwordHash: password,
       phone: '+8801700000000',
