@@ -13,7 +13,7 @@ export class InstituteMiddleware implements NestMiddleware {
       // Store in CLS for easy access in services/Prisma
       this.cls.set('instituteId', instituteId);
       // Also attach to request for controllers that might check it directly
-      req['instituteId'] = instituteId;
+      (req as any).instituteId = instituteId;
     } else {
       // Define public routes that don't need institute context (e.g., health check, documentation, auth)
       // For now, assuming most business routes are protected.

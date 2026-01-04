@@ -22,9 +22,12 @@ model Institute {
   logoUrl            String?             @map("logo_url")
   isActive           Boolean             @default(true) @map("is_active")
   subscriptionStatus String              @default("ACTIVE") @map("subscription_status")
+
+  // Standard Audit Fields
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
-  deletedAt          DateTime?           @map("deleted_at") // 2.I.02 Soft Delete
+  isDeleted          Boolean             @default(false) @map("is_deleted")
+  deletedAt          DateTime?           @map("deleted_at")
 
   subscription       InstituteSubscription?
   invoices           SaasInvoice[]
@@ -47,6 +50,13 @@ model Plan {
   name          String               @unique
   priceMonthly  Float                @map("price_monthly")
   featuresConfig Json                @map("features_config")
+
+  // Standard Audit Fields
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  isDeleted     Boolean              @default(false) @map("is_deleted")
+  deletedAt     DateTime?            @map("deleted_at")
+
   subscriptions InstituteSubscription[]
 
   @@map("plans")
@@ -60,6 +70,11 @@ model InstituteSubscription {
   startDate   DateTime @default(now()) @map("start_date")
   expiryDate  DateTime @map("expiry_date")
   autoRenew   Boolean  @default(true) @map("auto_renew")
+
+  // Standard Audit Fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  // No soft delete typically for link tables, but adding created/updated
 
   plan        Plan     @relation(fields: [planId], references: [id])
   institute   Institute @relation(fields: [instituteId], references: [id])
@@ -75,6 +90,10 @@ model SaasInvoice {
   status      String   // PAID, PENDING, FAILED
   issuedAt    DateTime @default(now()) @map("issued_at")
   paidAt      DateTime? @map("paid_at")
+
+  // Standard Audit Fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
   
   institute   Institute @relation(fields: [instituteId], references: [id])
 
@@ -87,9 +106,12 @@ model User {
   email        String   @unique // PII: Field encryption enabled via pgcrypto
   passwordHash String   @map("password_hash")
   phone        String?  // PII: Field encryption enabled via pgcrypto
+
+  // Standard Audit Fields
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at") // 2.I.02 Soft Delete
+  isDeleted    Boolean  @default(false) @map("is_deleted")
+  deletedAt    DateTime? @map("deleted_at")
 
   profiles      Profile[]
   refreshTokens RefreshToken[]
@@ -109,6 +131,12 @@ model Profile {
   instituteId String   @map("institute_id")
   role        UserRole
   
+  // Standard Audit Fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+
   user        User     @relation(fields: [userId], references: [id])
   institute   Institute @relation(fields: [instituteId], references: [id])
 
@@ -122,6 +150,8 @@ model RefreshToken {
   userId    String   @map("user_id")
   token     String   @unique
   expiresAt DateTime @map("expires_at")
+
+  // Standard Audit Fields (Partial)
   createdAt DateTime @default(now()) @map("created_at")
 
   user      User     @relation(fields: [userId], references: [id])
@@ -134,6 +164,8 @@ model PlatformAdmin {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
   role      String   @default("SUPER_ADMIN")
+
+  // Standard Audit Fields
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -149,6 +181,8 @@ model GlobalConfig {
   key         String   @unique
   value       Json
   description String?
+
+  // Standard Audit Fields
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -163,6 +197,8 @@ model PlatformAuditLog {
   target    String?  // e.g., "Institute: 123"
   details   Json?
   ipAddress String?  @map("ip_address")
+
+  // Standard Audit Fields (Partial)
   createdAt DateTime @default(now()) @map("created_at")
 
   admin     PlatformAdmin @relation(fields: [adminId], references: [id])
@@ -176,6 +212,8 @@ model ResellerProfile {
   userId         String   @unique @map("user_id")
   commissionRate Float    @default(10.0) @map("commission_rate") // Percentage
   totalEarnings  Float    @default(0.0) @map("total_earnings")
+
+  // Standard Audit Fields
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -193,6 +231,10 @@ model ReferralLinkage {
   referralCode String   @map("referral_code")
   linkedAt     DateTime @default(now()) @map("linked_at")
 
+  // Standard Audit Fields (created/updated added for consistency)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
   reseller     ResellerProfile @relation(fields: [resellerId], references: [id])
   institute    Institute       @relation(fields: [instituteId], references: [id])
 
@@ -208,8 +250,12 @@ model MarketingTemplate {
   variables    Json?
   thumbnailUrl String?  @map("thumbnail_url")
   isActive     Boolean  @default(true) @map("is_active")
+
+  // Standard Audit Fields
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  isDeleted    Boolean  @default(false) @map("is_deleted")
+  deletedAt    DateTime? @map("deleted_at")
 
   @@map("marketing_templates")
 }
@@ -219,6 +265,8 @@ model Permission {
   id          String   @id @default(uuid())
   action      String   @unique // e.g., "view:fees", "create:student"
   description String?
+
+  // Standard Audit Fields
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -260,8 +308,13 @@ model AdmissionSession {
   startDate   DateTime @map("start_date")
   endDate     DateTime @map("end_date")
   isActive    Boolean  @default(true) @map("is_active")
-  deletedAt   DateTime? @map("deleted_at")
   
+  // Standard Audit Fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+
   institute   Institute @relation(fields: [instituteId], references: [id])
   students    Student[]
 
@@ -273,6 +326,11 @@ model Class {
   id          String   @id @default(uuid())
   instituteId String   @map("institute_id")
   name        String   // e.g., "Grade 1"
+
+  // Standard Audit Fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
   deletedAt   DateTime? @map("deleted_at")
   
   institute   Institute @relation(fields: [instituteId], references: [id])
@@ -286,7 +344,12 @@ model Section {
   id        String   @id @default(uuid())
   classId   String   @map("class_id")
   name      String   // e.g., "Section A"
-  deletedAt DateTime? @map("deleted_at")
+
+  // Standard Audit Fields
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
@@ -306,8 +369,13 @@ model Student {
   lastName          String   @map("last_name")
   admissionNo       String   @map("admission_no")
   rollNo            Int?     @map("roll_no") // 2.F.10 Auto-gen via trigger
-  deletedAt         DateTime? @map("deleted_at") // 2.I.02 Soft Delete
   
+  // Standard Audit Fields
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  isDeleted         Boolean  @default(false) @map("is_deleted")
+  deletedAt         DateTime? @map("deleted_at")
+
   institute         Institute @relation(fields: [instituteId], references: [id])
   admissionSession  AdmissionSession @relation(fields: [admissionSessionId], references: [id])
   section           Section  @relation(fields: [sectionId], references: [id])
@@ -325,6 +393,12 @@ model Guardian {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
   
+  // Standard Audit Fields
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at")
+
   user      User     @relation(fields: [userId], references: [id])
   students  ParentStudentMapping[]
 
@@ -338,6 +412,10 @@ model ParentStudentMapping {
   guardianId String   @map("guardian_id")
   relationship String // e.g., "Father", "Mother"
   
+  // Standard Audit Fields
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
   student    Student  @relation(fields: [studentId], references: [id])
   guardian   Guardian @relation(fields: [guardianId], references: [id])
 
@@ -353,6 +431,11 @@ model StaffProfile {
   designation  String
   department   String?
   joiningDate  DateTime @map("joining_date")
+
+  // Standard Audit Fields
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  isDeleted    Boolean  @default(false) @map("is_deleted")
   deletedAt    DateTime? @map("deleted_at")
   
   institute    Institute @relation(fields: [instituteId], references: [id])
@@ -369,8 +452,12 @@ model ChartOfAccount {
   name        String
   type        String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
   isSystem    Boolean  @default(false) @map("is_system")
+
+  // Standard Audit Fields
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
 
   institute   Institute @relation(fields: [instituteId], references: [id])
 
@@ -386,8 +473,12 @@ model LeaveType {
   code        String
   daysAllowed Int      @default(0) @map("days_allowed")
   isPaid      Boolean  @default(true) @map("is_paid")
+
+  // Standard Audit Fields
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
 
   institute   Institute @relation(fields: [instituteId], references: [id])
 
@@ -406,6 +497,7 @@ model HealthProfile {
   medicalHistory   String?  @map("medical_history")
   medications      String?
   
+  // Standard Audit Fields
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -424,6 +516,12 @@ model KycDocument {
   uploadedAt      DateTime  @default(now()) @map("uploaded_at")
   verifiedAt      DateTime? @map("verified_at")
   rejectionReason String?   @map("rejection_reason")
+
+  // Standard Audit Fields
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  isDeleted       Boolean   @default(false) @map("is_deleted")
+  deletedAt       DateTime? @map("deleted_at")
 
   institute       Institute @relation(fields: [instituteId], references: [id])
 
