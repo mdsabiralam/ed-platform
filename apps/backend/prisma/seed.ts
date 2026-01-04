@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 async function cleanUp() {
   console.log('Cleaning up database...');
   // Delete in reverse order of dependencies to avoid foreign key constraints
-  // Note: This list might need to be expanded as more tables are added
   await prisma.parentStudentMapping.deleteMany({});
   await prisma.guardian.deleteMany({});
   await prisma.student.deleteMany({});
@@ -21,7 +20,7 @@ async function cleanUp() {
 }
 
 async function main() {
-  // 1. Clean up existing data to prevent duplicate key errors during development
+  // 1. Clean up existing data
   await cleanUp();
 
   console.log('Seeding database...');
@@ -31,6 +30,7 @@ async function main() {
     { name: 'Silver', priceMonthly: 2000, featuresConfig: { students: 100, storage: '5GB' } },
     { name: 'Gold', priceMonthly: 5000, featuresConfig: { students: 500, storage: '20GB' } },
     { name: 'Platinum', priceMonthly: 10000, featuresConfig: { students: 'Unlimited', storage: '100GB' } },
+    { name: 'PLATFORM_OWNER', priceMonthly: 0, featuresConfig: { students: 'Unlimited', storage: 'Unlimited' } }, // High Tier
   ];
 
   for (const plan of plans) {
@@ -44,20 +44,58 @@ async function main() {
   }
   console.log('Plans seeded.');
 
-  // Password hashing
-  const saltRounds = 10;
-  const password = await bcrypt.hash('SuperSecretPassword123!', saltRounds);
+  // 2.H.04: Super Admin Institute Seed
+  // 1. Create 'EduMatrix HQ' Institute
+  const platformOwnerPlan = await prisma.plan.findUniqueOrThrow({ where: { name: 'PLATFORM_OWNER' } });
 
-  // 2.C.10 Create Super Admin User
+  const eduMatrixHQ = await prisma.tenant.create({
+    data: {
+      name: 'EduMatrix HQ',
+      subdomain: 'admin',
+      subscriptionStatus: 'ACTIVE',
+      subscription: {
+        create: {
+          planId: platformOwnerPlan.id,
+          expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 100)), // 100 years
+          autoRenew: true,
+        },
+      },
+    },
+  });
+  console.log(`Institute 'EduMatrix HQ' created with ID: ${eduMatrixHQ.id}`);
+
+  // 4. Create 'Super Admin' User linked to this institute
+  const saltRounds = 10;
+  const password = await bcrypt.hash('securePassword123', saltRounds); // Hashed password
+
   const superAdmin = await prisma.user.create({
     data: {
-      email: 'admin@edplatform.com',
+      email: 'admin@edumatrix.com', // Using a specific email for the super admin
       passwordHash: password,
       phone: '+8801700000000',
+      profiles: {
+        create: {
+          tenantId: eduMatrixHQ.id,
+          role: UserRole.SUPER_ADMIN,
+        },
+      },
+      platformAdmin: {
+        create: {
+          role: 'SUPER_ADMIN',
+        },
+      },
+    },
+    include: {
+      profiles: true,
+      platformAdmin: true,
     },
   });
 
-  console.log({ superAdmin });
+  console.log('Super Admin user created:', {
+    email: superAdmin.email,
+    tenant: eduMatrixHQ.name,
+    role: superAdmin.profiles[0].role,
+  });
 }
 
 main()
