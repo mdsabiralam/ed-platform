@@ -39,6 +39,7 @@ model Institute {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  @@index([subdomain])
   @@map("institutes")
 }
 
