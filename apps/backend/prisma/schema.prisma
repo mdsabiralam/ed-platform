@@ -114,7 +114,8 @@ model Profile {
   user      User     @relation(fields: [userId], references: [id])
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
-  @@unique([userId, tenantId]) // 2.C.07 Composite index
+  @@unique([userId, tenantId]) // 2.C.05 Composite Unique Constraint
+  @@index([userId, tenantId]) // 2.C.07 Composite index for optimized login
   @@map("profiles")
 }
 
