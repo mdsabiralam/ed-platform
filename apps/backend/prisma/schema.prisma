@@ -220,26 +220,13 @@ model MarketingTemplate {
 // 2.C.06 Permissions
 model Permission {
   id          String   @id @default(uuid())
-  action      String   @unique // e.g., "view:fees", "create:student"
-  description String?
+  role        UserRole
+  resource    String   // e.g., "fees"
+  action      String   // e.g., "create", "view"
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  rolePermissions RolePermission[]
-
   @@map("permissions")
-}
-
-model RolePermission {
-  id           String   @id @default(uuid())
-  role         UserRole
-  permissionId String   @map("permission_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  permission   Permission @relation(fields: [permissionId], references: [id])
-
-  @@unique([role, permissionId])
-  @@map("role_permissions")
 }
 
 // 2.C.08 OTP Logs
