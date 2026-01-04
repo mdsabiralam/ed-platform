@@ -350,16 +350,22 @@ model Guardian {
 
 // 2.F.07 Parent Student Mapping
 model ParentStudentMapping {
-  id           String @id @default(uuid())
-  studentId    String @map("student_id")
-  guardianId   String @map("guardian_id")
-  relationship String // e.g., "Father", "Mother"
+  id           String             @id @default(uuid())
+  studentId    String             @map("student_id")
+  guardianId   String             @map("guardian_id")
+  relationship ParentRelationship
 
   student  Student  @relation(fields: [studentId], references: [id])
   guardian Guardian @relation(fields: [guardianId], references: [id])
 
   @@unique([studentId, guardianId])
   @@map("parent_student_mappings")
+}
+
+enum ParentRelationship {
+  FATHER
+  MOTHER
+  GUARDIAN
 }
 
 // 2.F.08 Staff Profiles
