@@ -54,6 +54,7 @@ async function main() {
           create: {
               instituteId: institute.id,
               planId: silverPlan.id,
+              billingCycle: 'YEARLY',
               expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // 1 year from now
               autoRenew: true
           }

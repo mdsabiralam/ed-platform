@@ -59,6 +59,7 @@ model InstituteSubscription {
   id          String   @id @default(uuid())
   instituteId String   @unique @map("institute_id")
   planId      String   @map("plan_id")
+  billingCycle BillingCycle @default(MONTHLY) @map("billing_cycle")
   startDate   DateTime @default(now()) @map("start_date")
   expiryDate  DateTime @map("expiry_date")
   autoRenew   Boolean  @default(true) @map("auto_renew")
@@ -471,4 +472,9 @@ enum SubscriptionStatus {
   ACTIVE
   GRACE_PERIOD
   LOCKED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
 }
