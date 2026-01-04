@@ -210,14 +210,15 @@ enum KycStatus {
 
 // 2.E.08 Referral Linkages
 model ReferralLinkage {
-  id           String   @id @default(uuid())
-  resellerId   String   @map("reseller_id")
-  tenantId     String   @unique @map("tenant_id")
-  referralCode String   @map("referral_code")
-  linkedAt     DateTime @default(now()) @map("linked_at")
+  id             String   @id @default(uuid())
+  resellerId     String   @map("reseller_id")
+  instituteId    String   @unique @map("institute_id")
+  referralCode   String   @map("referral_code")
+  commissionRate Float    @default(10.0) @map("commission_rate")
+  onboardedAt    DateTime @default(now()) @map("onboarded_at")
 
   reseller     ResellerProfile @relation(fields: [resellerId], references: [id])
-  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  institute    Tenant          @relation(fields: [instituteId], references: [id])
 
   @@map("referral_linkages")
 }
