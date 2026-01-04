@@ -180,17 +180,32 @@ model PlatformAuditLog {
 
 // 2.E.07 Reseller Profiles
 model ResellerProfile {
-  id             String   @id @default(uuid())
-  userId         String   @unique @map("user_id")
-  commissionRate Float    @default(10.0) @map("commission_rate") // Percentage
-  totalEarnings  Float    @default(0.0) @map("total_earnings")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String        @id @default(uuid())
+  userId         String        @unique @map("user_id")
+  agencyName     String?       @map("agency_name")
+  referralCode   String        @unique @map("referral_code")
+  tier           ResellerTier  @default(SILVER)
+  kycStatus      KycStatus     @default(PENDING) @map("kyc_status")
+  commissionRate Float         @default(10.0) @map("commission_rate") // Percentage
+  totalEarnings  Float         @default(0.0) @map("total_earnings")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   user      User     @relation(fields: [userId], references: [id])
   referrals ReferralLinkage[]
 
   @@map("reseller_profiles")
+}
+
+enum ResellerTier {
+  SILVER
+  GOLD
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
 }
 
 // 2.E.08 Referral Linkages
