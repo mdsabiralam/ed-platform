@@ -296,6 +296,7 @@ model Section {
   academicClass AcademicClass @relation(fields: [academicClassId], references: [id])
   students      Student[]
 
+  @@unique([academicClassId, name])
   @@map("sections")
 }
 
