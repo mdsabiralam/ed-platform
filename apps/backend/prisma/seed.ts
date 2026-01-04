@@ -15,6 +15,7 @@ async function cleanUp() {
   await prisma.profile.deleteMany({});
   await prisma.platformAdmin.deleteMany({});
   await prisma.user.deleteMany({});
+  await prisma.leaveType.deleteMany({}); // HR
   await prisma.chartOfAccount.deleteMany({}); // Finance
   await prisma.tenantSubscription.deleteMany({});
   await prisma.plan.deleteMany({});
@@ -101,6 +102,28 @@ async function seedChartOfAccounts(tenantId: string) {
   console.log('Chart of Accounts seeded.');
 }
 
+async function seedLeaveTypes(tenantId: string) {
+  console.log('Seeding Leave Types...');
+  const leaveData = [
+    { code: 'CL', name: 'Casual Leave', daysAllowed: 12, isPaid: true },
+    { code: 'SL', name: 'Sick Leave', daysAllowed: 10, isPaid: true },
+    { code: 'PL', name: 'Privilege Leave', daysAllowed: 15, isPaid: true },
+  ];
+
+  for (const leave of leaveData) {
+    await prisma.leaveType.create({
+      data: {
+        tenantId: tenantId,
+        code: leave.code,
+        name: leave.name,
+        daysAllowed: leave.daysAllowed,
+        isPaid: leave.isPaid,
+      },
+    });
+  }
+  console.log('Leave Types seeded.');
+}
+
 async function main() {
   // 1. Clean up existing data
   await cleanUp();
@@ -184,6 +207,9 @@ async function main() {
 
   // 2.H.06: Seed Chart of Accounts for the Template Institute
   await seedChartOfAccounts(eduMatrixHQ.id);
+
+  // 2.H.07: Seed Leave Types for the Template Institute
+  await seedLeaveTypes(eduMatrixHQ.id);
 }
 
 main()
