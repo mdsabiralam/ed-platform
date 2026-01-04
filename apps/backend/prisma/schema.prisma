@@ -234,9 +234,9 @@ model Permission {
 model OtpLog {
   id        String   @id @default(uuid())
   phone     String   // PII: Encrypted
-  otpCode   String   @map("otp_code")
+  code      String   @map("otp_code")
   expiresAt DateTime @map("expires_at")
-  isUsed    Boolean  @default(false) @map("is_used")
+  verified  Boolean  @default(false) @map("is_verified")
   attemptCount Int     @default(0) @map("attempt_count")
   createdAt DateTime @default(now()) @map("created_at")
 
