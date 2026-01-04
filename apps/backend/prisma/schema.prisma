@@ -132,16 +132,22 @@ model RefreshToken {
 
 // 2.E.01 Platform Admins
 model PlatformAdmin {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  role      String   @default("SUPER_ADMIN")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String            @id @default(uuid())
+  userId      String            @unique @map("user_id")
+  role        PlatformAdminRole @default(OWNER)
+  accessLevel String            @map("access_level")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
 
   user      User     @relation(fields: [userId], references: [id])
   auditLogs PlatformAuditLog[]
 
   @@map("platform_admins")
+}
+
+enum PlatformAdminRole {
+  OWNER
+  SUPPORT
 }
 
 // 2.E.02 Global Configs
