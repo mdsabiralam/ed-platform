@@ -310,6 +310,9 @@ model Student {
 
   firstName   String    @map("first_name")
   lastName    String    @map("last_name")
+  dob         DateTime  @map("dob")
+  gender      String    @map("gender")
+  address     String?   @map("address")
   admissionNo String    @map("admission_no")
   rollNo      Int?      @map("roll_no") // 2.F.10 Auto-gen via trigger
   deletedAt   DateTime? @map("deleted_at") // 2.I.02 Soft Delete
