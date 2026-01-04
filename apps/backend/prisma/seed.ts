@@ -26,6 +26,24 @@ async function main() {
   }
   console.log('Plans seeded.');
 
+  // 2.I.08 Seed Password Policy
+  // Default configuration for password security
+  await prisma.globalConfig.upsert({
+    where: { key: 'password_policy' },
+    update: {},
+    create: {
+      key: 'password_policy',
+      value: {
+        min_length: 8,
+        require_special_char: true,
+        require_number: true,
+        require_uppercase: true,
+      },
+      description: 'Global password complexity policy',
+    },
+  });
+  console.log('Password policy seeded.');
+
   // ১. পাসওয়ার্ড হ্যাশ করা (নিরাপত্তার জন্য)
   const saltRounds = 10;
   const password = await bcrypt.hash('SuperSecretPassword123!', saltRounds);
