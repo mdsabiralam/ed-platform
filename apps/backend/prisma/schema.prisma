@@ -10,6 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // 2.G.05 Connection Pool: Append ?connection_limit=20&pool_timeout=0 to DATABASE_URL in .env
   url      = env("DATABASE_URL")
   extensions = [pgcrypto, vector, postgis]
 }
