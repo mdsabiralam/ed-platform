@@ -165,13 +165,13 @@ model GlobalConfig {
 
 // 2.E.03 Platform Audit Logs
 model PlatformAuditLog {
-  id        String   @id @default(uuid())
-  adminId   String   @map("admin_id")
-  action    String
-  target    String?  // e.g., "Tenant: 123"
-  details   Json?
-  ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  adminId           String   @map("admin_id")
+  action            String
+  targetInstituteId String?  @map("target_institute_id")
+  details           Json?
+  ipAddress         String?  @map("ip_address")
+  timestamp         DateTime @default(now()) @map("timestamp")
 
   admin     PlatformAdmin @relation(fields: [adminId], references: [id])
 
