@@ -1,15 +1,15 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTenantDto } from './dto/create-tenant.dto';
-import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { CreateInstituteDto } from './dto/create-institute.dto';
+import { UpdateInstituteDto } from './dto/update-institute.dto';
 
 @Injectable()
-export class TenantService {
+export class InstituteService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createTenantDto: CreateTenantDto) {
+  async create(createInstituteDto: CreateInstituteDto) {
     const existing = await this.prisma.institute.findUnique({
-      where: { subdomain: createTenantDto.subdomain },
+      where: { subdomain: createInstituteDto.subdomain },
     });
 
     if (existing) {
@@ -18,7 +18,7 @@ export class TenantService {
 
     return this.prisma.institute.create({
       data: {
-        ...createTenantDto,
+        ...createInstituteDto,
         subscriptionStatus: 'ACTIVE',
       },
     });
@@ -32,10 +32,10 @@ export class TenantService {
     return this.prisma.institute.findUnique({ where: { id } });
   }
 
-  async update(id: string, updateTenantDto: UpdateTenantDto) {
+  async update(id: string, updateInstituteDto: UpdateInstituteDto) {
     return this.prisma.institute.update({
       where: { id },
-      data: updateTenantDto,
+      data: updateInstituteDto,
     });
   }
 
