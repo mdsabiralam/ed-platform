@@ -280,6 +280,7 @@ model AcademicClass {
 
   institute Institute @relation(fields: [instituteId], references: [id])
   sections  Section[]
+  students  Student[]
 
   @@map("academic_classes")
 }
@@ -305,6 +306,7 @@ model Student {
   id                 String  @id @default(uuid())
   instituteId        String  @map("institute_id") // 2.F.05 FK to School
   admissionSessionId String  @map("session_id")
+  academicClassId    String  @map("academic_class_id")
   sectionId          String  @map("section_id")
   userId             String? @unique @map("user_id")
 
@@ -319,6 +321,7 @@ model Student {
 
   institute        Institute        @relation(fields: [instituteId], references: [id])
   admissionSession AdmissionSession @relation(fields: [admissionSessionId], references: [id])
+  academicClass    AcademicClass    @relation(fields: [academicClassId], references: [id])
   section          Section          @relation(fields: [sectionId], references: [id])
   user             User?            @relation(fields: [userId], references: [id])
 
