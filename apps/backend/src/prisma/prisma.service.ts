@@ -41,6 +41,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   constructor() {
     // 2.I.04 Set up SSL/TLS enforcement for all DB connections
+    // This logic enforces encryption in transit for production environments.
     const url = process.env.DATABASE_URL;
     const isProduction = process.env.NODE_ENV === 'production';
     let datasources: { db: { url: string } } | undefined = undefined;
