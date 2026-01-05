@@ -1,25 +1,27 @@
 import { PrismaClient } from '@prisma/client';
+import { Logger } from '@nestjs/common';
 
 const prisma = new PrismaClient();
+const logger = new Logger('SeedFinanceHR');
 
 async function main() {
   // ১. যেকোনো একটি টেন্যান্ট খুঁজে বের করা
-  let tenant = await prisma.tenant.findFirst();
+  let institute = await prisma.institute.findFirst();
 
   // যদি কোনো টেন্যান্ট না থাকে, তবে একটি ডিফল্ট টেন্যান্ট তৈরি করা
-  if (!tenant) {
-    console.log('No tenant found. Creating a default tenant...');
-    tenant = await prisma.tenant.create({
+  if (!institute) {
+    logger.log('No institute found. Creating a default institute...');
+    institute = await prisma.institute.create({
       data: {
         name: 'Default School',
         subdomain: 'default-school',
         subscriptionStatus: 'ACTIVE',
       },
     });
-    console.log(`✅ Default tenant "${tenant.name}" created.`);
+    logger.log(`✅ Default institute "${institute.name}" created.`);
   }
 
-  console.log(`🌱 Seeding Finance & HR data for tenant: ${tenant.name}`);
+  logger.log(`🌱 Seeding Finance & HR data for institute: ${institute.name}`);
 
   // 2.H.06 Finance: Chart of Accounts (Standard Setup)
   const coaData = [
@@ -39,14 +41,14 @@ async function main() {
   for (const acc of coaData) {
     await prisma.chartOfAccount.upsert({
       where: {
-        tenantId_code: {
-          tenantId: tenant.id,
+        instituteId_code: {
+          instituteId: institute.id,
           code: acc.code,
         },
       },
       update: {},
       create: {
-        tenantId: tenant.id,
+        instituteId: institute.id,
         code: acc.code,
         name: acc.name,
         type: acc.type,
@@ -54,7 +56,7 @@ async function main() {
       },
     });
   }
-  console.log('✅ Chart of Accounts seeded.');
+  logger.log('✅ Chart of Accounts seeded.');
 
   // 2.H.07 HR: Leave Types (Standard HR Setup)
   const leaveData = [
@@ -67,14 +69,14 @@ async function main() {
   for (const leave of leaveData) {
     await prisma.leaveType.upsert({
       where: {
-        tenantId_code: {
-          tenantId: tenant.id,
+        instituteId_code: {
+          instituteId: institute.id,
           code: leave.code,
         },
       },
       update: {},
       create: {
-        tenantId: tenant.id,
+        instituteId: institute.id,
         code: leave.code,
         name: leave.name,
         daysAllowed: leave.daysAllowed,
@@ -82,12 +84,12 @@ async function main() {
       },
     });
   }
-  console.log('✅ Leave Types seeded.');
+  logger.log('✅ Leave Types seeded.');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    logger.error(e);
     process.exit(1);
   })
   .finally(async () => {

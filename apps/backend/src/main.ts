@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
@@ -9,6 +9,8 @@ import * as Sentry from '@sentry/node';
 import { httpIntegration } from '@sentry/node';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+
   // ১. উইনস্টন লগার সহ অ্যাপ তৈরি
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({
@@ -29,9 +31,8 @@ async function bootstrap() {
 
   // Sentry Initialization (1.I.04)
   Sentry.init({
-    dsn: process.env.SENTRY_DSN || 'YOUR_SENTRY_DSN_HERE', // .env ফাইলে আসল DSN রাখুন
+    dsn: process.env.SENTRY_DSN || 'YOUR_SENTRY_DSN_HERE',
     integrations: [
-      // enable HTTP calls tracing
       httpIntegration(),
     ],
     tracesSampleRate: 1.0,
@@ -47,16 +48,16 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   // ৩. গ্লোবাল সেটিংস
-  app.enableCors(); // ক্রস অরিজিন অন করা
+  app.enableCors();
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new AllExceptionsFilter()); 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
-    // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
+  // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
   await app.listen(3001, '0.0.0.0');
   
   // কনসোলে লিংক প্রিন্ট হবে
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  logger.log(`Application is running on: ${await app.getUrl()}`);
 }
 
-bootstrap(); // ফাংশনটি এখান থেকে কল হবে
+bootstrap();
