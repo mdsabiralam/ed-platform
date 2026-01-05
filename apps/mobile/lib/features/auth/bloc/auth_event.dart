@@ -12,4 +12,10 @@ class AuthLoginRequested extends AuthEvent {
   AuthLoginRequested(this.email, this.password);
 }
 
+class AuthProfileSelected extends AuthEvent {
+  final String profileId;
+
+  AuthProfileSelected(this.profileId);
+}
+
 class AuthLogoutRequested extends AuthEvent {}

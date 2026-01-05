@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/features/auth/bloc/auth_bloc.dart';
+import 'package:mobile/features/auth/widgets/profile_switcher_sheet.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +31,19 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           if (state is AuthAuthenticated) {
             context.go('/plans');
+          } else if (state is AuthProfileSelectionRequired) {
+            showModalBottomSheet(
+              context: context,
+              isDismissible: false,
+              enableDrag: false,
+              builder: (ctx) => ProfileSwitcherSheet(
+                profiles: state.profiles,
+                onProfileSelected: (profileId) {
+                  Navigator.pop(ctx);
+                  context.read<AuthBloc>().add(AuthProfileSelected(profileId));
+                },
+              ),
+            );
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
@@ -64,8 +78,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
+                      // Allow hyphens, plus signs, and other common characters
                       final emailRegex = RegExp(
-                        r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+',
+                        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
                       );
                       if (!emailRegex.hasMatch(value)) {
                         return 'Please enter a valid email';

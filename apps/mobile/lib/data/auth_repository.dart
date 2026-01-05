@@ -1,4 +1,5 @@
 import 'package:mobile/core/api_client.dart';
+import 'package:mobile/core/models/profile.dart';
 import 'package:mobile/core/services/token_storage_service.dart';
 
 class AuthRepository {
@@ -7,7 +8,7 @@ class AuthRepository {
 
   AuthRepository(this._apiClient, this._tokenStorage);
 
-  Future<void> login(String email, String password) async {
+  Future<List<Profile>> login(String email, String password) async {
     final response = await _apiClient.dio.post(
       '/auth/login',
       data: {
@@ -18,10 +19,19 @@ class AuthRepository {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final data = response.data;
-      if (data is Map<String, dynamic> && data.containsKey('access_token')) {
-        await _tokenStorage.saveAccessToken(data['access_token']);
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('access_token')) {
+          await _tokenStorage.saveAccessToken(data['access_token']);
+        }
+
+        if (data.containsKey('profiles') && data['profiles'] is List) {
+          return (data['profiles'] as List)
+              .map((e) => Profile.fromJson(e))
+              .toList();
+        }
       }
     }
+    return [];
   }
 
   Future<void> switchProfile(String profileId) async {

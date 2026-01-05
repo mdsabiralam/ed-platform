@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mobile/core/models/profile.dart';
 import 'package:mobile/core/services/token_storage_service.dart';
 import 'package:mobile/data/auth_repository.dart';
 
@@ -18,6 +19,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         super(AuthInitial()) {
     on<AppStarted>(_onAppStarted);
     on<AuthLoginRequested>(_onLoginRequested);
+    on<AuthProfileSelected>(_onProfileSelected);
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
@@ -36,11 +38,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      await _authRepository.login(event.email, event.password);
-      emit(AuthAuthenticated());
+      final profiles = await _authRepository.login(event.email, event.password);
+      if (profiles.isNotEmpty) {
+        emit(AuthProfileSelectionRequired(profiles));
+      } else {
+        emit(AuthAuthenticated());
+      }
     } catch (e) {
       emit(AuthFailure(e.toString()));
       emit(AuthUnauthenticated());
+    }
+  }
+
+  Future<void> _onProfileSelected(
+    AuthProfileSelected event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      await _authRepository.switchProfile(event.profileId);
+      emit(AuthAuthenticated());
+    } catch (e) {
+      emit(AuthFailure(e.toString()));
+      emit(AuthUnauthenticated()); // Or back to selection?
     }
   }
 
