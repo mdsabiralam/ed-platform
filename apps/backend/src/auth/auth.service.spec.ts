@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterUserDto } from './dto/register-user.dto';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
 
@@ -90,7 +90,7 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if email already exists', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'existing-id', email: dto.email });
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'existing-id', email: dto.email, isActive: true });
 
       await expect(service.register(dto)).rejects.toThrow(ConflictException);
 
@@ -99,6 +99,22 @@ describe('AuthService', () => {
       });
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenException if email exists and account is banned (isActive: false)', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'existing-id',
+        email: dto.email,
+        isActive: false
+      });
+
+      await expect(service.register(dto)).rejects.toThrow(ForbiddenException);
+      await expect(service.register(dto)).rejects.toThrow('Account Banned');
+
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
+        where: { email: dto.email },
+      });
+      expect(bcrypt.hash).not.toHaveBeenCalled();
     });
 
     it('should fail if profile creation fails (transaction rollback simulation)', async () => {

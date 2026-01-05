@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, ForbiddenException } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -14,6 +14,9 @@ export class AuthService {
     });
 
     if (existingUser) {
+      if (!existingUser.isActive) {
+        throw new ForbiddenException('Account Banned');
+      }
       throw new ConflictException('Email already exists');
     }
 
