@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaService;
+  let jwtService: JwtService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -19,11 +21,18 @@ describe('AuthService', () => {
             },
           },
         },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn().mockReturnValue('mock-token'),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     prisma = module.get<PrismaService>(PrismaService);
+    jwtService = module.get<JwtService>(JwtService);
   });
 
   it('should be defined', () => {
@@ -50,18 +59,26 @@ describe('AuthService', () => {
       );
     });
 
-    it('should return success if profile matches', async () => {
+    it('should return tokens if profile matches', async () => {
       jest.spyOn(prisma.profile, 'findUnique').mockResolvedValue({
         id: 'profile-1',
         userId: 'user-1', // Same user
+        instituteId: 'inst-1',
+        role: 'TEACHER',
       } as any);
 
       const result = await service.switchProfile('user-1', 'profile-1');
       expect(result).toEqual({
-        message: 'Profile switched successfully',
-        profileId: 'profile-1',
-        userId: 'user-1',
+        accessToken: 'mock-token',
+        refreshToken: 'mock-token',
       });
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        { sub: 'user-1', instituteId: 'inst-1', role: 'TEACHER' },
+      );
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        { sub: 'user-1', instituteId: 'inst-1', role: 'TEACHER' },
+        { expiresIn: '7d' },
+      );
     });
   });
 });
