@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from '../auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UnauthorizedException } from '@nestjs/common';
@@ -9,6 +10,7 @@ jest.mock('bcrypt');
 describe('AuthService', () => {
   let service: AuthService;
   let prismaService: PrismaService;
+  let jwtService: JwtService;
 
   const mockUser = {
     id: 'user-id',
@@ -30,16 +32,22 @@ describe('AuthService', () => {
     },
   };
 
+  const mockJwtService = {
+    sign: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: JwtService, useValue: mockJwtService },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     prismaService = module.get<PrismaService>(PrismaService);
+    jwtService = module.get<JwtService>(JwtService);
   });
 
   afterEach(() => {
@@ -77,6 +85,25 @@ describe('AuthService', () => {
 
       const result = await service.validateUser('test@example.com', 'password');
       expect(result).toEqual({ ...mockUser, isActive: true, profiles: mockProfiles });
+    });
+  });
+
+  describe('generateAccessToken', () => {
+    it('should return a signed token with correct payload', () => {
+      const user = { id: 'user-1', email: 'test@example.com' };
+      const currentProfile = { role: 'TEACHER', tenantId: 'tenant-1' };
+      const token = 'signed-jwt-token';
+      (mockJwtService.sign as jest.Mock).mockReturnValue(token);
+
+      const result = service.generateAccessToken(user, currentProfile);
+
+      expect(mockJwtService.sign).toHaveBeenCalledWith({
+        sub: user.id,
+        email: user.email,
+        role: currentProfile.role,
+        instituteId: currentProfile.tenantId,
+      });
+      expect(result).toEqual({ accessToken: token });
     });
   });
 });
