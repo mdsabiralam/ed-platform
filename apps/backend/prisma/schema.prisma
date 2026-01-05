@@ -108,7 +108,7 @@ model Profile {
   id        String   @id @default(uuid()) @map("profile_id")
   userId    String   @map("user_id")
   tenantId  String   @map("school_id")
-  role      UserRole 
+  role      Role
   
   user      User     @relation(fields: [userId], references: [id])
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
@@ -230,7 +230,7 @@ model Permission {
 
 model RolePermission {
   id           String   @id @default(uuid())
-  role         UserRole
+  role         Role
   permissionId String   @map("permission_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -446,21 +446,11 @@ model TableAuditLog {
 }
 
 // 2.C.03 Roles Enum
-enum UserRole {
+enum Role {
   SUPER_ADMIN
-  ADMIN // School Owner
-  HEADMASTER
-  PRINCIPAL
+  INSTITUTE_ADMIN
   TEACHER
-  STAFF
   STUDENT
   PARENT
-  DRIVER
-  AGENT
-  CUSTOMER_CARE
-  HOSTEL_SUPER
-  LIBRARIAN
-  SHOP_KEEPER
-  MCM
-  SUPPLIER
+  STAFF
 }
