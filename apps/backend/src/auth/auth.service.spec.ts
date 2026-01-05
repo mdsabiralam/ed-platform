@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { UserRole } from '@prisma/client';
 
 jest.mock('bcrypt');
 
@@ -11,11 +12,22 @@ describe('AuthService', () => {
   let service: AuthService;
   let prismaService: PrismaService;
 
+  const mockTx = {
+    user: {
+      create: jest.fn(),
+    },
+    profile: {
+      create: jest.fn(),
+    },
+  };
+
   const mockPrismaService = {
     user: {
       findUnique: jest.fn(),
     },
-    $transaction: jest.fn(),
+    $transaction: jest.fn().mockImplementation(async (callback) => {
+      return callback(mockTx);
+    }),
   };
 
   beforeEach(async () => {
@@ -48,12 +60,11 @@ describe('AuthService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
 
-      const expectedResult = {
-        user: { id: 'user-id', email: dto.email, isActive: true },
-        profile: { id: 'profile-id', userId: 'user-id', role: 'ADMIN' },
-      };
+      const mockUser = { id: 'user-id', email: dto.email, isActive: true };
+      const mockProfile = { id: 'profile-id', userId: 'user-id', role: UserRole.ADMIN };
 
-      mockPrismaService.$transaction.mockResolvedValue(expectedResult);
+      mockTx.user.create.mockResolvedValue(mockUser);
+      mockTx.profile.create.mockResolvedValue(mockProfile);
 
       const result = await service.register(dto);
 
@@ -61,7 +72,21 @@ describe('AuthService', () => {
         where: { email: dto.email },
       });
       expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
-      expect(result).toEqual(expectedResult);
+      expect(mockTx.user.create).toHaveBeenCalledWith({
+        data: {
+          email: dto.email,
+          passwordHash: 'hashed_password',
+          isActive: true,
+        },
+      });
+      expect(mockTx.profile.create).toHaveBeenCalledWith({
+        data: {
+          userId: mockUser.id,
+          instituteId: dto.instituteId,
+          role: UserRole.ADMIN,
+        },
+      });
+      expect(result).toEqual({ user: mockUser, profile: mockProfile });
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -73,6 +98,23 @@ describe('AuthService', () => {
         where: { email: dto.email },
       });
       expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should fail if profile creation fails (transaction rollback simulation)', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+
+      const mockUser = { id: 'user-id', email: dto.email, isActive: true };
+      mockTx.user.create.mockResolvedValue(mockUser);
+
+      const error = new Error('Database Error');
+      mockTx.profile.create.mockRejectedValue(error);
+
+      await expect(service.register(dto)).rejects.toThrow(error);
+
+      expect(mockTx.user.create).toHaveBeenCalled();
+      expect(mockTx.profile.create).toHaveBeenCalled();
     });
   });
 });
