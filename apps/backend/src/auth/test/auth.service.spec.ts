@@ -25,6 +25,9 @@ describe('AuthService', () => {
     user: {
       findUnique: jest.fn(),
     },
+    profile: {
+      findMany: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -66,15 +69,14 @@ describe('AuthService', () => {
       );
     });
 
-    it('should return the user (without password) if validation succeeds', async () => {
+    it('should return the user with profiles if validation succeeds', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({ ...mockUser, isActive: true });
+      const mockProfiles = [{ id: 'profile-1', tenant: { id: 'tenant-1' } }];
+      mockPrismaService.profile.findMany.mockResolvedValue(mockProfiles);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.validateUser('test@example.com', 'password');
-      expect(result).toEqual({ ...mockUser, isActive: true });
-      // Ideally we strip password, but prompt didn't strictly say strip it, just "Find user... verify...".
-      // Usually validateUser returns the user object.
-      // I will implement returning the user.
+      expect(result).toEqual({ ...mockUser, isActive: true, profiles: mockProfiles });
     });
   });
 });

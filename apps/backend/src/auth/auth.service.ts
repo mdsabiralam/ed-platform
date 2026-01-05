@@ -18,6 +18,14 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    return user;
+    const profiles = await this.getUserProfiles(user.id);
+    return { ...user, profiles };
+  }
+
+  private async getUserProfiles(userId: string) {
+    return this.prisma.profile.findMany({
+      where: { userId },
+      include: { tenant: true },
+    });
   }
 }
