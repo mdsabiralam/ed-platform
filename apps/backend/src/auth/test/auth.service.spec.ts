@@ -30,6 +30,9 @@ describe('AuthService', () => {
     profile: {
       findMany: jest.fn(),
     },
+    refreshToken: {
+      create: jest.fn(),
+    },
   };
 
   const mockJwtService = {
@@ -104,6 +107,32 @@ describe('AuthService', () => {
         instituteId: currentProfile.tenantId,
       });
       expect(result).toEqual({ accessToken: token });
+    });
+  });
+
+  describe('generateRefreshToken', () => {
+    it('should generate, hash, store, and return a refresh token', async () => {
+      const userId = 'user-id';
+      const userAgent = 'test-agent';
+      const ipAddress = '127.0.0.1';
+      const mockHash = 'hashed-token';
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue(mockHash);
+
+      const result = await service.generateRefreshToken(userId, userAgent, ipAddress);
+
+      expect(result).toHaveProperty('refreshToken');
+      expect(typeof result.refreshToken).toBe('string');
+      expect(mockPrismaService.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId,
+            tokenHash: mockHash,
+            userAgent,
+            ipAddress,
+          }),
+        }),
+      );
     });
   });
 });
