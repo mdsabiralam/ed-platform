@@ -110,6 +110,7 @@ model Profile {
   userId    String   @map("user_id")
   tenantId  String   @map("school_id")
   role      Role
+  permissions Json? @map("permissions") // Custom permissions override
   
   user      User     @relation(fields: [userId], references: [id])
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
