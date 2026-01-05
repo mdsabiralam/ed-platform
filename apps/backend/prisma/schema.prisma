@@ -3,11 +3,10 @@ generator client {
   previewFeatures = ["postgresqlExtensions"]
 }
 
-// আপাতত এটি কমেন্ট করে রাখুন
-// generator erd {
-//   provider = "prisma-erd-generator"
-//   output   = "./ERD.svg"
-// }
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "./ERD.svg"
+}
 
 datasource db {
   provider = "postgresql"

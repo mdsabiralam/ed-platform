@@ -1,13 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors } from '@nestjs/common';
 import { InstituteService } from './institute.service';
 import { CreateInstituteDto } from './dto/create-institute.dto';
 import { UpdateInstituteDto } from './dto/update-institute.dto';
+import { HoneypotInterceptor } from '../common/interceptors/honeypot.interceptor';
 
 @Controller('institutes')
 export class InstituteController {
   constructor(private readonly instituteService: InstituteService) {}
 
   @Post()
+  @UseInterceptors(HoneypotInterceptor) // 2.I.10 Honey Pot check added
   create(@Body() createInstituteDto: CreateInstituteDto) {
     return this.instituteService.create(createInstituteDto);
   }
