@@ -135,4 +135,50 @@ describe('AuthService', () => {
       );
     });
   });
+
+  describe('login', () => {
+    const loginDto = { email: 'test@example.com', password: 'password' };
+    const ip = '127.0.0.1';
+    const ua = 'test-agent';
+
+    it('should return access token if user has single profile', async () => {
+      const mockUserWithProfiles = {
+        ...mockUser,
+        passwordHash: 'hashed',
+        profiles: [{ id: 'p1', role: 'TEACHER', tenantId: 't1' }],
+      };
+
+      // Mock validateUser (internal call) via spying or by mocking prisma/bcrypt
+      mockPrismaService.user.findUnique.mockResolvedValue({ ...mockUser, isActive: true, passwordHash: 'hashed' });
+      mockPrismaService.profile.findMany.mockResolvedValue(mockUserWithProfiles.profiles);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('refresh-hash');
+      (mockJwtService.sign as jest.Mock).mockReturnValue('access-token');
+
+      const result = await service.login(loginDto, ip, ua);
+
+      expect(result.accessToken).toBe('access-token');
+      expect(result.refreshToken).toBeDefined();
+      expect(result.message).toBe('Login successful');
+    });
+
+    it('should NOT return access token if user has multiple profiles', async () => {
+      const profiles = [
+        { id: 'p1', role: 'TEACHER', tenantId: 't1' },
+        { id: 'p2', role: 'PARENT', tenantId: 't2' },
+      ];
+
+      mockPrismaService.user.findUnique.mockResolvedValue({ ...mockUser, isActive: true, passwordHash: 'hashed' });
+      mockPrismaService.profile.findMany.mockResolvedValue(profiles);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('refresh-hash');
+
+      const result = await service.login(loginDto, ip, ua);
+
+      expect(result.accessToken).toBeNull();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.message).toBe('Please select a profile');
+      expect(result.profiles).toHaveLength(2);
+    });
+  });
 });

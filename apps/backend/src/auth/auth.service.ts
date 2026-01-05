@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +11,39 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+
+  async login(loginDto: LoginDto, ipAddress: string, userAgent: string) {
+    const { email, password } = loginDto;
+    const userWithProfiles = await this.validateUser(email, password);
+
+    // Strip sensitive data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...safeUser } = userWithProfiles;
+
+    const { refreshToken } = await this.generateRefreshToken(
+      safeUser.id,
+      userAgent,
+      ipAddress,
+    );
+
+    let accessToken: string | null = null;
+    if (safeUser.profiles.length === 1) {
+      const profile = safeUser.profiles[0];
+      const tokenResult = this.generateAccessToken(safeUser, profile);
+      accessToken = tokenResult.accessToken;
+    }
+
+    return {
+      message:
+        safeUser.profiles.length > 1
+          ? 'Please select a profile'
+          : 'Login successful',
+      user: safeUser,
+      profiles: safeUser.profiles,
+      refreshToken,
+      accessToken,
+    };
+  }
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.prisma.user.findUnique({ where: { email } });
