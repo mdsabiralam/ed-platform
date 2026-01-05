@@ -1,10 +1,16 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import * as crypto from 'crypto';
 
 // Encryption helpers for 2.I.01
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default_secret_key_32_bytes_long!!';
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || 'default_secret_key_32_bytes_long!!';
 const IV_LENGTH = 16;
 const KEY = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
 
@@ -35,7 +41,10 @@ function decrypt(text: string): string {
 }
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -67,14 +76,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       if (!params.model) return next(params);
 
       const encryptionMap: Record<string, string[]> = {
-        HealthProfile: ['medicalHistory', 'medications', 'allergies', 'conditions'],
+        HealthProfile: [
+          'medicalHistory',
+          'medications',
+          'allergies',
+          'conditions',
+        ],
         KycDocument: ['documentUrl'], // 2.I.07 Secure URL storage
       };
 
       const sensitiveFields = encryptionMap[params.model];
 
       if (sensitiveFields) {
-        
         const encryptObject = (obj: any) => {
           if (!obj) return;
           for (const field of sensitiveFields) {
@@ -84,7 +97,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           }
         };
 
-        if (['create', 'update', 'createMany', 'updateMany'].includes(params.action)) {
+        if (
+          ['create', 'update', 'createMany', 'updateMany'].includes(
+            params.action,
+          )
+        ) {
           if (params.args.data) {
             if (Array.isArray(params.args.data)) {
               params.args.data.forEach(encryptObject);
@@ -124,8 +141,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // 2.I.02 Soft Delete Middleware
     this.$use(async (params, next) => {
       // যেসব মডেলে soft delete আছে
-      const softDeleteModels = ['Tenant', 'User', 'Student', 'StaffProfile', 'Class', 'Section', 'AdmissionSession'];
-      
+      const softDeleteModels = [
+        'Tenant',
+        'User',
+        'Student',
+        'StaffProfile',
+        'Class',
+        'Section',
+        'AdmissionSession',
+      ];
+
       if (params.model && softDeleteModels.includes(params.model)) {
         if (params.action === 'delete') {
           // Delete -> Update deletedAt
@@ -142,22 +167,24 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           }
         }
         if (params.action === 'findUnique' || params.action === 'findFirst') {
-           // findUnique কে findFirst এ পরিবর্তন করা যাতে ফিল্টার যোগ করা যায়
-           params.action = 'findFirst';
-           if (!params.args.where) {
-             params.args.where = { deletedAt: null };
-           } else if (params.args.where.deletedAt === undefined) {
-             params.args.where['deletedAt'] = null;
-           }
+          // findUnique কে findFirst এ পরিবর্তন করা যাতে ফিল্টার যোগ করা যায়
+          params.action = 'findFirst';
+          if (!params.args.where) {
+            params.args.where = { deletedAt: null };
+          } else if (params.args.where.deletedAt === undefined) {
+            params.args.where['deletedAt'] = null;
+          }
         }
-        if (['findMany', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
-           if (params.args.where) {
-             if (params.args.where.deletedAt == undefined) {
-               params.args.where['deletedAt'] = null;
-             }
-           } else {
-             params.args['where'] = { deletedAt: null };
-           }
+        if (
+          ['findMany', 'count', 'aggregate', 'groupBy'].includes(params.action)
+        ) {
+          if (params.args.where) {
+            if (params.args.where.deletedAt == undefined) {
+              params.args.where['deletedAt'] = null;
+            }
+          } else {
+            params.args['where'] = { deletedAt: null };
+          }
         }
       }
       return next(params);
@@ -179,9 +206,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // 2.I.09 Test SQL injection vulnerability on search inputs
     // Middleware to warn about Raw SQL usage where injection risks might exist
     this.$use(async (params, next) => {
-      const rawActions = ['executeRaw', 'queryRaw', 'runCommandRaw', 'executeRawUnsafe', 'queryRawUnsafe'];
+      const rawActions = [
+        'executeRaw',
+        'queryRaw',
+        'runCommandRaw',
+        'executeRawUnsafe',
+        'queryRawUnsafe',
+      ];
       if (rawActions.includes(params.action)) {
-        this.logger.warn(`⚠️  Raw SQL usage detected: ${params.action}. Ensure manual sanitization to prevent SQL Injection.`);
+        this.logger.warn(
+          `⚠️  Raw SQL usage detected: ${params.action}. Ensure manual sanitization to prevent SQL Injection.`,
+        );
       }
       return next(params);
     });
