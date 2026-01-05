@@ -5,12 +5,14 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
   let prismaService: PrismaService;
+  let eventEmitter: EventEmitter2;
 
   const mockTx = {
     user: {
@@ -30,6 +32,10 @@ describe('AuthService', () => {
     }),
   };
 
+  const mockEventEmitter = {
+    emit: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,11 +44,16 @@ describe('AuthService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: EventEmitter2,
+          useValue: mockEventEmitter,
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     prismaService = module.get<PrismaService>(PrismaService);
+    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
   });
 
   afterEach(() => {
@@ -56,7 +67,7 @@ describe('AuthService', () => {
       instituteId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
-    it('should successfully register a user with default avatar', async () => {
+    it('should successfully register a user with default avatar and emit event', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
 
@@ -64,7 +75,7 @@ describe('AuthService', () => {
       const mockProfile = {
         id: 'profile-id',
         userId: 'user-id',
-        role: UserRole.ADMIN,
+        role: UserRole.STUDENT,
         avatarUrl: expect.stringMatching(/^https:\/\/ui-avatars\.com\/api\/\?name=/)
       };
 
@@ -88,11 +99,12 @@ describe('AuthService', () => {
         data: {
           userId: mockUser.id,
           instituteId: dto.instituteId,
-          role: UserRole.ADMIN,
+          role: UserRole.STUDENT,
           avatarUrl: expect.stringContaining('https://ui-avatars.com/api/?name=')
         },
       });
       expect(result).toEqual({ user: mockUser, profile: mockProfile });
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith('user.created', result);
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -105,6 +117,7 @@ describe('AuthService', () => {
       });
       expect(bcrypt.hash).not.toHaveBeenCalled();
       expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException if email exists and account is banned (isActive: false)', async () => {
@@ -121,6 +134,7 @@ describe('AuthService', () => {
         where: { email: dto.email },
       });
       expect(bcrypt.hash).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should fail if profile creation fails (transaction rollback simulation)', async () => {
@@ -137,6 +151,7 @@ describe('AuthService', () => {
 
       expect(mockTx.user.create).toHaveBeenCalled();
       expect(mockTx.profile.create).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });

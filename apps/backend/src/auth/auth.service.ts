@@ -3,10 +3,14 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async register(dto: RegisterUserDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -23,7 +27,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const avatarUrl = this.generateAvatar(dto.email);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           email: dto.email,
@@ -36,13 +40,16 @@ export class AuthService {
         data: {
           userId: user.id,
           instituteId: dto.instituteId,
-          role: UserRole.ADMIN,
+          role: UserRole.STUDENT,
           avatarUrl,
         },
       });
 
       return { user, profile };
     });
+
+    this.eventEmitter.emit('user.created', result);
+    return result;
   }
 
   private generateAvatar(name: string): string {

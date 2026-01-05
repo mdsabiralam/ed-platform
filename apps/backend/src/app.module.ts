@@ -6,15 +6,19 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SaasModule } from './saas/saas.module';
 import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
-import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
-import { TenantModule } from './tenants/tenant.module';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { InstituteModule } from './institutes/institute.module';
+import { AuthModule } from './auth/auth.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     SaasModule,
-    TenantModule,
+    InstituteModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
