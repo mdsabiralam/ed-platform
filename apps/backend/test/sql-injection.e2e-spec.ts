@@ -30,7 +30,7 @@ describe('Security: SQL Injection Vulnerability Test (e2e)', () => {
     const maliciousSubdomain = "' OR '1'='1";
     
     const response = await request(app.getHttpServer())
-      .post('/tenants')
+      .post('/institutes')
       .send({
         name: 'Hacker School',
         subdomain: maliciousSubdomain, 

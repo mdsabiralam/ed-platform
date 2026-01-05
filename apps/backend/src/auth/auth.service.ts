@@ -23,7 +23,7 @@ export class AuthService {
     // 3.J.05: Context required for Frontend.
     // Fetch user's primary institute/role if possible, or generic payload.
     // Assuming user object has id and email.
-    // In a real multi-tenant app, user might belong to multiple institutes.
+    // In a real multi-institute app, user might belong to multiple institutes.
     // For now, we'll try to get the institute from the user profile if available,
     // or let the frontend switch context.
 
