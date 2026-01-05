@@ -88,6 +88,7 @@ model User {
   email        String   @unique // PII: Field encryption enabled via pgcrypto
   passwordHash String   @map("password_hash")
   phone        String?  // PII: Field encryption enabled via pgcrypto
+  role         Role?    // Global/Fallback Role
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at") // 2.I.02 Soft Delete
@@ -134,7 +135,7 @@ model RefreshToken {
 model PlatformAdmin {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
-  role      String   @default("SUPER_ADMIN")
+  role      Role     @default(SUPER_ADMIN)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
