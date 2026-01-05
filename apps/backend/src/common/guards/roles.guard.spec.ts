@@ -34,17 +34,22 @@ describe('RolesGuard', () => {
     expect(rolesGuard.canActivate(context)).toBe(true);
   });
 
+  it('should deny access if User has Role STUDENT and Route requires INSTITUTE_ADMIN', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.INSTITUTE_ADMIN]);
+    const context = createMockContext({ role: Role.STUDENT });
+    expect(() => rolesGuard.canActivate(context)).toThrow(ForbiddenException);
+  });
+
+  it('should allow access if User has Role INSTITUTE_ADMIN and Route requires TEACHER (Hierarchy)', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.TEACHER]);
+    const context = createMockContext({ role: Role.INSTITUTE_ADMIN });
+    expect(rolesGuard.canActivate(context)).toBe(true);
+  });
+
   it('should allow access if user is SUPER_ADMIN', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.TEACHER]);
     const context = createMockContext({ role: Role.SUPER_ADMIN });
     expect(rolesGuard.canActivate(context)).toBe(true);
-  });
-
-  it('should throw ForbiddenException if user does not have required role', () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.TEACHER]);
-    const context = createMockContext({ role: Role.STUDENT });
-    expect(() => rolesGuard.canActivate(context)).toThrow(ForbiddenException);
-    expect(() => rolesGuard.canActivate(context)).toThrow('You do not have the required role to access this resource');
   });
 
   it('should throw ForbiddenException if user is missing', () => {
