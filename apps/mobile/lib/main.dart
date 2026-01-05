@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
 import 'package:mobile/core/services/sync_service.dart';
+import 'package:mobile/core/services/token_storage_service.dart';
+import 'package:mobile/data/auth_repository.dart';
+import 'package:mobile/features/auth/bloc/auth_bloc.dart';
 import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -33,14 +36,26 @@ class EdApp extends StatelessWidget {
       connectivityService: ConnectivityService(),
     );
 
+    // Auth Dependencies
+    final tokenStorageService = TokenStorageService();
+    final authRepository = AuthRepository(apiClient, tokenStorageService);
+
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<ApiClient>.value(value: apiClient),
         RepositoryProvider<AppDatabase>.value(value: database),
         RepositoryProvider<SyncService>.value(value: syncService),
+        RepositoryProvider<TokenStorageService>.value(value: tokenStorageService),
+        RepositoryProvider<AuthRepository>.value(value: authRepository),
       ],
       child: MultiBlocProvider(
         providers: [
+          BlocProvider<AuthBloc>(
+            create: (context) => AuthBloc(
+              authRepository: authRepository,
+              tokenStorageService: tokenStorageService,
+            )..add(AppStarted()),
+          ),
           // 1.E.03: State Management (Cubit)
           BlocProvider<PlansCubit>(create: (context) => PlansCubit(apiClient)),
         ],
