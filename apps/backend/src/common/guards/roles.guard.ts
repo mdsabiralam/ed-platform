@@ -21,6 +21,28 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    return requiredRoles.some((role) => user.role === role);
+    return this.matchRoles(requiredRoles, user.role);
+  }
+
+  private matchRoles(requiredRoles: Role[], userRole: Role): boolean {
+    // 1. SUPER_ADMIN has access to EVERYTHING
+    if (userRole === Role.SUPER_ADMIN) {
+      return true;
+    }
+
+    // Check strict match
+    if (requiredRoles.includes(userRole)) {
+      return true;
+    }
+
+    // 2. INSTITUTE_ADMIN has TEACHER and STAFF permissions
+    if (userRole === Role.INSTITUTE_ADMIN) {
+      if (requiredRoles.includes(Role.TEACHER) || requiredRoles.includes(Role.STAFF)) {
+        return true;
+      }
+    }
+
+    // 3. TEACHER does NOT have Admin permissions (handled by default false)
+    return false;
   }
 }
