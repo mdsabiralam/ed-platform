@@ -10,6 +10,7 @@ import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { InstituteMiddleware } from './common/middleware/institute.middleware'; // Path check
 import { InstituteModule } from './institutes/institute.module';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionsGuard } from './common/guards/permissions.guard';
 
 @Module({
   imports: [
@@ -24,6 +25,10 @@ import { RolesGuard } from './common/guards/roles.guard';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
   ],
 })
