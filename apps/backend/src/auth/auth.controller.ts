@@ -10,8 +10,6 @@ export class AuthController {
   @Post('switch-profile')
   @UseGuards(JwtAuthGuard)
   switchProfile(@Request() req: any, @Body() switchProfileDto: SwitchProfileDto) {
-    // Assuming req.user is populated, or using a dummy if missing in this scaffold state
-    const userId = req.user?.id || 'dummy-user-id';
-    return this.authService.switchProfile(userId, switchProfileDto.targetProfileId);
+    return this.authService.switchProfile(req.user.sub, switchProfileDto.targetProfileId);
   }
 }

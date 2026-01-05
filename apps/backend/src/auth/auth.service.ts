@@ -31,7 +31,7 @@ export class AuthService {
 
     const payload = {
       sub: userId,
-      instituteId: profile.instituteId,
+      instituteId: profile.tenantId,
       role: profile.role,
     };
 

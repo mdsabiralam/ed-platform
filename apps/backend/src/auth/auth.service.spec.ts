@@ -63,7 +63,7 @@ describe('AuthService', () => {
       jest.spyOn(prisma.profile, 'findUnique').mockResolvedValue({
         id: 'profile-1',
         userId: 'user-1', // Same user
-        instituteId: 'inst-1',
+        tenantId: 'inst-1', // Corrected property name from schema
         role: 'TEACHER',
       } as any);
 
