@@ -56,12 +56,17 @@ describe('AuthService', () => {
       instituteId: '123e4567-e89b-12d3-a456-426614174000',
     };
 
-    it('should successfully register a user', async () => {
+    it('should successfully register a user with default avatar', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
 
       const mockUser = { id: 'user-id', email: dto.email, isActive: true };
-      const mockProfile = { id: 'profile-id', userId: 'user-id', role: UserRole.ADMIN };
+      const mockProfile = {
+        id: 'profile-id',
+        userId: 'user-id',
+        role: UserRole.ADMIN,
+        avatarUrl: expect.stringMatching(/^https:\/\/ui-avatars\.com\/api\/\?name=/)
+      };
 
       mockTx.user.create.mockResolvedValue(mockUser);
       mockTx.profile.create.mockResolvedValue(mockProfile);
@@ -84,6 +89,7 @@ describe('AuthService', () => {
           userId: mockUser.id,
           instituteId: dto.instituteId,
           role: UserRole.ADMIN,
+          avatarUrl: expect.stringContaining('https://ui-avatars.com/api/?name=')
         },
       });
       expect(result).toEqual({ user: mockUser, profile: mockProfile });

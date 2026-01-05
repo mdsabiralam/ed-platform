@@ -21,6 +21,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const avatarUrl = this.generateAvatar(dto.email);
 
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -36,10 +37,15 @@ export class AuthService {
           userId: user.id,
           instituteId: dto.instituteId,
           role: UserRole.ADMIN,
+          avatarUrl,
         },
       });
 
       return { user, profile };
     });
+  }
+
+  private generateAvatar(name: string): string {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
   }
 }

@@ -109,6 +109,7 @@ model Profile {
   userId      String    @map("user_id")
   instituteId String    @map("institute_id")
   role        UserRole
+  avatarUrl   String?   @map("avatar_url")
   
   user        User      @relation(fields: [userId], references: [id])
   institute   Institute @relation(fields: [instituteId], references: [id])
