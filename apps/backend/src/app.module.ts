@@ -8,13 +8,23 @@ import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { LessonPlanModule } from './academic/lesson-plan/lesson-plan.module';
+import { AssignmentModule } from './academic/assignments/assignments.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     PrismaModule,
     SaasModule,
     TenantModule,
+    AttendanceModule,
+    LessonPlanModule,
+    AssignmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
