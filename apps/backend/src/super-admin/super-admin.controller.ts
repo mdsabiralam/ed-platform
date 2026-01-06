@@ -4,6 +4,7 @@ import { SuperAdminService } from './super-admin.service';
 import { ImpersonateUserDto } from './dto/impersonate-user.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { ImpersonateGuard } from '../common/guards/impersonate.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
@@ -16,6 +17,7 @@ export class SuperAdminController {
 
   @Post('impersonate')
   @Roles(UserRole.SUPER_ADMIN)
+  @UseGuards(ImpersonateGuard)
   @ApiOperation({ summary: 'Impersonate a user (God Mode)' })
   @ApiResponse({ status: 201, description: 'JWT tokens generated for the target user.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
