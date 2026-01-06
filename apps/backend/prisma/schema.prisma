@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  gradingScales      GradingScale[]
 
   @@map("tenants")
 }
@@ -443,6 +444,37 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// Grading Scale (e.g. CBSE Standard)
+model GradingScale {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  type      String   @default("SCHOLASTIC") // SCHOLASTIC, CO_SCHOLASTIC
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  logics    GradingLogic[]
+
+  @@map("grading_scales")
+}
+
+// Grading Logic (Rows)
+model GradingLogic {
+  id         String   @id @default(uuid())
+  scaleId    String   @map("scale_id")
+  minScore   Float    @map("min_score")
+  maxScore   Float    @map("max_score")
+  gradePoint Float    @map("grade_point")
+  label      String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  scale      GradingScale @relation(fields: [scaleId], references: [id])
+
+  @@map("grading_logics")
 }
 
 // 2.C.03 Roles Enum
