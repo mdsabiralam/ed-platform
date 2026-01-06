@@ -48,7 +48,24 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   // ৩. গ্লোবাল সেটিংস
-  app.enableCors(); // ক্রস অরিজিন অন করা
+  app.enableCors({
+    origin: (origin, callback) => {
+      const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+        ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+        : ['http://localhost:3000', 'http://localhost:4200']; // Default for dev
+
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
   app.use(helmet());
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new AllExceptionsFilter()); 
