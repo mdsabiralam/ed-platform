@@ -23,8 +23,11 @@ class EdApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Auth Dependencies
+    final tokenStorageService = TokenStorageService();
+
     // 1.E.07: ApiClient Instance
-    final apiClient = ApiClient();
+    final apiClient = ApiClient(tokenStorageService);
 
     // 1.F.06: Database Instance
     final database = AppDatabase();
@@ -36,8 +39,6 @@ class EdApp extends StatelessWidget {
       connectivityService: ConnectivityService(),
     );
 
-    // Auth Dependencies
-    final tokenStorageService = TokenStorageService();
     final authRepository = AuthRepository(apiClient, tokenStorageService);
 
     return MultiRepositoryProvider(
