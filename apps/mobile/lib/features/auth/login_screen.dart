@@ -48,6 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
             );
+          } else if (state is AuthSubscriptionExpired) {
+             context.go('/payment-required');
           }
         },
         builder: (context, state) {

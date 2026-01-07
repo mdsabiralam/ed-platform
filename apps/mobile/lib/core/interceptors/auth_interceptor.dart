@@ -25,6 +25,15 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
+    if (err.response?.statusCode == 403) {
+      // Assuming 403 means Subscription Expired or Forbidden.
+      // Based on prompt "Global error handling for 403 Subscription Expired".
+      _tokenStorageService.notifySubscriptionExpired();
+      // We still pass the error down, but the Bloc listener will handle navigation.
+      // Or we can reject it.
+      return handler.next(err);
+    }
+
     if (err.response?.statusCode == 401) {
       // Check if we already tried to refresh
       if (err.requestOptions.extra.containsKey('retried')) {
@@ -35,8 +44,6 @@ class AuthInterceptor extends Interceptor {
       final refreshToken = await _tokenStorageService.getRefreshToken();
       if (refreshToken != null) {
         try {
-          // Lock the interceptor/queue requests if needed (simplified here)
-          // Make refresh call using separate Dio instance
           final response = await _dio.post(
             '/auth/refresh',
             data: {'refresh_token': refreshToken},
@@ -44,14 +51,13 @@ class AuthInterceptor extends Interceptor {
 
           if (response.statusCode == 200 || response.statusCode == 201) {
             final newAccessToken = response.data['access_token'];
-            final newRefreshToken = response.data['refresh_token']; // Optional
+            final newRefreshToken = response.data['refresh_token'];
 
             await _tokenStorageService.saveAccessToken(newAccessToken);
             if (newRefreshToken != null) {
               await _tokenStorageService.saveRefreshToken(newRefreshToken);
             }
 
-            // Retry the original request
             final opts = err.requestOptions;
             opts.headers['Authorization'] = 'Bearer $newAccessToken';
             opts.extra['retried'] = true;
@@ -80,7 +86,6 @@ class AuthInterceptor extends Interceptor {
             return handler.resolve(clonedRequest);
           }
         } catch (e) {
-          // Refresh failed
           await _tokenStorageService.clearTokens();
         }
       } else {

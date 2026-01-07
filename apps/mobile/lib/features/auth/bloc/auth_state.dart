@@ -18,6 +18,8 @@ class AuthProfileSelectionRequired extends AuthState {
 
 class AuthUnauthenticated extends AuthState {}
 
+class AuthSubscriptionExpired extends AuthState {} // Added
+
 class AuthFailure extends AuthState {
   final String message;
 

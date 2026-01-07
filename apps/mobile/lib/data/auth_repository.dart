@@ -45,7 +45,6 @@ class AuthRepository {
       },
     );
 
-    // TODO: Verify if switch-profile returns a new token and update storage if needed
     if (response.statusCode == 200 || response.statusCode == 201) {
        final data = response.data;
        if (data is Map<String, dynamic> && data.containsKey('access_token')) {
@@ -54,6 +53,9 @@ class AuthRepository {
        if (data is Map<String, dynamic> && data.containsKey('refresh_token')) {
          await _tokenStorage.saveRefreshToken(data['refresh_token']);
        }
+
+       // Save last active profile ID
+       await _tokenStorage.saveLastProfileId(profileId);
     }
   }
 }

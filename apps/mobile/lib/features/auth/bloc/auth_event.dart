@@ -19,3 +19,8 @@ class AuthProfileSelected extends AuthEvent {
 }
 
 class AuthLogoutRequested extends AuthEvent {}
+
+class _AuthStatusChanged extends AuthEvent {
+  final AuthStatus status;
+  _AuthStatusChanged(this.status);
+}
