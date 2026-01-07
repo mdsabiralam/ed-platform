@@ -5,12 +5,13 @@ import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
 import 'package:mobile/core/services/sync_service.dart';
+import 'package:mobile/features/auth/bloc/auth_bloc.dart';
 import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> main() async {
   await SentryFlutter.init((options) {
-    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry থেকে পাওয়া DSN এখানে বসান
+    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN';
     options.tracesSampleRate = 1.0;
   }, appRunner: () => runApp(const EdApp()));
 }
@@ -43,6 +44,8 @@ class EdApp extends StatelessWidget {
         providers: [
           // 1.E.03: State Management (Cubit)
           BlocProvider<PlansCubit>(create: (context) => PlansCubit(apiClient)),
+          // AuthBloc available globally
+          BlocProvider<AuthBloc>(create: (context) => AuthBloc()),
         ],
         child: MaterialApp.router(
           title: 'Ed Platform',
