@@ -39,6 +39,12 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  vehicles           Vehicle[]
+  transportRoutes    TransportRoute[]
+  inventoryItems     InventoryItem[]
+  indents            Indent[]
+  hostelBuildings    HostelBuilding[]
+
   @@map("tenants")
 }
 
@@ -316,6 +322,9 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  transportAttendance TransportAttendance[]
+  hostelBed         HostelBed?
+  gatePasses        GatePass[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +367,9 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+
+  indents           Indent[]
+  indentsApprovals  Indent[] @relation("IndentApprover")
 
   @@map("staff_profiles")
 }
@@ -464,3 +476,160 @@ enum UserRole {
   MCM
   SUPPLIER
 }
+// Division 9: Transport
+model Vehicle {
+  id                String    @id @default(uuid())
+  tenantId          String    @map("school_id")
+  regNumber         String    @map("reg_number")
+  capacity          Int
+  model             String
+  insuranceExpiry   DateTime  @map("insurance_expiry")
+  fitnessCertExpiry DateTime  @map("fitness_cert_expiry")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@map("vehicles")
+}
+
+model TransportRoute {
+  id          String      @id @default(uuid())
+  tenantId    String      @map("school_id")
+  name        String
+  startPoint  String?     @map("start_point")
+  endPoint    String?     @map("end_point")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  stops       RouteStop[]
+
+  @@map("transport_routes")
+}
+
+model RouteStop {
+  id            String          @id @default(uuid())
+  routeId       String          @map("route_id")
+  name          String
+  lat           Float
+  lng           Float
+  sequenceOrder Int             @map("sequence_order")
+
+  route         TransportRoute  @relation(fields: [routeId], references: [id])
+
+  @@map("route_stops")
+}
+
+model TransportAttendance {
+  id          String    @id @default(uuid())
+  tripId      String    @map("trip_id")
+  studentId   String    @map("student_id")
+  boardTime   DateTime  @default(now()) @map("board_time")
+  lat         Float?
+  lng         Float?
+
+  student     Student   @relation(fields: [studentId], references: [id])
+
+  @@map("transport_attendance")
+}
+
+// Division 9: Inventory
+model InventoryItem {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("school_id")
+  name          String
+  category      String
+  currentStock  Int       @map("current_stock")
+  reorderLevel  Int       @map("reorder_level")
+  unitPrice     Float     @default(0.0) @map("unit_price")
+  location      String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@map("inventory_items")
+}
+
+model Indent {
+  id            String        @id @default(uuid())
+  tenantId      String        @map("school_id")
+  requesterId   String        @map("requester_id")
+  status        IndentStatus  @default(PENDING)
+  items         Json
+  approvalDate  DateTime?     @map("approval_date")
+  approvedBy    String?       @map("approved_by")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  requester     StaffProfile  @relation(fields: [requesterId], references: [id])
+  approver      StaffProfile? @relation("IndentApprover", fields: [approvedBy], references: [id])
+
+  @@map("indents")
+}
+
+enum IndentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Division 9: Facilities (Hostel)
+model HostelBuilding {
+  id          String        @id @default(uuid())
+  tenantId    String        @map("school_id")
+  name        String
+  lat         Float
+  lng         Float
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  rooms       HostelRoom[]
+
+  @@map("hostel_buildings")
+}
+
+model HostelRoom {
+  id          String        @id @default(uuid())
+  buildingId  String        @map("building_id")
+  roomNumber  String        @map("room_number")
+  capacity    Int
+
+  building    HostelBuilding @relation(fields: [buildingId], references: [id])
+  beds        HostelBed[]
+
+  @@map("hostel_rooms")
+}
+
+model HostelBed {
+  id          String      @id @default(uuid())
+  roomId      String      @map("room_id")
+  bedNumber   String      @map("bed_number")
+  studentId   String?     @unique @map("student_id") // One bed per student
+
+  room        HostelRoom  @relation(fields: [roomId], references: [id])
+  student     Student?    @relation(fields: [studentId], references: [id])
+
+  @@map("hostel_beds")
+}
+
+model GatePass {
+  id          String      @id @default(uuid())
+  studentId   String      @map("student_id")
+  reason      String
+  validFrom   DateTime    @map("valid_from")
+  validTo     DateTime    @map("valid_to")
+  status      String      @default("APPROVED") // APPROVED, EXPIRED, USED
+  qrCode      String      @unique @map("qr_code")
+  outTime     DateTime?   @map("out_time")
+  inTime      DateTime?   @map("in_time")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  student     Student     @relation(fields: [studentId], references: [id])
+
+  @@map("gate_passes")
+}
+
+// Relations for Tenant
+// Update Tenant model to include relations to new models
