@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  admissionApplications AdmissionApplication[]
 
   @@map("tenants")
 }
@@ -265,6 +266,7 @@ model AdmissionSession {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   students  Student[]
+  applications AdmissionApplication[]
 
   @@map("admission_sessions")
 }
@@ -463,4 +465,68 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// Admissions
+enum AdmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INTERVIEW_SCHEDULED
+  SELECTED
+  REJECTED
+  WAITLISTED
+}
+
+model AdmissionApplication {
+  id              String          @id @default(uuid())
+  tenantId        String          @map("school_id")
+  admissionSessionId String       @map("session_id")
+
+  // Applicant Details
+  firstName       String          @map("first_name")
+  lastName        String          @map("last_name")
+  email           String?
+  phone           String?
+  // ... other fields as needed
+
+  status          AdmissionStatus @default(DRAFT)
+  remarks         String?         // Rejection Reason or other remarks
+
+  submittedAt     DateTime?       @map("submitted_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  updatedBy       String?         @map("updated_by") // Admin ID
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  admissionSession AdmissionSession @relation(fields: [admissionSessionId], references: [id])
+
+  interviewSchedule InterviewSchedule?
+  auditLogs       AdmissionAuditLog[]
+
+  @@map("admission_applications")
+}
+
+model InterviewSchedule {
+  id              String               @id @default(uuid())
+  applicationId   String               @unique @map("application_id")
+  scheduledAt     DateTime             @map("scheduled_at")
+  panelMembers    String[]             @map("panel_members") // Array of Staff IDs
+  meetingLink     String?              @map("meeting_link")
+
+  application     AdmissionApplication @relation(fields: [applicationId], references: [id])
+
+  @@map("interview_schedules")
+}
+
+model AdmissionAuditLog {
+  id              String   @id @default(uuid())
+  entityType      String   @default("Application") @map("entity_type")
+  entityId        String   @map("entity_id")
+  oldStatus       AdmissionStatus @map("old_status")
+  newStatus       AdmissionStatus @map("new_status")
+  changedByUserId String   @map("changed_by_user_id")
+  timestamp       DateTime @default(now())
+
+  application     AdmissionApplication @relation(fields: [entityId], references: [id])
+
+  @@map("admission_audit_logs")
 }
