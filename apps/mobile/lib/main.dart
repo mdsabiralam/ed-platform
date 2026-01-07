@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile/core/api/api_client.dart';
@@ -8,11 +9,30 @@ import 'package:mobile/core/services/sync_service.dart';
 import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-Future<void> main() async {
-  await SentryFlutter.init((options) {
-    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry থেকে পাওয়া DSN এখানে বসান
-    options.tracesSampleRate = 1.0;
-  }, appRunner: () => runApp(const EdApp()));
+void main() async {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    await SentryFlutter.init((options) {
+      options.dsn = 'https://examplePublicKey@o0.ingest.sentry.io/0';
+      options.tracesSampleRate = 1.0;
+      options.profilesSampleRate = 1.0;
+    });
+
+    // Custom Trace: app_startup_time
+    final transaction = Sentry.startTransaction('app_startup_time', 'task');
+    try {
+        runApp(const EdApp());
+    } catch (e) {
+        transaction.throwable = e;
+        transaction.status = SpanStatus.internalError();
+    } finally {
+        await transaction.finish();
+    }
+
+  }, (exception, stackTrace) async {
+    await Sentry.captureException(exception, stackTrace: stackTrace);
+  });
 }
 
 class EdApp extends StatelessWidget {
