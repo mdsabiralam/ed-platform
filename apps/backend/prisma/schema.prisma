@@ -323,8 +323,12 @@ model Student {
 
 // 2.F.06 Guardians
 model Guardian {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  fullName     String   @map("full_name")
+  relationship String // Keeping as per 4.E.01, though redundant with mapping
+  occupation   String?
+  annualIncome Float?   @map("annual_income")
   
   user      User     @relation(fields: [userId], references: [id])
   students  ParentStudentMapping[]
@@ -334,16 +338,24 @@ model Guardian {
 
 // 2.F.07 Parent Student Mapping
 model ParentStudentMapping {
-  id         String   @id @default(uuid())
-  studentId  String   @map("student_id")
-  guardianId String   @map("guardian_id")
-  relationship String // e.g., "Father", "Mother"
+  id               String           @id @default(uuid())
+  studentId        String           @map("student_id")
+  guardianId       String           @map("guardian_id")
+  relationshipType RelationshipType @map("relationship_type")
+  isPrimaryContact Boolean          @default(false) @map("is_primary_contact")
   
   student    Student  @relation(fields: [studentId], references: [id])
   guardian   Guardian @relation(fields: [guardianId], references: [id])
 
   @@unique([studentId, guardianId])
   @@map("parent_student_mappings")
+}
+
+enum RelationshipType {
+  FATHER
+  MOTHER
+  LEGAL_GUARDIAN
+  LOCAL_GUARDIAN
 }
 
 // 2.F.08 Staff Profiles
