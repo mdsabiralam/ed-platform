@@ -38,6 +38,8 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  admissionConfigs   AdmissionConfig[]
+  studentApplications StudentApplication[]
 
   @@map("tenants")
 }
@@ -265,8 +267,10 @@ model AdmissionSession {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   students  Student[]
+  applications StudentApplication[]
 
   @@map("admission_sessions")
+  @@index([isActive])
 }
 
 // 2.F.02 Classes
@@ -275,9 +279,11 @@ model Class {
   tenantId  String   @map("school_id")
   name      String   // e.g., "Grade 1"
   deletedAt DateTime? @map("deleted_at")
+  seatCapacity Int     @default(0) @map("seat_capacity")
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  applications StudentApplication[]
 
   @@map("classes")
 }
@@ -463,4 +469,84 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 4.A.08 Admission Config
+model AdmissionConfig {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  key       String
+  value     String
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, key])
+  @@map("admission_configs")
+}
+
+// 4.B.01 Student Applications
+model StudentApplication {
+  id                   String   @id @default(uuid())
+  tenantId             String   @map("school_id")
+  admissionSessionId   String   @map("session_id")
+  classId              String   @map("class_id")
+
+  status               ApplicationStatus @default(DRAFT)
+
+  personalDetails      Json     @map("personal_details")
+  guardianDetails      Json     @map("guardian_details")
+  previousSchoolHistory Json?   @map("previous_school_history")
+
+  updatedBy            String?  @map("updated_by") // Admin ID
+
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  tenant               Tenant   @relation(fields: [tenantId], references: [id])
+  admissionSession     AdmissionSession @relation(fields: [admissionSessionId], references: [id])
+  class                Class    @relation(fields: [classId], references: [id])
+  documents            AdmissionDocument[]
+  interviewSchedule    InterviewSchedule?
+
+  @@map("student_applications")
+}
+
+enum ApplicationStatus {
+  DRAFT          @map("Draft")
+  SUBMITTED      @map("Submitted")
+  UNDER_REVIEW   @map("Under_Review")
+  APPROVED       @map("Approved")
+  REJECTED       @map("Rejected")
+}
+
+// 4.B.04 Admission Documents
+model AdmissionDocument {
+  id            String   @id @default(uuid())
+  applicationId String   @map("application_id")
+  documentType  DocumentType @map("document_type")
+  fileUrl       String   @map("file_url")
+  uploadedAt    DateTime @default(now()) @map("uploaded_at")
+
+  application   StudentApplication @relation(fields: [applicationId], references: [id])
+
+  @@map("admission_documents")
+}
+
+enum DocumentType {
+  BIRTH_CERT    @map("BirthCert")
+  TRANSFER_CERT @map("TransferCert")
+  OTHER         @map("Other")
+}
+
+// 4.C.06 Interview Schedules
+model InterviewSchedule {
+  id            String   @id @default(uuid())
+  applicationId String   @unique @map("application_id")
+  scheduledAt   DateTime @map("scheduled_at")
+  panelMembers  String[] @map("panel_members") // Array of Staff IDs
+  meetingLink   String?  @map("meeting_link")
+
+  application   StudentApplication @relation(fields: [applicationId], references: [id])
+
+  @@map("interview_schedules")
 }
