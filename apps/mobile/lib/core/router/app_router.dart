@@ -1,14 +1,13 @@
 import 'package:go_router/go_router.dart';
-import 'package:mobile/features/auth/login_screen.dart';
-// Fixed import path as PlanListScreen is in auth directory based on file listing
-import 'package:mobile/features/auth/plan_list_screen.dart';
-import 'package:mobile/features/splash/splash_screen.dart';
+import 'package:mobile/features/auth/screens/login_screen.dart';
+import 'package:mobile/features/auth/screens/splash_screen.dart';
+import 'package:mobile/features/home/screens/dashboard_shell.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/splash',
+  initialLocation: '/',
   routes: [
     GoRoute(
-      path: '/splash',
+      path: '/',
       builder: (context, state) => const SplashScreen(),
     ),
     GoRoute(
@@ -16,8 +15,8 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
-      path: '/plans',
-      builder: (context, state) => const PlanListScreen(),
+      path: '/dashboard',
+      builder: (context, state) => const DashboardShell(),
     ),
   ],
 );
