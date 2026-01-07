@@ -16,8 +16,8 @@ export class AuthService {
       return;
     }
 
-    // Generate a 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate a 6-digit code using CSPRNG
+    const code = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 15); // Expires in 15 minutes
 
@@ -32,6 +32,6 @@ export class AuthService {
     });
 
     // In a real application, we would send the email here.
-    // console.log(`[Mock Email] Sending password reset code ${code} to ${email}`);
+    console.log(`[Mock SMS/Email] Sending password reset code ${code} to ${email}`);
   }
 }
