@@ -15,6 +15,9 @@ import { FinanceModule } from './finance/finance.module';
 import { LibraryModule } from './library/library.module';
 import { AcademicMarksheetModule } from './academic/marksheet/marksheet.module';
 import { CommonModule } from './common/common.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { PrincipalModule } from './principal/principal.module';
+import { AcademicAnalyticsModule } from './academic/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -42,6 +45,9 @@ import { CommonModule } from './common/common.module';
     FinanceModule,
     LibraryModule,
     CommonModule,
+    AnalyticsModule,
+    PrincipalModule,
+    AcademicAnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

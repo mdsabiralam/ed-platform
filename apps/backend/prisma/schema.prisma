@@ -38,6 +38,10 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  subjects           Subject[]
+  examTerms          ExamTerm[]
+  exams              Exam[]
+  studentMarks       StudentMark[]
 
   @@map("tenants")
 }
@@ -278,6 +282,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  exams     Exam[]
 
   @@map("classes")
 }
@@ -293,6 +298,71 @@ model Section {
   students  Student[]
 
   @@map("sections")
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  code      String?
+  exams     Exam[]
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+model ExamTerm {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  weightage Float    @default(1.0)
+  exams     Exam[]
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("exam_terms")
+}
+
+model Exam {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  examTermId   String   @map("exam_term_id")
+  subjectId    String   @map("subject_id")
+  classId      String   @map("class_id")
+  maxTheory    Float    @default(100.0) @map("max_theory")
+  maxPractical Float    @default(0.0) @map("max_practical")
+  maxMarks     Float    @default(100.0) @map("max_marks")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  examTerm     ExamTerm @relation(fields: [examTermId], references: [id])
+  subject      Subject  @relation(fields: [subjectId], references: [id])
+  class        Class    @relation(fields: [classId], references: [id])
+  marks        StudentMark[]
+
+  @@map("exams")
+}
+
+model StudentMark {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  examId       String   @map("exam_id")
+  studentId    String   @map("student_id")
+  theory       Float    @default(0.0)
+  practical    Float    @default(0.0)
+  total        Float    @default(0.0)
+  gradeLabel   String?  @map("grade_label")
+  isAbsent     Boolean  @default(false) @map("is_absent")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exam         Exam     @relation(fields: [examId], references: [id])
+  student      Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([examId, studentId])
+  @@map("student_marks")
 }
 
 // 2.F.04 Students
@@ -318,6 +388,7 @@ model Student {
   healthProfile     HealthProfile?
   feeLedger         StudentFeeLedger?
   libraryRecords    LibraryCirculation[]
+  marks             StudentMark[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
