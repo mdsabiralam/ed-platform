@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedTicketCategories } from './seed-helpdesk';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,9 @@ async function main() {
   });
 
   console.log({ superAdmin });
+
+  // Helpdesk Seed
+  await seedTicketCategories();
 }
 
 main()

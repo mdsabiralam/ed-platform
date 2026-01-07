@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  tickets            Ticket[]
 
   @@map("tenants")
 }
@@ -99,6 +100,9 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+
+  createdTickets  Ticket[] @relation("TicketCreator")
+  ticketTimelines TicketTimeline[]
 
   @@map("users")
 }
@@ -358,6 +362,7 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  assignedTickets Ticket[]
 
   @@map("staff_profiles")
 }
@@ -463,4 +468,92 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 8.A. Help Desk System
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model TicketCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tickets         Ticket[]
+  cannedResponses CannedResponse[]
+
+  @@map("ticket_categories")
+}
+
+model Ticket {
+  id            String         @id @default(uuid())
+  tenantId      String         @map("school_id")
+  createdById   String         @map("created_by")
+  assignedToId  String?        @map("assigned_to")
+  categoryId    String         @map("category_id")
+
+  title         String
+  description   String         @db.Text
+  priority      TicketPriority
+  status        TicketStatus   @default(OPEN)
+
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  createdBy     User           @relation("TicketCreator", fields: [createdById], references: [id])
+  assignedTo    StaffProfile?  @relation(fields: [assignedToId], references: [id])
+  category      TicketCategory @relation(fields: [categoryId], references: [id])
+  timelines     TicketTimeline[]
+
+  @@index([createdById])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("tickets")
+}
+
+model TicketTimeline {
+  id            String    @id @default(uuid())
+  ticketId      String    @map("ticket_id")
+  userId        String    @map("user_id")
+
+  message       String    @db.Text
+  attachmentUrl String?   @map("attachment_url")
+  isInternal    Boolean   @default(false) @map("is_internal")
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at") // Added for consistency
+  deletedAt     DateTime? @map("deleted_at")
+
+  ticket        Ticket    @relation(fields: [ticketId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@map("ticket_timelines")
+}
+
+model CannedResponse {
+  id         String         @id @default(uuid())
+  categoryId String         @map("category_id")
+  title      String         // Short code
+  message    String         @db.Text
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  category   TicketCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("canned_responses")
 }
