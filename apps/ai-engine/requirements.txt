@@ -1,0 +1,9 @@
+openai-whisper
+fastapi
+uvicorn
+python-multipart
+numpy
+scipy
+noisereduce
+pytest
+requests
