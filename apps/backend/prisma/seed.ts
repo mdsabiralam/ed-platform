@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedSlaPolicies } from './seed-sla-policies';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,8 @@ async function main() {
   });
 
   console.log({ superAdmin });
+
+  await seedSlaPolicies();
 }
 
 main()
