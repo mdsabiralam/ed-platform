@@ -23,6 +23,11 @@ export class ConciergeController {
     return this.conciergeService.findAll(status);
   }
 
+  @Get('staff/pending-requests')
+  findAllForStaff(@Req() req: any, @Query('status') status?: RequestStatus) {
+      return this.conciergeService.findAllForStaff(req.user.sub, status);
+  }
+
   @Get('request/:id')
   findOne(@Param('id') id: string) {
     return this.conciergeService.getRequest(id);

@@ -12,6 +12,7 @@ import { ConciergeModule } from './concierge/concierge.module';
 import { AiModule } from './ai/ai.module';
 import { NotificationModule } from './notifications/notification.module';
 import { ClsModule } from 'nestjs-cls';
+import { StudentModule } from './academic/student/student.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ClsModule } from 'nestjs-cls';
     ConciergeModule,
     AiModule,
     NotificationModule,
+    StudentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

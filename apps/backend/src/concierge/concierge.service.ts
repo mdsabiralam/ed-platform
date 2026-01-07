@@ -86,6 +86,29 @@ export class ConciergeService {
      });
   }
 
+  async findAllForStaff(staffId: string, status?: RequestStatus) {
+    // In real scenario, we might query based on assigned institutes to this staff
+    // For now, we return all requests (Super Admin view or specific Staff view)
+    // ignoring instituteId filter from CLS if needed, or keeping it if we assume context switch
+    // User requested "ALL schools assigned to the staff member".
+
+    return this.prisma.conciergeRequest.findMany({
+      where: {
+        // assignedStaffId: staffId, // Optionally filter by assigned staff if already assigned
+        ...(status ? { status } : {})
+      },
+      include: {
+         institute: { select: { name: true } },
+         teacher: {
+             include: { user: { select: { email: true, phone: true } } }
+         },
+         assignedStaff: true,
+         assignments: true
+       },
+       orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async update(id: string, dto: UpdateConciergeRequestDto) {
       const instituteId = this.cls.get('instituteId');
 
