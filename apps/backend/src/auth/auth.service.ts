@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -68,5 +69,31 @@ export class AuthService {
     const resetToken = this.jwtService.sign(payload, { expiresIn: '10m' });
 
     return { resetToken };
+  }
+
+  async resetPassword(resetToken: string, newPassword: string): Promise<void> {
+    try {
+      const payload = this.jwtService.verify(resetToken);
+      if (payload.purpose !== 'password_reset') {
+        throw new BadRequestException('Invalid token purpose');
+      }
+
+      const email = payload.email;
+
+      // Hash the new password
+      const salt = await bcrypt.genSalt();
+      const passwordHash = await bcrypt.hash(newPassword, salt);
+
+      // Update user password
+      await this.prisma.user.update({
+        where: { email },
+        data: { passwordHash },
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
   }
 }

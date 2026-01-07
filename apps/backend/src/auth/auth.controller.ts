@@ -17,6 +17,16 @@ export class VerifyOtpDto {
   otp: string;
 }
 
+export class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  resetToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword: string;
+}
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -29,6 +39,16 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired OTP.' })
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.authService.verifyOtp(dto.email, dto.otp);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using Reset Token' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully.' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired token.' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.resetToken, dto.newPassword);
+    return { message: 'Password reset successfully.' };
   }
 
   @Post('forgot-password')
