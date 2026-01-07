@@ -8,6 +8,8 @@ import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
+import { EcommerceModule } from './ecommerce/ecommerce.module';
+import { FintechModule } from './fintech/fintech.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { TenantModule } from './tenants/tenant.module';
     PrismaModule,
     SaasModule,
     TenantModule,
+    EcommerceModule,
+    FintechModule,
   ],
   controllers: [AppController],
   providers: [AppService],
