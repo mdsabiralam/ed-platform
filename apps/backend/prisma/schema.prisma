@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  studentApplications StudentApplication[]
 
   @@map("tenants")
 }
@@ -431,6 +432,16 @@ model KycDocument {
   @@map("kyc_documents")
 }
 
+model AdmissionSequence {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  year      Int
+  lastSeq   Int      @default(0) @map("last_seq")
+
+  @@unique([tenantId, year])
+  @@map("admission_sequences")
+}
+
 // 2.I.06 Table Audit Logs (To prevent drift)
 model TableAuditLog {
   id        String   @id @default(uuid())
@@ -463,4 +474,49 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+enum ApplicationStatus {
+  Draft
+  Submitted
+  Under_Review
+  Approved
+  Rejected
+}
+
+enum DocumentType {
+  BirthCert
+  TransferCert
+}
+
+model StudentApplication {
+  id                     String            @id @default(uuid())
+  tenantId               String            @map("school_id")
+  serialNo               String            @unique @map("serial_no")
+  status                 ApplicationStatus @default(Draft)
+
+  personalDetails        Json              @map("personal_details")
+  guardianDetails        Json              @map("guardian_details")
+  previousSchoolHistory  Json              @map("previous_school_history")
+
+  appliedAt              DateTime          @default(now()) @map("applied_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  admissionDocuments     AdmissionDocument[]
+
+  tenant                 Tenant            @relation(fields: [tenantId], references: [id])
+
+  @@map("student_applications")
+}
+
+model AdmissionDocument {
+  id            String       @id @default(uuid())
+  applicationId String       @map("application_id")
+  documentType  DocumentType @map("document_type")
+  fileUrl       String       @map("file_url")
+  uploadedAt    DateTime     @default(now()) @map("uploaded_at")
+
+  application   StudentApplication @relation(fields: [applicationId], references: [id])
+
+  @@map("admission_documents")
 }
