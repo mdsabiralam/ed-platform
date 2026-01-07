@@ -1,0 +1,53 @@
+name: CD Dev/Build
+
+on:
+  push:
+    branches:
+      - dev
+      - 'feature/*'
+
+jobs:
+  build-and-push:
+    name: Build and Push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: backend
+          IMAGE_TAG: dev-${{ github.sha }}
+        run: |
+          # Build always
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f apps/backend/Dockerfile .
+
+          # Push only if not a feature branch, or if specifically requested (prompt said "Confirm that the Docker image is built and pushed to the Registry" for dummy verification)
+          # Requirement 13.B.10 says "Confirm that the Docker image is built and pushed to the Registry, but not deployed to Production"
+          # So we SHOULD push even for feature branches if we want to verify the registry push.
+          # However, standard practice avoids polluting registry with feature tags.
+          # But the instruction 13.B.10.5 says "Confirm that the Docker image is built and pushed to the Registry".
+          # So I will push.
+
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # Notification
+      - name: Slack Notification
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: 'Build/Push Status: ${{ job.status }}'
+          SLACK_TITLE: Build/Push

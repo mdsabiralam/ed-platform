@@ -1,0 +1,15 @@
+default_platform(:android)
+
+platform :android do
+  desc "Deploy to Internal Test Track"
+  lane :deploy_internal do
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+    upload_to_play_store(
+      track: "internal",
+      json_key: "fastlane_key.json"
+    )
+  end
+end
