@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  subjects           Subject[]
 
   @@map("tenants")
 }
@@ -316,6 +317,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  activityLogs      StudentActivityLog[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -463,4 +465,45 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// RAG Chatbot Tables
+
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  embeddings TextbookEmbedding[]
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+model TextbookEmbedding {
+  id           String                 @id @default(uuid())
+  bookId       String                 @map("book_id")
+  contentChunk String                 @map("content_chunk")
+  pageNumber   Int                    @map("page_number")
+  embedding    Unsupported("vector(1536)")  @map("embedding")
+
+  subject      Subject                @relation(fields: [bookId], references: [id])
+
+  @@map("textbook_embeddings")
+}
+
+model StudentActivityLog {
+  id           String   @id @default(uuid())
+  studentId    String?  @map("student_id")
+  question     String
+  aiResponse   String   @map("ai_response")
+  timestamp    DateTime @default(now())
+  feedback     Int?
+
+  student      Student? @relation(fields: [studentId], references: [id])
+
+  @@map("student_activity_logs")
 }
