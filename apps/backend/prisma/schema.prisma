@@ -99,6 +99,7 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  devices         UserDevice[]
 
   @@map("users")
 }
@@ -463,4 +464,33 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 2.K.01 User Devices (FCM)
+model UserDevice {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  fcmToken     String   @unique @map("fcm_token")
+  platform     String   // ANDROID, IOS
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("user_devices")
+}
+
+// 2.K.02 Notification Logs
+model NotificationLog {
+  id           String   @id @default(uuid())
+  targetUserId String?  @map("target_user_id")
+  topic        String?
+  title        String?
+  body         String?
+  data         Json?
+  opened       Boolean  @default(false)
+  messageId    String?  @map("message_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("notification_logs")
 }
