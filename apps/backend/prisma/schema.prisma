@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  conciergeRequests  ConciergeRequest[]
 
   @@map("tenants")
 }
@@ -359,7 +360,29 @@ model StaffProfile {
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 
+  teacherRequests      ConciergeRequest[] @relation("TeacherRequests")
+  conciergeAssignments ConciergeRequest[] @relation("StaffAssignments")
+
   @@map("staff_profiles")
+}
+
+// 2.J.01 Concierge Requests
+model ConciergeRequest {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  teacherId   String   @map("teacher_id") // Link to StaffProfile
+  subject     String
+  status      String   @default("PENDING") // PENDING, PROCESSING, COMPLETED
+  receivedAt  DateTime @default(now()) @map("received_at")
+  staffId     String?  @map("staff_id")   // Link to StaffProfile (Concierge Staff)
+  rawImageUrl String?  @map("raw_image_url")
+  content     Json?    // Stores the generated content (Homework/Quiz details)
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  teacher     StaffProfile @relation("TeacherRequests", fields: [teacherId], references: [id])
+  staff       StaffProfile? @relation("StaffAssignments", fields: [staffId], references: [id])
+
+  @@map("concierge_requests")
 }
 
 // 2.H.06 Finance: Chart of Accounts
