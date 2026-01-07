@@ -5,6 +5,7 @@ class ConciergeRequest {
   final String instructions;
   final DateTime createdAt;
   final String status;
+  final String? rawImageUrl;
 
   ConciergeRequest({
     required this.id,
@@ -13,6 +14,7 @@ class ConciergeRequest {
     required this.instructions,
     required this.createdAt,
     required this.status,
+    this.rawImageUrl,
   });
 
   factory ConciergeRequest.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class ConciergeRequest {
       instructions: json['instructions'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       status: json['status'] as String,
+      rawImageUrl: json['raw_image_url'] as String?,
     );
   }
 

@@ -17,8 +17,11 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const StaffJobQueueScreen(),
     ),
     GoRoute(
-      path: '/concierge/workbench',
-      builder: (context, state) => const StaffWorkbenchScreen(),
+      path: '/concierge/workbench/:requestId',
+      builder: (context, state) {
+        final requestId = state.pathParameters['requestId']!;
+        return StaffWorkbenchScreen(requestId: requestId);
+      },
     ),
   ],
 );

@@ -126,7 +126,7 @@ class _StaffJobQueueScreenState extends State<StaffJobQueueScreen> {
                             DataCell(
                               ElevatedButton(
                                 onPressed: () {
-                                  context.push('/concierge/workbench');
+                                  context.push('/concierge/workbench/${request.id}');
                                 },
                                 child: const Text('Start Work'),
                               ),
