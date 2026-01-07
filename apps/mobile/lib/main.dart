@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile/core/api/api_client.dart';
@@ -9,10 +10,25 @@ import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
+
   await SentryFlutter.init((options) {
     options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry থেকে পাওয়া DSN এখানে বসান
     options.tracesSampleRate = 1.0;
-  }, appRunner: () => runApp(const EdApp()));
+  },
+      appRunner: () => runApp(
+            EasyLocalization(
+              supportedLocales: const [
+                Locale('en'),
+                Locale('hi'),
+                Locale('bn')
+              ],
+              path: 'assets/translations',
+              fallbackLocale: const Locale('en'),
+              child: const EdApp(),
+            ),
+          ));
 }
 
 class EdApp extends StatelessWidget {
@@ -46,6 +62,9 @@ class EdApp extends StatelessWidget {
         ],
         child: MaterialApp.router(
           title: 'Ed Platform',
+          localizationsDelegates: context.localizationDelegates,
+          supportedLocales: context.supportedLocales,
+          locale: context.locale,
           theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
           // 1.E.04: GoRouter Configuration
           routerConfig: appRouter,
