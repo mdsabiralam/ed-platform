@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+// Import security seed logic if it were a function, or run it here.
+// Since seed-security.ts is standalone, we will invoke its logic here or copy it.
+// Copying is safer to ensure single transaction/context if needed, but separate is fine too.
+// I will just add the security seeding logic here directly to avoid module resolution issues with ts-node.
 
 const prisma = new PrismaClient();
 
@@ -44,6 +48,62 @@ async function main() {
   });
 
   console.log({ superAdmin });
+
+  // Security & Compliance Seeding (Task 9)
+  console.log('Seeding Privacy Policy...');
+  const privacyPolicy = `
+    Biometric Usage Policy
+    ----------------------
+    1. Data Collection: We collect face embeddings (mathematical representations of facial features) for the purpose of automated attendance and security.
+    2. Purpose:
+       - To mark student attendance automatically.
+       - To enhance campus security via CCTV integration.
+    3. Storage:
+       - Data is stored as encrypted vector embeddings in our secure database.
+       - Original images are deleted after processing (except for unknown faces retained for 7 days).
+    4. Opt-out:
+       - Participation is voluntary. Parents can opt-out at any time via the Parent App settings.
+       - Upon opt-out, all biometric data is permanently deleted.
+  `;
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'PRIVACY_POLICY_BIOMETRIC' },
+    update: {
+      value: JSON.stringify({ text: privacyPolicy }),
+      description: 'Privacy Policy clause for Biometric Usage',
+    },
+    create: {
+      key: 'PRIVACY_POLICY_BIOMETRIC',
+      value: JSON.stringify({ text: privacyPolicy }),
+      description: 'Privacy Policy clause for Biometric Usage',
+    },
+  });
+  console.log('Privacy Policy seeded.');
+
+  // Password Policy Seeding (Restoring/Ensuring existence)
+  const passwordPolicy = {
+    minLength: 8,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumbers: true,
+    requireSpecialChar: true,
+    lockoutThreshold: 5,
+    expiryDays: 90,
+  };
+
+  await prisma.systemSetting.upsert({
+    where: { key: 'SYSTEM_PASSWORD_POLICY' },
+    update: {
+      value: JSON.stringify(passwordPolicy),
+      description: 'Global Password Security Policy',
+    },
+    create: {
+      key: 'SYSTEM_PASSWORD_POLICY',
+      value: JSON.stringify(passwordPolicy),
+      description: 'Global Password Security Policy',
+    },
+  });
+  console.log('Password Policy seeded.');
 }
 
 main()

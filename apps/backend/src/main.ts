@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 import { AllExceptionsFilter } from './shared/http-exception.filter';
+import { PiiMaskingInterceptor } from './common/interceptors/pii-masking.interceptor';
 import * as Sentry from '@sentry/node';
 import { httpIntegration } from '@sentry/node';
 
@@ -51,6 +52,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new AllExceptionsFilter()); 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalInterceptors(new PiiMaskingInterceptor());
+
+  // Task 8: Secure Transmission (TLS 1.3)
+  // Ensure that infrastructure (Nginx/Traefik) enforces TLS 1.3.
+  // Application level enforcement is partial; infra config is primary.
 
     // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
   await app.listen(3001, '0.0.0.0');
