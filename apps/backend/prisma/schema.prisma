@@ -464,3 +464,15 @@ enum UserRole {
   MCM
   SUPPLIER
 }
+// 11.G.01 Model Registry
+model ModelRegistry {
+  id        String   @id @default(uuid())
+  modelName String   @map("model_name")
+  version   String
+  s3Url     String   @map("s3_url")
+  checksum  String
+  status    String   // ACTIVE, ARCHIVED
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("model_registry")
+}

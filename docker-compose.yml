@@ -19,5 +19,29 @@ services:
     ports:
       - "6379:6379"
 
+  ai-engine:
+    build:
+      context: ./apps/ai_engine
+      dockerfile: Dockerfile
+    container_name: ed_ai_engine
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://admin:password123@postgres:5432/ed_platform
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    # 8. Scaling Strategy (Docker) - GPU Resource Reservation
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
 volumes:
   pg_data:
