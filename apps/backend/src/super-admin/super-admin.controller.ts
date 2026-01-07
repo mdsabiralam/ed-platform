@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, Ip } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SuperAdminService } from './super-admin.service';
 import { ImpersonateUserDto } from './dto/impersonate-user.dto';
@@ -22,7 +22,8 @@ export class SuperAdminController {
   @ApiResponse({ status: 201, description: 'JWT tokens generated for the target user.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  async impersonate(@Body() dto: ImpersonateUserDto) {
-    return this.superAdminService.impersonateUser(dto.targetUserId);
+  async impersonate(@Request() req: any, @Body() dto: ImpersonateUserDto, @Ip() ip: string) {
+    const adminUserId = req.user.sub; // Or req.user.id depending on guard mapping, usually sub is userId
+    return this.superAdminService.impersonateUser(adminUserId, dto.targetUserId, ip);
   }
 }

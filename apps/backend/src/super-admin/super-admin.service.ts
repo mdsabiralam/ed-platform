@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -9,12 +9,20 @@ export class SuperAdminService {
     private readonly authService: AuthService,
   ) {}
 
-  async impersonateUser(targetUserId: string) {
+  async impersonateUser(adminUserId: string, targetUserId: string, ipAddress?: string) {
+    const admin = await this.prisma.platformAdmin.findUnique({
+      where: { userId: adminUserId },
+    });
+
+    if (!admin) {
+      throw new UnauthorizedException('Administrator record not found');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: targetUserId },
       include: {
         profiles: {
-            take: 1, // Default to first profile if multiple, or could be improved to select specific
+            take: 1,
         }
       }
     });
@@ -23,11 +31,16 @@ export class SuperAdminService {
       throw new NotFoundException('Target user not found');
     }
 
-    // Default to the user's first profile for the initial context, or a "neutral" context if none.
-    // However, the AuthService.generateTokens expects instituteId and role.
-    // If the user has no profiles, they might not be able to do much, but we can generate a token with nulls if permitted,
-    // or we must require a profile.
-    // For now, let's assume valid users have at least one profile or we pick the first one found.
+    // Log the impersonation event
+    await this.prisma.platformAuditLog.create({
+      data: {
+        adminId: admin.id,
+        action: 'IMPERSONATE_USER',
+        target: targetUserId,
+        ipAddress: ipAddress,
+        details: { targetEmail: user.email },
+      },
+    });
 
     let instituteId = null;
     let role = null;
@@ -38,7 +51,6 @@ export class SuperAdminService {
         role = profile.role;
     }
 
-    // Generate token without password check
     const payload = {
       sub: user.id,
       instituteId: instituteId,
