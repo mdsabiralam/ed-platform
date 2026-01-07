@@ -1,0 +1,12 @@
+# npm audit report
+
+qs  <6.14.1
+Severity: high
+qs's arrayLimit bypass in its bracket notation allows DoS via memory exhaustion - https://github.com/advisories/GHSA-6rw7-vpxm-498p
+fix available via `npm audit fix`
+node_modules/qs
+
+1 high severity vulnerability
+
+To address all issues, run:
+  npm audit fix

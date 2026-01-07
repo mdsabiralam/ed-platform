@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
@@ -8,7 +8,12 @@ export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
 
   @Post()
-  create(@Body() createTenantDto: CreateTenantDto) {
+  create(@Body() createTenantDto: CreateTenantDto, @Req() req: any) {
+    // 10.G.2 Extract cookie for attribution
+    const resellerCode = req.cookies?.['ref_reseller_id'];
+    if (resellerCode) {
+      createTenantDto.resellerCode = resellerCode;
+    }
     return this.tenantService.create(createTenantDto);
   }
 

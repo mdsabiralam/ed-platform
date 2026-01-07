@@ -7,6 +7,7 @@ import * as winston from 'winston';
 import { AllExceptionsFilter } from './shared/http-exception.filter';
 import * as Sentry from '@sentry/node';
 import { httpIntegration } from '@sentry/node';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   // ১. উইনস্টন লগার সহ অ্যাপ তৈরি
@@ -48,6 +49,7 @@ async function bootstrap() {
 
   // ৩. গ্লোবাল সেটিংস
   app.enableCors(); // ক্রস অরিজিন অন করা
+  app.use(cookieParser()); // Enable Cookie Parser for Reseller Tracking
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new AllExceptionsFilter()); 
   app.useGlobalPipes(new ValidationPipe({ transform: true }));

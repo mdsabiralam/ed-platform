@@ -9,4 +9,9 @@ export class CreateTenantDto {
   @IsNotEmpty()
   @Matches(/^[a-z0-9-]+$/, { message: 'Subdomain must be lowercase alphanumeric with hyphens' })
   subdomain: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[a-z0-9-]+$/, { message: 'Subdomain must be lowercase alphanumeric with hyphens' })
+  resellerCode?: string;
 }
