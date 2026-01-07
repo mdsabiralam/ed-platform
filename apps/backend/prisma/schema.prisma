@@ -445,6 +445,19 @@ model TableAuditLog {
   @@map("table_audit_logs")
 }
 
+// 13.D.03 Vehicle Logs (Optimized for Partitioning)
+model VehicleLocationLog {
+  id        String   @id @default(uuid())
+  vehicleId String   @map("vehicle_id")
+  latitude  Float
+  longitude Float
+  speed     Float?
+  heading   Float?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("vehicle_location_logs")
+}
+
 // 2.C.03 Roles Enum
 enum UserRole {
   SUPER_ADMIN
