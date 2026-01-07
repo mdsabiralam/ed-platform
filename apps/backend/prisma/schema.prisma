@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  tickets            Ticket[]
 
   @@map("tenants")
 }
@@ -316,6 +317,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  tickets           Ticket[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -328,6 +330,7 @@ model Guardian {
   
   user      User     @relation(fields: [userId], references: [id])
   students  ParentStudentMapping[]
+  tickets   Ticket[]
 
   @@map("guardians")
 }
@@ -463,4 +466,62 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 5. WhatsApp Integration
+model WhatsAppTemplate {
+  id             String   @id @default(uuid())
+  templateName   String   @unique @map("template_name")
+  languageCode   String   @map("language_code")
+  bodyText       String   @map("body_text")
+  parameterCount Int      @default(0) @map("parameter_count")
+  status         String   @default("APPROVED") // APPROVED, REJECTED, PENDING
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("whatsapp_templates")
+}
+
+model WhatsAppUsageLog {
+  id             String   @id @default(uuid())
+  messageId      String   @map("message_id")
+  recipientPhone String   @map("recipient_phone")
+  category       String   // MARKETING, UTILITY, SERVICE
+  cost           Float    @default(0.0)
+  status         String   @default("SENT") // SENT, DELIVERED, READ, FAILED
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("whatsapp_usage_logs")
+}
+
+// 5. Help Desk (For Chat-to-Ticket)
+model Ticket {
+  id          String   @id @default(uuid())
+  tenantId    String?  @map("school_id") // Optional if system-wide
+  studentId   String?  @map("student_id")
+  guardianId  String?  @map("guardian_id")
+  status      String   @default("OPEN") // OPEN, CLOSED, PENDING
+  category    String   // General, Fee, Academic, etc.
+  source      String   // WHATSAPP, WEB, EMAIL
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  timelines   TicketTimeline[]
+  student     Student?  @relation(fields: [studentId], references: [id])
+  guardian    Guardian? @relation(fields: [guardianId], references: [id])
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@map("tickets")
+}
+
+model TicketTimeline {
+  id        String   @id @default(uuid())
+  ticketId  String   @map("ticket_id")
+  message   String
+  source    String   // USER, AGENT, SYSTEM
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@map("ticket_timelines")
 }
