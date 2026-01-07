@@ -38,6 +38,9 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  admissionSequences AdmissionSequence[]
+  studentApplications StudentApplication[]
+  studentFeeLedgers  StudentFeeLedger[]
 
   @@map("tenants")
 }
@@ -265,6 +268,7 @@ model AdmissionSession {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   students  Student[]
+  applications StudentApplication[]
 
   @@map("admission_sessions")
 }
@@ -278,6 +282,8 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  students  Student[]
+  applications StudentApplication[]
 
   @@map("classes")
 }
@@ -301,6 +307,7 @@ model Student {
   tenantId          String   @map("school_id") // 2.F.05 FK to School
   admissionSessionId String  @map("session_id")
   sectionId         String   @map("section_id")
+  classId           String?  @map("class_id") // Redundant but useful for filtering without joins
   userId            String?  @unique @map("user_id")
   
   firstName         String   @map("first_name")
@@ -312,10 +319,13 @@ model Student {
   tenant            Tenant   @relation(fields: [tenantId], references: [id])
   admissionSession  AdmissionSession @relation(fields: [admissionSessionId], references: [id])
   section           Section  @relation(fields: [sectionId], references: [id])
+  class             Class?   @relation(fields: [classId], references: [id])
   user              User?    @relation(fields: [userId], references: [id])
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  feeLedgers        StudentFeeLedger[]
+  application       StudentApplication?
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -443,6 +453,60 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+model StudentApplication {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("school_id")
+  admissionSessionId String @map("session_id")
+  classId          String   @map("class_id") // Applied class
+  firstName        String   @map("first_name")
+  lastName         String   @map("last_name")
+  dateOfBirth      DateTime @map("date_of_birth")
+  gender           String
+  parentName       String   @map("parent_name")
+  parentEmail      String?  @map("parent_email")
+  parentPhone      String   @map("parent_phone")
+  address          String?
+  status           String   @default("PENDING") // SUBMITTED, REVIEW, APPROVED, MATRICULATED, REJECTED
+  studentId        String?  @unique @map("student_id") // Link to matriculated student
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  admissionSession AdmissionSession @relation(fields: [admissionSessionId], references: [id])
+  class            Class    @relation(fields: [classId], references: [id])
+  student          Student? @relation(fields: [studentId], references: [id])
+
+  @@map("student_applications")
+}
+
+model StudentFeeLedger {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  studentId       String   @map("student_id")
+  transactionType String   @map("transaction_type") // INVOICE, PAYMENT, ADJUSTMENT, OPENING_BALANCE
+  amount          Float
+  balance         Float?
+  status          String?  // PAID, PENDING, OVERDUE
+  description     String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  student         Student  @relation(fields: [studentId], references: [id])
+
+  @@map("student_fee_ledgers")
+}
+
+model AdmissionSequence {
+  id        String @id @default(uuid())
+  tenantId  String @map("school_id")
+  prefix    String @default("ADM")
+  lastSeq   Int    @default(0) @map("last_seq")
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  @@unique([tenantId, prefix])
+  @@map("admission_sequences")
 }
 
 // 2.C.03 Roles Enum
