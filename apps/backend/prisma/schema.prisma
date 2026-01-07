@@ -39,6 +39,8 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  privacyPolicyUrl   String?             @map("privacy_policy_url") // 8.I.10 Privacy Policy
+
   @@map("tenants")
 }
 
@@ -99,6 +101,17 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+
+  isBlockedByStaff Boolean @default(false) @map("is_blocked_by_staff") // 8.I.02 Abusive Parent Blocking
+
+  // Relations for Communication Features
+  sentMessages      CommunicationAuditLog[] @relation("SentMessages")
+  receivedMessages  CommunicationAuditLog[] @relation("ReceivedMessages")
+  blockRequestsMade BlockRequest[]          @relation("BlockRequester")
+  blockRequestsTarget BlockRequest[]        @relation("BlockTarget")
+  chatMessagesSent  ChatMessage[]           @relation("ChatSender")
+  abuseReportsMade  AbuseReport[]           @relation("AbuseReporter")
+  ticketsCreated    Ticket[]                @relation("TicketCreator")
 
   @@map("users")
 }
@@ -463,4 +476,97 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 8.I.03 Communication Audit Log
+model CommunicationAuditLog {
+  id          String   @id @default(uuid())
+  senderId    String   @map("sender_id")
+  recipientId String   @map("recipient_id")
+  contentHash String   @map("content_hash")
+  channel     String   // SMS, EMAIL, CHAT
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  timestamp   DateTime @default(now())
+
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+
+  @@map("communication_audit_logs")
+}
+
+// 8.I.02 Block Request
+model BlockRequest {
+  id           String   @id @default(uuid())
+  staffId      String   @map("staff_id")
+  targetUserId String   @map("target_user_id")
+  reason       String
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  staff        User     @relation("BlockRequester", fields: [staffId], references: [id])
+  targetUser   User     @relation("BlockTarget", fields: [targetUserId], references: [id])
+
+  @@map("block_requests")
+}
+
+// Implied models for Chat/Ticket
+model ChatMessage {
+  id          String   @id @default(uuid())
+  senderId    String   @map("sender_id")
+  recipientId String?  @map("recipient_id") // Optional for group chats?
+  content     String
+  isFlagged   Boolean  @default(false) @map("is_flagged") // 8.I.04 Profanity Filter
+  createdAt   DateTime @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
+  attachmentUrl String? @map("attachment_url")
+  ticketId    String?   @map("ticket_id")
+
+  sender      User     @relation("ChatSender", fields: [senderId], references: [id])
+  ticket      Ticket?  @relation(fields: [ticketId], references: [id])
+  abuseReports AbuseReport[] // 8.I.08
+
+  @@map("chat_messages")
+}
+
+// 8.I.08 Abuse Report
+model AbuseReport {
+  id          String   @id @default(uuid())
+  messageId   String   @map("message_id")
+  reporterId  String   @map("reporter_id")
+  reason      String   // HARASSMENT, SPAM, INAPPROPRIATE
+  comments    String?
+  status      String   @default("PENDING") // PENDING, REVIEWED
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  message     ChatMessage @relation(fields: [messageId], references: [id])
+  reporter    User        @relation("AbuseReporter", fields: [reporterId], references: [id])
+
+  @@map("abuse_reports")
+}
+
+model Ticket {
+  id          String   @id @default(uuid())
+  subject     String
+  status      String   @default("OPEN")
+  creatorId   String   @map("creator_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  creator     User     @relation("TicketCreator", fields: [creatorId], references: [id])
+  messages    ChatMessage[]
+  timeline    TicketTimeline[]
+
+  @@map("tickets")
+}
+
+model TicketTimeline {
+  id          String   @id @default(uuid())
+  ticketId    String   @map("ticket_id")
+  action      String
+  timestamp   DateTime @default(now())
+
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@map("ticket_timelines")
 }
