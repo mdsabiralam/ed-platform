@@ -99,6 +99,8 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  correctionRequests DataCorrectionRequest[]
+  accessLogs      AccessLog[]
 
   @@map("users")
 }
@@ -316,6 +318,8 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  correctionRequests DataCorrectionRequest[]
+  accessLogs        AccessLog[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -356,10 +360,48 @@ model StaffProfile {
   joiningDate  DateTime @map("joining_date")
   deletedAt    DateTime? @map("deleted_at")
   
+  // Encrypted fields
+  bankAccountNumber String? @map("bank_account_number")
+  ifscCode          String? @map("ifsc_code")
+
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 
   @@map("staff_profiles")
+}
+
+// 4.I.03 Data Correction Requests
+model DataCorrectionRequest {
+  id              String    @id @default(uuid())
+  studentId       String    @map("student_id")
+  requesterId     String    @map("requester_id") // Parent User ID
+  fieldName       String    @map("field_name") // e.g., "firstName", "dob"
+  oldValue        String?   @map("old_value")
+  newValue        String    @map("new_value")
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectionReason String?   @map("rejection_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  student         Student   @relation(fields: [studentId], references: [id])
+  requester       User      @relation(fields: [requesterId], references: [id])
+
+  @@map("data_correction_requests")
+}
+
+// 4.I.04 Access Logs for PII
+model AccessLog {
+  id          String   @id @default(uuid())
+  staffId     String?  @map("staff_id")
+  studentId   String?  @map("student_id")
+  action      String   // e.g., "VIEW_PII"
+  details     Json?    // e.g., { fields: ["phone", "email"] }
+  accessedAt  DateTime @default(now()) @map("accessed_at")
+
+  staff       User?    @relation(fields: [staffId], references: [id])
+  student     Student? @relation(fields: [studentId], references: [id])
+
+  @@map("access_logs")
 }
 
 // 2.H.06 Finance: Chart of Accounts
