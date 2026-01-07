@@ -99,6 +99,7 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  faceEmbeddings  FaceEmbedding[]
 
   @@map("users")
 }
@@ -463,4 +464,15 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// AI Engine: Face Embeddings
+model FaceEmbedding {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id")
+  embedding Unsupported("vector(128)")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("face_embeddings")
 }

@@ -1,0 +1,9 @@
+face_recognition
+dlib
+scikit-learn
+flask
+psycopg2-binary
+pgvector
+numpy
+opencv-python-headless
+python-dotenv
