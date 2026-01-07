@@ -1,0 +1,5 @@
+pandas
+google-cloud-bigquery
+scikit-learn
+psycopg2-binary
+db-dtypes
