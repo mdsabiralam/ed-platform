@@ -34,7 +34,20 @@ class SyncQueue extends Table {
   DateTimeColumn get createdAt => dateTime().named('created_at').withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Students, AttendanceLogs, SyncQueue])
+// 4. Timetable Table
+class Timetable extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get teacherId => text().named('teacher_id')();
+  TextColumn get subject => text()();
+  TextColumn get className => text().named('class_name')();
+  TextColumn get roomNo => text().named('room_no')();
+  DateTimeColumn get startTime => dateTime().named('start_time')();
+  DateTimeColumn get endTime => dateTime().named('end_time')();
+  TextColumn get dayOfWeek => text().named('day_of_week')(); // e.g. "Monday"
+  BoolColumn get isSynced => boolean().named('is_synced').withDefault(const Constant(false))();
+}
+
+@DriftDatabase(tables: [Students, AttendanceLogs, SyncQueue, Timetable])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
