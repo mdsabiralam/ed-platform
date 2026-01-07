@@ -1,0 +1,78 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Real-time Error Logs",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "{app=\"backend\"} |= \"error\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Database CPU Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "avg(rate(container_cpu_usage_seconds_total{container=\"postgres\"}[1m])) * 100",
+          "legendFormat": "Postgres CPU",
+          "refId": "A"
+        }
+      ],
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "green", "value": null },
+          { "color": "red", "value": 70 }
+        ]
+      }
+    },
+    {
+      "title": "SMS Gateway Balance",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sms_gateway_balance",
+          "refId": "A"
+        }
+      ],
+      "thresholds": {
+        "mode": "absolute",
+        "steps": [
+          { "color": "red", "value": null },
+          { "color": "yellow", "value": 100 },
+          { "color": "green", "value": 500 }
+        ]
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["launch", "alpha"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Launch Day Dashboard",
+  "uid": "launch-day-v1",
+  "version": 1,
+  "weekStart": ""
+}
