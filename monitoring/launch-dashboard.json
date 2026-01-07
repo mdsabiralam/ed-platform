@@ -1,0 +1,70 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Launch Day Monitoring",
+    "tags": [ "launch", "critical" ],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Error Rate (5xx)",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m]))",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Database CPU Usage",
+        "type": "gauge",
+        "datasource": "CloudWatch",
+        "targets": [
+          {
+            "namespace": "AWS/RDS",
+            "metricName": "CPUUtilization",
+            "statistics": [ "Average" ],
+            "dimensions": { "DBInstanceIdentifier": "ed-platform-prod" }
+          }
+        ],
+        "thresholds": [
+          { "value": 70, "color": "red" },
+          { "value": 50, "color": "yellow" }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "Live Log Stream (Errors)",
+        "type": "logs",
+        "datasource": "Loki",
+        "targets": [
+          {
+            "expr": "{app=\"ed-backend\"} |= \"error\""
+          }
+        ],
+        "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 }
+      },
+      {
+        "id": 4,
+        "title": "SMS Gateway Balance",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sms_gateway_balance",
+            "legendFormat": "Credits"
+          }
+        ],
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 18 }
+      }
+    ]
+  }
+}
