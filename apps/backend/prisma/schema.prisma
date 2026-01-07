@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  tickets            Ticket[]
 
   @@map("tenants")
 }
@@ -99,6 +100,10 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+
+  ticketsAssigned Ticket[] @relation("TicketAssignee")
+  ticketsCreated  Ticket[] @relation("TicketCreator")
+  ticketComments  TicketComment[]
 
   @@map("users")
 }
@@ -463,4 +468,65 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+  TRANSPORT_MANAGER
+  ACCOUNTANT
+}
+
+// Helpdesk / Ticketing
+
+enum TicketCategory {
+  TRANSPORT
+  ACCOUNTS
+  ACADEMIC
+  FEES
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Ticket {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  title        String
+  description  String
+  category     TicketCategory
+  priority     TicketPriority @default(LOW)
+  status       TicketStatus   @default(OPEN)
+  assignedToId String?  @map("assigned_to_id")
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id])
+  assignedTo User?  @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  createdBy  User   @relation("TicketCreator", fields: [createdById], references: [id])
+  comments   TicketComment[]
+
+  @@map("tickets")
+}
+
+model TicketComment {
+  id        String   @id @default(uuid())
+  ticketId  String   @map("ticket_id")
+  userId    String   @map("user_id")
+  content   String
+  isInternal Boolean @default(false) @map("is_internal")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("ticket_comments")
 }
