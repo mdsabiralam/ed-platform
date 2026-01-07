@@ -99,6 +99,8 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  broadcastCampaigns BroadcastCampaign[]
+  broadcastLogs      BroadcastLog[]
 
   @@map("users")
 }
@@ -316,6 +318,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  feeLedger         StudentFeeLedger?
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -463,4 +466,78 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 8.D.01 Broadcast Campaign
+model BroadcastCampaign {
+  id           String          @id @default(uuid())
+  title        String
+  messageBody  String          @map("message_body")
+  channel      BroadcastChannel
+  status       BroadcastStatus @default(DRAFT)
+  scheduledAt  DateTime?       @map("scheduled_at")
+  targetFilter Json            @map("target_filter") // e.g., { "classId": "...", "defaultersOnly": true }
+  senderId     String          @map("sender_id")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  sender       User            @relation(fields: [senderId], references: [id])
+  logs         BroadcastLog[]
+
+  @@map("broadcast_campaigns")
+}
+
+// 8.D.02 Notification Template
+model NotificationTemplate {
+  id        String           @id @default(uuid())
+  name      String
+  content   String
+  channel   BroadcastChannel
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+// 8.D.09 Broadcast Logs
+model BroadcastLog {
+  id             String            @id @default(uuid())
+  campaignId     String            @map("campaign_id")
+  userId         String            @map("user_id")
+  status         String            // SENT, DELIVERED, FAILED
+  vendorResponse String?           @map("vendor_response")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  campaign       BroadcastCampaign @relation(fields: [campaignId], references: [id])
+  user           User              @relation(fields: [userId], references: [id])
+
+  @@map("broadcast_logs")
+}
+
+// Stub for FeeLedger to support Audience Logic
+model StudentFeeLedger {
+  id           String   @id @default(uuid())
+  studentId    String   @unique @map("student_id")
+  totalInvoiced Float    @default(0.0) @map("total_invoiced")
+  totalPaid    Float    @default(0.0) @map("total_paid")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  student      Student  @relation(fields: [studentId], references: [id])
+
+  @@map("student_fee_ledgers")
+}
+
+enum BroadcastChannel {
+  SMS
+  EMAIL
+  PUSH
+  WHATSAPP
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
 }

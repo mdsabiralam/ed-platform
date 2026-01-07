@@ -13,6 +13,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/client": "^5.19.1",
     "next": "16.0.10",
     "react": "19.2.1",
     "react-dom": "19.2.1"
@@ -24,9 +25,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
+    "prisma": "^5.19.1",
+    "supabase": "^1.165.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
     "turbo": "latest",
-    "supabase": "^1.165.0"
+    "typescript": "^5"
   }
 }
