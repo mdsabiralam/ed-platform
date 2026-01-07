@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/api_client.dart'; // Fixed import path
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
-import 'package:mobile/core/services/sync_service.dart';
+import 'package:mobile/core/sync_service.dart';
 import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> main() async {
   await SentryFlutter.init((options) {
-    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry থেকে পাওয়া DSN এখানে বসান
+    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN';
     options.tracesSampleRate = 1.0;
   }, appRunner: () => runApp(const EdApp()));
 }
