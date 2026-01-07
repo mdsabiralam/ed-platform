@@ -1,0 +1,25 @@
+default_platform(:android)
+
+platform :android do
+  desc "Take screenshots"
+  lane :screenshots do
+    capture_android_screenshots
+  end
+
+  desc "Deploy to Internal Test Track"
+  lane :beta do
+    # Build Staging Release
+    gradle(task: "clean assembleStagingRelease")
+
+    # Upload to Play Store Internal Track
+    # Note: Ensure the package name in Play Console matches the staging applicationIdSuffix (.staging)
+    # OR if you want to test the PROD app with STAGING config (uncommon for public beta, common for internal QA),
+    # usually Staging has a different package name (com.school.app.staging).
+    upload_to_play_store(
+      track: "internal",
+      skip_upload_aab: true,
+      apk: "app/build/outputs/apk/staging/release/app-staging-release.apk",
+      package_name: "com.school.app.staging"
+    )
+  end
+end
