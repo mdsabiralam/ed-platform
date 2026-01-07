@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  subjects           Subject[]
 
   @@map("tenants")
 }
@@ -291,6 +292,8 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  classTeachers ClassTeacherMapping[]
+  subjectTeachers SubjectTeacherMapping[]
 
   @@map("sections")
 }
@@ -351,15 +354,79 @@ model StaffProfile {
   id           String   @id @default(uuid())
   tenantId     String   @map("school_id")
   userId       String   @unique @map("user_id")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
   designation  String
-  department   String?
-  joiningDate  DateTime @map("joining_date")
+  departmentId String?  @map("department_id")
+  dateOfJoining DateTime @map("date_of_joining") // Was joiningDate
   deletedAt    DateTime? @map("deleted_at")
+
+  // 4.F.02 New fields
+  panNumber    String?  @map("pan_number")
+  qualification String?
+  bloodGroup   String?  @map("blood_group")
+  isTeachingStaff Boolean @default(false) @map("is_teaching_staff")
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  classTeacherMappings ClassTeacherMapping[]
+  subjectTeacherMappings SubjectTeacherMapping[]
 
   @@map("staff_profiles")
+}
+
+// 4.F.03 Departments Table
+model Department {
+  id        String   @id @default(uuid()) // Can be Integer if we want fixed IDs 1, 2, 3
+  name      String   @unique
+  staff     StaffProfile[]
+
+  @@map("departments")
+}
+
+// 4.F.07 Class Teacher Mapping
+model ClassTeacherMapping {
+  id           String   @id @default(uuid())
+  classId      String   @map("class_id")
+  sectionId    String   @map("section_id")
+  staffId      String   @map("staff_id")
+  academicYear String   @map("academic_year")
+
+  section      Section  @relation(fields: [sectionId], references: [id])
+  staff        StaffProfile @relation(fields: [staffId], references: [id])
+
+  @@unique([sectionId, academicYear]) // Prevent multiple class teachers for same section in a year
+  @@map("class_teacher_mappings")
+}
+
+// 4.F.08 Subject Teacher Mapping
+model SubjectTeacherMapping {
+  id        String   @id @default(uuid())
+  subjectId String   @map("subject_id")
+  staffId   String   @map("staff_id")
+  classId   String   @map("class_id")
+  sectionId String   @map("section_id")
+
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  staff     StaffProfile @relation(fields: [staffId], references: [id])
+  section   Section  @relation(fields: [sectionId], references: [id])
+
+  @@map("subject_teacher_mappings")
+}
+
+// 4.F.08 implied Subject Model (Basic)
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  teachers  SubjectTeacherMapping[]
+
+  @@map("subjects")
 }
 
 // 2.H.06 Finance: Chart of Accounts
