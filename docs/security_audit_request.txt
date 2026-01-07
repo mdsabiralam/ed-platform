@@ -1,0 +1,36 @@
+Subject: Request for Quote: Gray Box Penetration Test - Ed-Platform Staging
+
+Dear Security Team (BreachLock / Synack),
+
+I hope this email finds you well.
+
+I am the CTO of Ed-Platform. We are preparing for our major V1 launch and require a comprehensive Gray Box Penetration Test on our Staging Environment to ensure the security of our school management SaaS.
+
+**Scope of Work:**
+
+1.  **API Endpoint Analysis:**
+    *   Focus on Insecure Direct Object References (IDOR). We handle sensitive student data (grades, health records), and it is critical that users cannot access data belonging to other tenants or unauthorized students.
+    *   Authentication and Authorization checks (RBAC).
+
+2.  **Mobile App Binary Analysis:**
+    *   Android (APK) and iOS (IPA) builds.
+    *   Reverse engineering protection, hardcoded secrets, and secure storage (insecure data storage).
+
+3.  **Cloud Infrastructure Review (AWS):**
+    *   Review of our Terraform configurations and live environment in `ap-south-1`.
+    *   S3 Bucket permissions (private vs public assets).
+    *   RDS Encryption and SG rules.
+
+**Target Environment:**
+*   URL: https://staging-api.edplatform.com
+*   Test Accounts: We will provide credentials for Super Admin, Principal, Teacher, and Parent roles.
+
+**Timeline:**
+We are looking to start this engagement within the next 5 business days.
+
+Please provide a quote and your available start dates.
+
+Best regards,
+
+CTO
+Ed-Platform
