@@ -38,6 +38,8 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  printJobs          PrintJob[]
+  settlements        SettlementTransaction[]
 
   @@map("tenants")
 }
@@ -177,6 +179,7 @@ model ResellerProfile {
   userId         String   @unique @map("user_id")
   commissionRate Float    @default(10.0) @map("commission_rate") // Percentage
   totalEarnings  Float    @default(0.0) @map("total_earnings")
+  pendingPayouts Float    @default(0.0) @map("pending_payouts")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -463,4 +466,37 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 10.H B2B Printing (Bulk Orders)
+model PrintJob {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  jobType     String   @map("job_type") // e.g., "ID_CARD_STUDENT", "ADMIT_CARD"
+  status      String   // "PENDING_APPROVAL", "APPROVED", "SENT_TO_VENDOR", "COMPLETED", "REJECTED"
+  fileUrl     String   @map("file_url")
+  approvedBy  String?  @map("approved_by") // Principal's User ID
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("print_jobs")
+}
+
+// 10.I Financial Reconciliation
+model SettlementTransaction {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  orderId         String   @unique @map("order_id")
+  amount          Float
+  currency        String   @default("USD")
+  status          String   // "SETTLED", "PENDING", "FAILED"
+  transactionDate DateTime @map("transaction_date")
+  reconciled      Boolean  @default(false)
+  discrepancy     String?  // Details if mismatch found
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("settlement_transactions")
 }
