@@ -1,0 +1,56 @@
+name: CD Mobile
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+
+jobs:
+  deploy-android:
+    name: Deploy Android to Internal Track
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          cache: true
+
+      - name: Install Dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Setup Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+
+      - name: Deploy with Fastlane
+        working-directory: apps/mobile/android
+        env:
+          JSON_KEY_CONTENT: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+        run: |
+          echo $JSON_KEY_CONTENT > fastlane_key.json
+          bundle install
+          bundle exec fastlane deploy_internal
+
+      # Notification
+      - name: Slack Notification
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_MESSAGE: 'Mobile Deployment Status: ${{ job.status }}'
+          SLACK_TITLE: Mobile Deployment
