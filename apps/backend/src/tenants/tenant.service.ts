@@ -25,7 +25,26 @@ export class TenantService {
   }
 
   async findAll() {
-    return this.prisma.tenant.findMany();
+    return this.prisma.tenant.findMany({
+      include: {
+        subscription: {
+          include: {
+            plan: true,
+          },
+        },
+        _count: {
+          select: {
+            profiles: {
+              where: {
+                user: {
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   async findOne(id: string) {
@@ -36,6 +55,13 @@ export class TenantService {
     return this.prisma.tenant.update({
       where: { id },
       data: updateTenantDto,
+    });
+  }
+
+  async suspend(id: string) {
+    return this.prisma.tenant.update({
+      where: { id },
+      data: { isActive: false, subscriptionStatus: 'LOCKED' },
     });
   }
 
