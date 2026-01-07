@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { BadRequestException } from '@nestjs/common';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -13,7 +15,13 @@ describe('AuthController', () => {
     },
     otpLog: {
       create: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
     },
+  };
+
+  const mockJwtService = {
+    sign: jest.fn(() => 'mock-jwt-token'),
   };
 
   beforeEach(async () => {
@@ -24,6 +32,10 @@ describe('AuthController', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: JwtService,
+          useValue: mockJwtService,
         },
       ],
     }).compile();
@@ -57,6 +69,50 @@ describe('AuthController', () => {
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({ where: { email: 'existing@example.com' } });
       expect(mockPrismaService.otpLog.create).toHaveBeenCalled();
       expect(result).toEqual({ message: 'If your email is registered, you will receive a reset code shortly.' });
+    });
+  });
+
+  describe('verifyOtp', () => {
+    it('should return reset token if OTP is valid', async () => {
+      const mockOtp = {
+        id: 'otp-id',
+        email: 'test@example.com',
+        otpCode: '123456',
+        expiresAt: new Date(Date.now() + 10000), // Future date
+        isUsed: false,
+      };
+      mockPrismaService.otpLog.findFirst.mockResolvedValue(mockOtp);
+      mockPrismaService.otpLog.update.mockResolvedValue(mockOtp);
+
+      const result = await controller.verifyOtp({ email: 'test@example.com', otp: '123456' });
+
+      expect(mockPrismaService.otpLog.update).toHaveBeenCalledWith({
+        where: { id: 'otp-id' },
+        data: { isUsed: true },
+      });
+      expect(mockJwtService.sign).toHaveBeenCalled();
+      expect(result).toEqual({ resetToken: 'mock-jwt-token' });
+    });
+
+    it('should throw BadRequestException if OTP is invalid or not found', async () => {
+      mockPrismaService.otpLog.findFirst.mockResolvedValue(null);
+
+      await expect(controller.verifyOtp({ email: 'test@example.com', otp: 'wrong' }))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if OTP is expired', async () => {
+      const mockOtp = {
+        id: 'otp-id',
+        email: 'test@example.com',
+        otpCode: '123456',
+        expiresAt: new Date(Date.now() - 10000), // Past date
+        isUsed: false,
+      };
+      mockPrismaService.otpLog.findFirst.mockResolvedValue(mockOtp);
+
+      await expect(controller.verifyOtp({ email: 'test@example.com', otp: '123456' }))
+        .rejects.toThrow(BadRequestException);
     });
   });
 });
