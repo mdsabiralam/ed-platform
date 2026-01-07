@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  tickets            Ticket[]
 
   @@map("tenants")
 }
@@ -99,6 +100,11 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+
+  createdTickets  Ticket[] @relation("TicketCreator")
+  assignedTickets Ticket[] @relation("TicketAssignee")
+  originalEscalations EscalationLog[] @relation("EscalationOriginal")
+  newEscalations      EscalationLog[] @relation("EscalationNew")
 
   @@map("users")
 }
@@ -443,6 +449,84 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// SLA & Ticket Models
+
+model TicketCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  tickets   Ticket[]
+  policies  SlaPolicy[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ticket_categories")
+}
+
+model Ticket {
+  id              String         @id @default(uuid())
+  tenantId        String         @map("school_id")
+  subject         String
+  description     String
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
+  ticketCategoryId String        @map("ticket_category_id")
+  createdById     String         @map("created_by_id") // Parent/Student User ID
+  assignedToId    String?        @map("assigned_to_id") // Staff User ID
+  resolutionSummary String?      @map("resolution_summary")
+  rating          Int?
+  feedbackComment String?        @map("feedback_comment")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  category        TicketCategory @relation(fields: [ticketCategoryId], references: [id])
+  createdBy       User           @relation("TicketCreator", fields: [createdById], references: [id])
+  assignedTo      User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  escalationLogs  EscalationLog[]
+
+  @@map("tickets")
+}
+
+model SlaPolicy {
+  id                     String         @id @default(uuid())
+  ticketCategoryId       String         @map("ticket_category_id")
+  priority               TicketPriority
+  maxResolutionTimeHours Int            @map("max_resolution_time_hours")
+
+  category               TicketCategory @relation(fields: [ticketCategoryId], references: [id])
+
+  @@unique([ticketCategoryId, priority])
+  @@map("sla_policies")
+}
+
+model EscalationLog {
+  id                String   @id @default(uuid())
+  ticketId          String   @map("ticket_id")
+  originalAssigneeId String?  @map("original_assignee_id")
+  escalatedToId     String?  @map("escalated_to_id")
+  breachedAt        DateTime @default(now()) @map("breached_at")
+
+  ticket            Ticket   @relation(fields: [ticketId], references: [id])
+  originalAssignee  User?    @relation("EscalationOriginal", fields: [originalAssigneeId], references: [id])
+  escalatedTo       User?    @relation("EscalationNew", fields: [escalatedToId], references: [id])
+
+  @@map("escalation_logs")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 // 2.C.03 Roles Enum
