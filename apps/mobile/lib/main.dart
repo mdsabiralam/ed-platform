@@ -1,27 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/api_client.dart'; // Fixed import path
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
 import 'package:mobile/core/services/sync_service.dart';
+import 'package:mobile/core/services/remote_config_service.dart';
+import 'package:mobile/core/config/app_config.dart';
 import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-Future<void> main() async {
+Future<void> bootstrap(AppConfig config) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await RemoteConfigService.instance.initialize();
+
   await SentryFlutter.init((options) {
-    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry থেকে পাওয়া DSN এখানে বসান
+    options.dsn = 'YOUR_FLUTTER_SENTRY_DSN'; // Sentry DSN
+    options.environment = config.environment.name;
     options.tracesSampleRate = 1.0;
-  }, appRunner: () => runApp(const EdApp()));
+  }, appRunner: () => runApp(EdApp(config: config)));
 }
 
 class EdApp extends StatelessWidget {
-  const EdApp({super.key});
+  final AppConfig config;
+  const EdApp({super.key, required this.config});
 
   @override
   Widget build(BuildContext context) {
-    // 1.E.07: ApiClient Instance
-    final apiClient = ApiClient();
+    // 1.E.07: ApiClient Instance with Configured URL
+    final apiClient = ApiClient(baseUrl: config.apiUrl);
 
     // 1.F.06: Database Instance
     final database = AppDatabase();
@@ -46,6 +55,7 @@ class EdApp extends StatelessWidget {
         ],
         child: MaterialApp.router(
           title: 'Ed Platform',
+          debugShowCheckedModeBanner: config.enableDebugBanner,
           theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
           // 1.E.04: GoRouter Configuration
           routerConfig: appRouter,
