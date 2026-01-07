@@ -23,6 +23,9 @@ class AuthRepository {
         if (data.containsKey('access_token')) {
           await _tokenStorage.saveAccessToken(data['access_token']);
         }
+        if (data.containsKey('refresh_token')) {
+          await _tokenStorage.saveRefreshToken(data['refresh_token']);
+        }
 
         if (data.containsKey('profiles') && data['profiles'] is List) {
           return (data['profiles'] as List)
@@ -47,6 +50,9 @@ class AuthRepository {
        final data = response.data;
        if (data is Map<String, dynamic> && data.containsKey('access_token')) {
          await _tokenStorage.saveAccessToken(data['access_token']);
+       }
+       if (data is Map<String, dynamic> && data.containsKey('refresh_token')) {
+         await _tokenStorage.saveRefreshToken(data['refresh_token']);
        }
     }
   }
