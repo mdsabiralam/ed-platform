@@ -88,6 +88,7 @@ describe('AuthController', () => {
         otpCode: '123456',
         expiresAt: new Date(Date.now() + 10000), // Future date
         isUsed: false,
+        attemptCount: 0,
       };
       mockPrismaService.otpLog.findFirst.mockResolvedValue(mockOtp);
       mockPrismaService.otpLog.update.mockResolvedValue(mockOtp);
@@ -102,10 +103,45 @@ describe('AuthController', () => {
       expect(result).toEqual({ resetToken: 'mock-jwt-token' });
     });
 
-    it('should throw BadRequestException if OTP is invalid or not found', async () => {
+    it('should throw BadRequestException if OTP record not found', async () => {
       mockPrismaService.otpLog.findFirst.mockResolvedValue(null);
 
       await expect(controller.verifyOtp({ email: 'test@example.com', otp: 'wrong' }))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if OTP code does not match and increment attempt count', async () => {
+      const mockOtp = {
+        id: 'otp-id',
+        email: 'test@example.com',
+        otpCode: '123456',
+        expiresAt: new Date(Date.now() + 10000),
+        isUsed: false,
+        attemptCount: 0,
+      };
+      mockPrismaService.otpLog.findFirst.mockResolvedValue(mockOtp);
+
+      await expect(controller.verifyOtp({ email: 'test@example.com', otp: 'wrong' }))
+        .rejects.toThrow(BadRequestException);
+
+      expect(mockPrismaService.otpLog.update).toHaveBeenCalledWith({
+        where: { id: 'otp-id' },
+        data: { attemptCount: { increment: 1 } },
+      });
+    });
+
+    it('should throw BadRequestException if OTP attempts exceeded', async () => {
+      const mockOtp = {
+        id: 'otp-id',
+        email: 'test@example.com',
+        otpCode: '123456',
+        expiresAt: new Date(Date.now() + 10000),
+        isUsed: false,
+        attemptCount: 3,
+      };
+      mockPrismaService.otpLog.findFirst.mockResolvedValue(mockOtp);
+
+      await expect(controller.verifyOtp({ email: 'test@example.com', otp: '123456' }))
         .rejects.toThrow(BadRequestException);
     });
 
@@ -116,6 +152,7 @@ describe('AuthController', () => {
         otpCode: '123456',
         expiresAt: new Date(Date.now() - 10000), // Past date
         isUsed: false,
+        attemptCount: 0,
       };
       mockPrismaService.otpLog.findFirst.mockResolvedValue(mockOtp);
 

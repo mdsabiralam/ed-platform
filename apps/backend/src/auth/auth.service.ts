@@ -24,7 +24,7 @@ export class AuthService {
     // Generate a 6-digit code using CSPRNG
     const code = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // Expires in 15 minutes
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5); // Expires in 5 minutes (Security Best Practice)
 
     // Save to OtpLog
     await this.prisma.otpLog.create({
@@ -41,21 +41,36 @@ export class AuthService {
   }
 
   async verifyOtp(email: string, otp: string): Promise<{ resetToken: string }> {
+    // Find the latest unused OTP for this email
     const otpRecord = await this.prisma.otpLog.findFirst({
       where: {
         email,
-        otpCode: otp,
         isUsed: false,
       },
       orderBy: { createdAt: 'desc' },
     });
 
     if (!otpRecord) {
-      throw new BadRequestException('Invalid or used OTP');
+      throw new BadRequestException('Invalid or expired OTP');
+    }
+
+    // Check if blocked by too many attempts
+    if (otpRecord.attemptCount >= 3) {
+      throw new BadRequestException('Too many failed attempts. Please request a new OTP.');
     }
 
     if (otpRecord.expiresAt < new Date()) {
       throw new BadRequestException('OTP has expired');
+    }
+
+    // Validate Code
+    if (otpRecord.otpCode !== otp) {
+      // Increment attempt count
+      await this.prisma.otpLog.update({
+        where: { id: otpRecord.id },
+        data: { attemptCount: { increment: 1 } },
+      });
+      throw new BadRequestException('Invalid OTP');
     }
 
     // Mark as used
@@ -70,6 +85,7 @@ export class AuthService {
 
     return { resetToken };
   }
+  // TODO: Add Cron to delete expired OTPs
 
   async resetPassword(resetToken: string, newPassword: string): Promise<void> {
     try {
