@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  notices            Notice[]
 
   @@map("tenants")
 }
@@ -99,6 +100,9 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+
+  lastCheckedNoticesAt DateTime? @map("last_checked_notices_at")
+  notices              Notice[]
 
   @@map("users")
 }
@@ -443,6 +447,31 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// 8.H.01 Notice Board
+model Notice {
+  id             String   @id @default(uuid())
+  title          String
+  content        String   @db.Text
+  attachmentUrl  String?  @map("attachment_url")
+  isPinned       Boolean  @default(false) @map("is_pinned")
+  expiryDate     DateTime @map("expiry_date")
+  publishedAt    DateTime @default(now()) @map("published_at")
+  targetAudience Json     @map("target_audience")
+
+  // Multi-tenancy & Authorship
+  tenantId       String   @map("school_id")
+  authorId       String   @map("author_id")
+
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  author         User      @relation(fields: [authorId], references: [id])
+
+  @@map("notices")
 }
 
 // 2.C.03 Roles Enum
