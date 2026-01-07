@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedClasses } from './seed-classes';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,21 @@ async function main() {
   });
 
   console.log({ superAdmin });
+
+  // Create a Demo Tenant to seed classes
+  const demoTenant = await prisma.tenant.upsert({
+    where: { subdomain: 'demo-school' },
+    update: {},
+    create: {
+      name: 'Demo International School',
+      subdomain: 'demo-school',
+      subscriptionStatus: 'ACTIVE',
+    },
+  });
+  console.log('Demo Tenant:', demoTenant.id);
+
+  // Seed Classes for Demo Tenant
+  await seedClasses(prisma, demoTenant.id);
 }
 
 main()

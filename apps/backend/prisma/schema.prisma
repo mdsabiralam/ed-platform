@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  admissionConfigs   AdmissionConfig[]
 
   @@map("tenants")
 }
@@ -266,15 +267,17 @@ model AdmissionSession {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   students  Student[]
 
+  @@index([isActive])
   @@map("admission_sessions")
 }
 
 // 2.F.02 Classes
 model Class {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("school_id")
-  name      String   // e.g., "Grade 1"
-  deletedAt DateTime? @map("deleted_at")
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  name         String   // e.g., "Grade 1"
+  seatCapacity Int      @default(0) @map("seat_capacity")
+  deletedAt    DateTime? @map("deleted_at")
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
@@ -293,6 +296,19 @@ model Section {
   students  Student[]
 
   @@map("sections")
+}
+
+// 4.A.08 Admission Config
+model AdmissionConfig {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  key       String
+  value     String
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, key])
+  @@map("admission_configs")
 }
 
 // 2.F.04 Students
