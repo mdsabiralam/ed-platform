@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  marksheetTemplates MarksheetTemplate[]
 
   @@map("tenants")
 }
@@ -429,6 +430,20 @@ model KycDocument {
   tenant          Tenant    @relation(fields: [tenantId], references: [id])
 
   @@map("kyc_documents")
+}
+
+// Marksheet Templates
+model MarksheetTemplate {
+  id           String   @id @default(uuid()) @map("template_id")
+  tenantId     String   @map("school_id")
+  name         String
+  layoutConfig Json     @map("layout_config")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("marksheet_templates")
 }
 
 // 2.I.06 Table Audit Logs (To prevent drift)
