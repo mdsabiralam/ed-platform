@@ -67,8 +67,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       if (!params.model) return next(params);
 
       const encryptionMap: Record<string, string[]> = {
-        HealthProfile: ['medicalHistory', 'medications', 'allergies', 'conditions'],
+        HealthProfile: ['medicalHistory', 'medications', 'allergies', 'conditions', 'bloodGroup'], // Added bloodGroup
         KycDocument: ['documentUrl'], // 2.I.07 Secure URL storage
+        StaffProfile: ['bankAccountNumber', 'ifscCode'], // Added Bank Info
       };
 
       const sensitiveFields = encryptionMap[params.model];
@@ -121,6 +122,67 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       return result;
     });
 
+    // 4.I.04 Access Logs for PII
+    this.$use(async (params, next) => {
+      if (params.model === 'Student' && (params.action === 'findUnique' || params.action === 'findMany' || params.action === 'findFirst')) {
+        // In a real app, we would check the user context (e.g. from CLS or args).
+        // Assuming context is passed in args.select or similar is hard without request context.
+        // For this task, we will log if 'select' includes PII fields.
+
+        const piiFields = ['phone', 'email', 'medicalHistory', 'allergies', 'bloodGroup', 'bankAccountNumber', 'ifscCode']; // expanded list
+        // Note: phone/email are on User, but accessible via relation.
+        // If Student has PII fields directly or related.
+
+        let accessingPii = false;
+
+        // Check include
+        if (params.args.include) {
+           if (params.args.include.healthProfile || params.args.include.user) accessingPii = true;
+        }
+
+        // Check select
+        if (params.args.select) {
+           // Direct fields on Student? (Student usually has relation to User/Health for PII, but let's check PII fields if any)
+           // If selecting relations 'user' or 'healthProfile'
+           if (params.args.select.healthProfile || params.args.select.user) accessingPii = true;
+
+           // Or if we check specific fields on those relations (nested select)
+           // (This is getting complex, assuming selecting the relation object implies access)
+        }
+
+        if (accessingPii) {
+           // We can't easily get the 'Staff' user ID here without request context injection.
+           // However, we can log the event.
+           // Since we can't inject services here easily, we might just log to console or try to insert to AccessLog if possible.
+           // To insert to AccessLog, we need a separate Prisma call, which might cause loops if not careful.
+           // We'll skip recursive logging.
+
+           // For now, let's just log to console as a placeholder or use `runInTransaction` if feasible.
+           this.logger.log(`PII Access Detected on Student table. Action: ${params.action}`);
+
+           // Asynchronously log to DB (fire and forget to avoid blocking/loops)
+           if (params.model !== 'AccessLog') { // Prevent infinite loop if we were logging AccessLog access
+             // We use a separate logic or simple query.
+             // Since 'this' is PrismaClient, we can use it.
+             // We need to avoid triggering this middleware again for AccessLog.
+             // AccessLog is not 'Student', so it won't trigger this specific if-block.
+             try {
+               await this.accessLog.create({
+                 data: {
+                   action: `VIEW_PII:${params.action}`,
+                   details: { model: params.model, args: params.args },
+                   // staffId: 'unknown', // We don't have user context here easily
+                 }
+               });
+             } catch (err) {
+               this.logger.error('Failed to write Access Log', err);
+             }
+           }
+        }
+      }
+      return next(params);
+    });
+
     // 2.I.02 Soft Delete Middleware
     this.$use(async (params, next) => {
       // যেসব মডেলে soft delete আছে
@@ -141,8 +203,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             params.args['data'] = { deletedAt: new Date() };
           }
         }
+        // Explicitly handle findUnique to apply soft delete filter
         if (params.action === 'findUnique' || params.action === 'findFirst') {
-           // findUnique কে findFirst এ পরিবর্তন করা যাতে ফিল্টার যোগ করা যায়
+           // findUnique cannot handle non-unique 'deletedAt' filter, so convert to findFirst
            params.action = 'findFirst';
            if (!params.args.where) {
              params.args.where = { deletedAt: null };
