@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  conciergeRequests  ConciergeRequest[]
 
   @@map("tenants")
 }
@@ -99,6 +100,8 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  teacherConciergeRequests ConciergeRequest[] @relation("TeacherConciergeRequests")
+  staffConciergeRequests   ConciergeRequest[] @relation("StaffConciergeRequests")
 
   @@map("users")
 }
@@ -443,6 +446,48 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// 3.A.01 Concierge Request Status
+enum ConciergeRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+// 3.A.02 Assignments (Placeholder)
+model Assignment {
+  id                String             @id @default(uuid()) @map("assignment_id")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  conciergeRequests ConciergeRequest[]
+
+  @@map("assignments")
+}
+
+// 3.A.03 Concierge Requests
+model ConciergeRequest {
+  id                String                 @id @default(uuid()) @map("request_id")
+  schoolId          String                 @map("school_id")
+  teacherId         String                 @map("teacher_id")
+  rawImageUrl       String                 @map("raw_image_url")
+  voiceNoteUrl      String?                @map("voice_note_url")
+  instructionText   String                 @map("instruction_text")
+  status            ConciergeRequestStatus
+  assignedStaffId   String?                @map("assigned_staff_id")
+  createdAssignmentId String?              @map("created_assignment_id")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+
+  school            Tenant                 @relation(fields: [schoolId], references: [id])
+  teacher           User                   @relation("TeacherConciergeRequests", fields: [teacherId], references: [id])
+  assignedStaff     User?                  @relation("StaffConciergeRequests", fields: [assignedStaffId], references: [id])
+  createdAssignment Assignment?            @relation(fields: [createdAssignmentId], references: [id])
+
+  @@index([status])
+  @@map("concierge_requests")
 }
 
 // 2.C.03 Roles Enum
