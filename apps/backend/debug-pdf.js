@@ -1,0 +1,1 @@
+const pdfParse = require("pdf-parse"); console.log("Type:", typeof pdfParse); console.log("Is Default Function?", typeof pdfParse.default === "function"); console.log("Is Function?", typeof pdfParse === "function");
