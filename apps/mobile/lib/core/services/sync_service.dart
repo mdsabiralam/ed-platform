@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:mobile/core/api/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:drift/drift.dart'; // Import drift for Value
 
 class SyncService {
   final AppDatabase db;
@@ -16,16 +18,23 @@ class SyncService {
 
   /// সম্পূর্ণ সিঙ্ক প্রসেস শুরু করা
   Future<void> sync() async {
-    if (await connectivityService.isConnected) {
-      try {
-        await pushChanges();
-        await pullChanges();
-        debugPrint('Sync completed successfully');
-      } catch (e) {
-        debugPrint('Sync failed: $e');
-      }
-    } else {
-      debugPrint('No internet connection. Sync skipped.');
+    final transaction = Sentry.startTransaction('sync_duration', 'task');
+    try {
+        if (await connectivityService.isConnected) {
+            try {
+                await pushChanges();
+                await pullChanges();
+                debugPrint('Sync completed successfully');
+            } catch (e) {
+                debugPrint('Sync failed: $e');
+                transaction.throwable = e;
+                transaction.status = SpanStatus.internalError();
+            }
+        } else {
+            debugPrint('No internet connection. Sync skipped.');
+        }
+    } finally {
+        await transaction.finish();
     }
   }
 

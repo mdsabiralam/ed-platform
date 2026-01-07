@@ -1,0 +1,31 @@
+groups:
+  - name: business_logic
+    rules:
+      - alert: CriticalPaymentFailure
+        expr: rate(payment_success_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment Success Rate dropped to 0%"
+          description: "No successful payments in the last 5 minutes. Check Gateway."
+
+  - name: infrastructure
+    rules:
+      - alert: DiskSpaceWarning
+        expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PVC usage > 80%"
+          description: "Persistent Volume usage is high on {{ $labels.persistentvolumeclaim }}."
+
+      - alert: DiskSpaceCritical
+        expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PVC usage > 90%"
+          description: "Critical Disk Space on {{ $labels.persistentvolumeclaim }}. Risk of DB corruption."
