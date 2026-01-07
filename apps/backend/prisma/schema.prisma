@@ -38,6 +38,8 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  conciergeRequests  ConciergeRequest[]
+  assignments        Assignment[]
 
   @@map("tenants")
 }
@@ -99,6 +101,7 @@ model User {
   student         Student?
   guardian        Guardian?
   staffProfile    StaffProfile?
+  assignedRequests ConciergeRequest[] @relation("StaffAssignments")
 
   @@map("users")
 }
@@ -278,6 +281,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  assignments Assignment[]
 
   @@map("classes")
 }
@@ -291,6 +295,7 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  assignments Assignment[]
 
   @@map("sections")
 }
@@ -316,6 +321,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  submissions       AssignmentSubmission[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +364,7 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  requests     ConciergeRequest[] @relation("TeacherRequests")
 
   @@map("staff_profiles")
 }
@@ -463,4 +470,71 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// Concierge Request System (Task 1)
+model ConciergeRequest {
+  id              String        @id @default(uuid())
+  instituteId     String        @map("school_id")
+  teacherId       String        @map("teacher_id")
+  rawImageUrl     String        @map("raw_image_url")
+  instructionText String?       @map("instruction_text")
+  audioUrl        String?       @map("audio_url")
+  status          RequestStatus @default(PENDING)
+  assignedStaffId String?       @map("assigned_staff_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  institute       Tenant        @relation(fields: [instituteId], references: [id])
+  teacher         StaffProfile  @relation("TeacherRequests", fields: [teacherId], references: [id])
+  assignedStaff   User?         @relation("StaffAssignments", fields: [assignedStaffId], references: [id])
+  assignments     Assignment[]
+
+  @@map("concierge_requests")
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  REJECTED
+}
+
+// Assignment System (Task 1 & 3)
+model Assignment {
+  id                 String   @id @default(uuid())
+  instituteId        String   @map("school_id")
+  classId            String   @map("class_id")
+  sectionId          String?  @map("section_id")
+  subjectId          String?  @map("subject_id")
+  title              String
+  description        String?
+  conciergeRequestId String?  @map("concierge_request_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  dueDate            DateTime? @map("due_date")
+
+  institute          Tenant            @relation(fields: [instituteId], references: [id])
+  class              Class             @relation(fields: [classId], references: [id])
+  section            Section?          @relation(fields: [sectionId], references: [id])
+  conciergeRequest   ConciergeRequest? @relation(fields: [conciergeRequestId], references: [id])
+  submissions        AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id            String   @id @default(uuid())
+  assignmentId  String   @map("assignment_id")
+  studentId     String   @map("student_id")
+  submissionUrl String?  @map("submission_url")
+  obtainedMarks Float?   @map("obtained_marks")
+  totalMarks    Float?   @map("total_marks")
+  remarks       String?
+  gradedAt      DateTime? @map("graded_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  assignment    Assignment @relation(fields: [assignmentId], references: [id])
+  student       Student    @relation(fields: [studentId], references: [id])
+
+  @@map("assignment_submissions")
 }

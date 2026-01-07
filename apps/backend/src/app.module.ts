@@ -8,13 +8,24 @@ import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
+import { ConciergeModule } from './concierge/concierge.module';
+import { AiModule } from './ai/ai.module';
+import { NotificationModule } from './notifications/notification.module';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
     PrismaModule,
     SaasModule,
     TenantModule,
+    ConciergeModule,
+    AiModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
