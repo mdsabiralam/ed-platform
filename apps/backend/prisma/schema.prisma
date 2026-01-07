@@ -38,6 +38,9 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  admissionApplications AdmissionApplication[]
+  feeLedgers         FeeLedger[]
+  serviceBooks       ServiceBook[]
 
   @@map("tenants")
 }
@@ -301,6 +304,7 @@ model Student {
   tenantId          String   @map("school_id") // 2.F.05 FK to School
   admissionSessionId String  @map("session_id")
   sectionId         String   @map("section_id")
+  currentClassId    String?  @map("current_class_id") // 4.J.02
   userId            String?  @unique @map("user_id")
   
   firstName         String   @map("first_name")
@@ -316,6 +320,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  feeLedgers        FeeLedger[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +363,7 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  serviceBook  ServiceBook?
 
   @@map("staff_profiles")
 }
@@ -463,4 +469,52 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 4.J.01 Admission Application
+model AdmissionApplication {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  status       String   @default("SUBMITTED") // SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, MATRICULATED
+  studentName  String   @map("student_name")
+  parentName   String   @map("parent_name")
+  parentMobile String   @map("parent_mobile")
+  email        String?
+  classId      String?  @map("class_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("admission_applications")
+}
+
+// 4.J.03 Fee Ledger
+model FeeLedger {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  studentId   String   @map("student_id")
+  amountDue   Float    @default(0.0) @map("amount_due")
+  status      String   @default("PENDING") // PAID, PENDING, OVERDUE
+  dueDate     DateTime @map("due_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@map("fee_ledgers")
+}
+
+// 4.J.04 Service Book
+model ServiceBook {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  staffId     String   @unique @map("staff_id")
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  staff       StaffProfile @relation(fields: [staffId], references: [id])
+
+  @@map("service_books")
 }
