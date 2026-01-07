@@ -359,7 +359,52 @@ model StaffProfile {
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 
+  serviceBooks ServiceBook[]
+  leaveBalances LeaveBalance[]
+
   @@map("staff_profiles")
+}
+
+// 4.G.01 Service Books
+enum ServiceBookEventType {
+  Appointment
+  Probation_Clearance
+  Confirmation
+  Promotion
+  Transfer
+  Suspension
+  Termination
+}
+
+model ServiceBook {
+  id            String               @id @default(uuid())
+  staffId       String               @map("staff_id")
+  eventDate     DateTime             @map("event_date")
+  eventType     ServiceBookEventType @map("event_type")
+  documentUrl   String?              @map("document_url") // 4.G.05 Document URL
+  authorizedBy  String?              @map("authorized_by")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  staff         StaffProfile         @relation(fields: [staffId], references: [id])
+
+  @@map("service_books")
+}
+
+// 4.G.07 Leave Balances
+model LeaveBalance {
+  id        String   @id @default(uuid())
+  staffId   String   @map("staff_id")
+  year      Int
+  clQuota   Float    @map("cl_quota")
+  slQuota   Float    @map("sl_quota")
+  plQuota   Float    @map("pl_quota")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  staff     StaffProfile @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, year])
+  @@map("leave_balances")
 }
 
 // 2.H.06 Finance: Chart of Accounts
