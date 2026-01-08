@@ -1,25 +1,59 @@
-import { Injectable, NestMiddleware, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
 /** Subscription Check Middleware */
 @Injectable()
 export class SubscriptionMiddleware implements NestMiddleware {
+  // Exclusion list: URLs that should bypass subscription checks
+  private readonly exclusionList = [
+    '/api/subscription/renew',
+    '/api/health', // Standard health check
+    '/api/auth/login', // Login should work
+    // Add other public endpoints if necessary
+  ];
+
   use(req: Request, res: Response, next: NextFunction) {
-    // TODO: এখানে আসল অথেন্টিকেশন এবং ডাটাবেস চেক বসাতে হবে।
-    // উদাহরণের জন্য আমরা ধরে নিচ্ছি হেডারে 'x-subscription-status' আছে।
+    // 3.H.07: Exclusion List Check
+    if (this.isExcluded(req.originalUrl)) {
+      return next();
+    }
+
+    // TODO: In a real scenario, this data would come from the database (e.g., via TenantMiddleware)
+    // or an injected service. For now, we simulate using headers or assume it's attached to req.
+    // Example: const tenant = req['tenant'];
     
-    // 1.I.09: Unauthorized Check (Example)
-    // যদি ইউজার লগইন না থাকে (সাধারণত AuthGuard এটা দেখে, তবে এখানে ডেমো দেখানো হলো)
-    // const isAuthenticated = true; 
-    // if (!isAuthenticated) throw new UnauthorizedException('User not authenticated');
+    // Simulating subscription data for verification of logic (3.H.06)
+    // We try to read from a hypothetical request property or header for testing purposes.
+    // In production, `TenantMiddleware` should attach the tenant with subscription info.
+    const expiryDateTimestamp = req.headers['x-subscription-expiry']
+      ? parseInt(req.headers['x-subscription-expiry'] as string, 10)
+      : null; // Default to null (valid or unknown) if not provided for now
 
-    // 1.I.10: Forbidden (Subscription Expired) Check
+    if (expiryDateTimestamp) {
+       // 3.H.06: Logic Verification
+       // Grace period in milliseconds (e.g., 7 days)
+       const GRACE_PERIOD_DAYS = 7;
+       const GRACE_PERIOD_MS = GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000;
+
+       const now = Date.now();
+       const expiryWithGrace = expiryDateTimestamp + GRACE_PERIOD_MS;
+
+       if (expiryWithGrace < now) {
+         throw new ForbiddenException('Subscription has expired (including grace period). Please renew.');
+       }
+    }
+
+    // Keep old check for backward compatibility/demo
     const subscriptionStatus = req.headers['x-subscription-status'];
-
     if (subscriptionStatus === 'expired') {
-      throw new ForbiddenException('Subscription has expired. Please renew.');
+       // We can assume this simplified status check also implies grace period is over
+       throw new ForbiddenException('Subscription has expired. Please renew.');
     }
 
     next();
+  }
+
+  private isExcluded(url: string): boolean {
+    return this.exclusionList.some(excludedPath => url.startsWith(excludedPath));
   }
 }
