@@ -445,6 +445,43 @@ model TableAuditLog {
   @@map("table_audit_logs")
 }
 
+model ConciergeRequest {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  requesterId   String   @map("requester_id")
+  requestType   String   @map("request_type") // e.g., "MAINTENANCE", "IT_SUPPORT"
+  description   String
+  status        RequestStatus @default(PENDING)
+  priority      String   @default("MEDIUM")
+  assignedTo    String?  @map("assigned_to")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  resolvedAt    DateTime? @map("resolved_at")
+
+  @@map("concierge_requests")
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+// Assignment Model for generic task/work assignments
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date")
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("assignments")
+}
+
 // 2.C.03 Roles Enum
 enum UserRole {
   SUPER_ADMIN
