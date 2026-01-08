@@ -13,6 +13,7 @@ import { AiModule } from './ai/ai.module';
 import { NotificationModule } from './notifications/notification.module';
 import { ClsModule } from 'nestjs-cls';
 import { StudentModule } from './academic/student/student.module';
+import { AgentModule } from './agent/agent.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StudentModule } from './academic/student/student.module';
     AiModule,
     NotificationModule,
     StudentModule,
+    AgentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

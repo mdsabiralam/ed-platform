@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/live_ops_models.dart';
-import '../../services/live_ops_service.dart';
+import '../models/live_ops_models.dart';
+import '../services/live_ops_service.dart';
 import 'widgets/school_timeline_row.dart';
 
 class LiveOpsDashboard extends StatefulWidget {
