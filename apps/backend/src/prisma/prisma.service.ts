@@ -151,6 +151,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
            }
         }
         if (['findMany', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
+           if (!params.args) {
+             params.args = {};
+           }
            if (params.args.where) {
              if (params.args.where.deletedAt == undefined) {
                params.args.where['deletedAt'] = null;
