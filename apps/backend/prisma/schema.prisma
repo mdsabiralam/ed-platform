@@ -445,6 +445,39 @@ model TableAuditLog {
   @@map("table_audit_logs")
 }
 
+// Concierge Module
+model ConciergeRequest {
+  id              String        @id @default(uuid())
+  tenantId        String        @map("school_id")
+  teacherName     String        @map("teacher_name")
+  subject         String
+  instructionText String        @map("instruction_text")
+  status          RequestStatus @default(PENDING)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
+
+  @@map("concierge_requests")
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Assignment Module (Placeholder)
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("assignments")
+}
+
 // 2.C.03 Roles Enum
 enum UserRole {
   SUPER_ADMIN

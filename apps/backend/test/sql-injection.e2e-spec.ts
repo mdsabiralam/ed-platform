@@ -29,7 +29,8 @@ describe('Security: SQL Injection Vulnerability Test (e2e)', () => {
     
     const maliciousSubdomain = "' OR '1'='1";
     
-    const response = await request(app.getHttpServer())
+    const req = request as any;
+    const response = await req(app.getHttpServer())
       .post('/tenants')
       .send({
         name: 'Hacker School',
