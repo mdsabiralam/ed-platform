@@ -1,23 +1,31 @@
-import { Injectable, NestMiddleware, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { PrismaService } from '../prisma/prisma.service';
 
 /** Subscription Check Middleware */
 @Injectable()
 export class SubscriptionMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
-    // TODO: এখানে আসল অথেন্টিকেশন এবং ডাটাবেস চেক বসাতে হবে।
-    // উদাহরণের জন্য আমরা ধরে নিচ্ছি হেডারে 'x-subscription-status' আছে।
-    
-    // 1.I.09: Unauthorized Check (Example)
-    // যদি ইউজার লগইন না থাকে (সাধারণত AuthGuard এটা দেখে, তবে এখানে ডেমো দেখানো হলো)
-    // const isAuthenticated = true; 
-    // if (!isAuthenticated) throw new UnauthorizedException('User not authenticated');
+  constructor(private readonly prisma: PrismaService) {}
 
-    // 1.I.10: Forbidden (Subscription Expired) Check
-    const subscriptionStatus = req.headers['x-subscription-status'];
+  async use(req: Request, res: Response, next: NextFunction) {
+    // Skip subscription check for auth and health routes
+    if (req.baseUrl.includes('/auth') || req.baseUrl.includes('/health')) {
+      return next();
+    }
 
-    if (subscriptionStatus === 'expired') {
-      throw new ForbiddenException('Subscription has expired. Please renew.');
+    const tenantId = req.headers['x-tenant-id'];
+
+    if (tenantId) {
+      const subscription = await this.prisma.tenantSubscription.findFirst({
+        where: {
+          tenantId: tenantId as string,
+          expiryDate: { gt: new Date() }, // Check if not expired
+        },
+      });
+
+      if (!subscription) {
+        throw new ForbiddenException('Institute subscription is missing or expired.');
+      }
     }
 
     next();
