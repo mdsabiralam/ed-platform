@@ -464,3 +464,41 @@ enum UserRole {
   MCM
   SUPPLIER
 }
+// 3.A.01 Concierge Requests
+model ConciergeRequest {
+  id           String        @id @default(uuid())
+  teacherId    String        @map("teacher_id")
+  subject      String
+  instructions String
+  rawImageUrl  String?       @map("raw_image_url")
+  status       RequestStatus @default(PENDING)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  assignment   Assignment?
+
+  @@map("concierge_requests")
+}
+
+// 3.A.02 Request Status Enum
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+// 3.A.03 Assignments
+model Assignment {
+  id          String   @id @default(uuid())
+  requestId   String   @unique @map("request_id")
+  title       String
+  description String?
+  dueDate     DateTime @map("due_date")
+  questions   Json     // List of strings
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  request     ConciergeRequest @relation(fields: [requestId], references: [id])
+
+  @@map("assignments")
+}
