@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
+import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -29,7 +29,8 @@ describe('Security: SQL Injection Vulnerability Test (e2e)', () => {
     
     const maliciousSubdomain = "' OR '1'='1";
     
-    const response = await request(app.getHttpServer())
+    const req = request as any;
+    const response = await req(app.getHttpServer())
       .post('/tenants')
       .send({
         name: 'Hacker School',
