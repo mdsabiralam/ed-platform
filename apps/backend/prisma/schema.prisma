@@ -40,6 +40,15 @@ model Tenant {
   kycDocuments       KycDocument[]
   gradingScales      GradingScale[]
 
+  defaultGradingScaleId String? @map("default_grading_scale_id")
+  defaultGradingScale   GradingScale? @relation("DefaultGradingScale", fields: [defaultGradingScaleId], references: [id])
+
+  subjects           Subject[]
+  gradingMaps        SubjectGradingMap[]
+  exams              Exam[]
+  examTerms          ExamTerm[]
+  marksheetTemplates MarksheetTemplate[]
+
   @@map("tenants")
 }
 
@@ -279,6 +288,12 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  gradingMaps SubjectGradingMap[]
+  exams       Exam[]
+  markEntryStatuses MarkEntryStatus[]
+
+  templateId   String?            @map("template_id")
+  template     MarksheetTemplate? @relation(fields: [templateId], references: [id])
 
   @@map("classes")
 }
@@ -292,6 +307,9 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+
+  classTeacherId String?       @map("class_teacher_id")
+  classTeacher   StaffProfile? @relation(fields: [classTeacherId], references: [id])
 
   @@map("sections")
 }
@@ -317,6 +335,8 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  marks             StudentMark[]
+  resultSummaries   ResultSummary[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -357,6 +377,9 @@ model StaffProfile {
   joiningDate  DateTime @map("joining_date")
   deletedAt    DateTime? @map("deleted_at")
   
+  signatureUrl String?  @map("signature_url")
+  sections     Section[]
+
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
 
@@ -466,6 +489,12 @@ enum UserRole {
   SUPPLIER
 }
 
+enum SubmissionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+}
+
 // 6.B.01 Grading Logic Table
 model GradingScale {
   id           String   @id @default(uuid())
@@ -478,6 +507,9 @@ model GradingScale {
 
   tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gradingLogics GradingLogic[]
+
+  defaultForTenants Tenant[] @relation("DefaultGradingScale")
+  subjectMaps       SubjectGradingMap[]
 
   @@map("grading_scales")
 }
@@ -493,4 +525,201 @@ model GradingLogic {
   scale      GradingScale @relation(fields: [scaleId], references: [id], onDelete: Cascade)
 
   @@map("grading_logics")
+}
+
+// 6.B.04 Subject Grading Map
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gradingMaps SubjectGradingMap[]
+  exams       Exam[]
+  marks       StudentMark[]
+  markEntryStatuses MarkEntryStatus[]
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+model SubjectGradingMap {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("school_id")
+  subjectId      String   @map("subject_id")
+  classId        String?  @map("class_id")
+  gradingScaleId String   @map("grading_scale_id")
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class        Class?       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  gradingScale GradingScale @relation(fields: [gradingScaleId], references: [id], onDelete: Cascade)
+
+  @@map("subject_grading_maps")
+}
+
+// 6.D.01 Student Marks & Exam
+model Exam {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  name         String
+  classId      String   @map("class_id")
+  subjectId    String   @map("subject_id")
+  maxTheory    Float    @default(100) @map("max_theory")
+  maxPractical Float    @default(0) @map("max_practical")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  class        Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject      Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  studentMarks StudentMark[]
+  markEntryStatus MarkEntryStatus?
+
+  examTermId   String?       @map("exam_term_id")
+  examTerm     ExamTerm?     @relation(fields: [examTermId], references: [id])
+  analytics    SubjectAnalytics?
+
+  @@map("exams")
+}
+
+model MarkEntryStatus {
+  id          String           @id @default(uuid())
+  examId      String           @unique @map("exam_id")
+  classId     String           @map("class_id")
+  subjectId   String           @map("subject_id")
+  status      SubmissionStatus @default(DRAFT)
+  submittedBy String?          @map("submitted_by")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  exam        Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class       Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject     Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, classId, subjectId])
+  @@map("mark_entry_statuses")
+}
+
+model StudentMark {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  examId         String   @map("exam_id")
+  subjectId      String   @map("subject_id")
+  theoryMarks    Float    @default(0) @map("theory_marks")
+  practicalMarks Float    @default(0) @map("practical_marks")
+  totalMarks     Float    @map("total_marks")
+  isAbsent       Boolean  @default(false) @map("is_absent")
+  gradeLabel     String?  @map("grade_label")
+  remarks        String?
+
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam           Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId, subjectId])
+  @@map("student_marks")
+}
+
+// 6.E.01 Result Summary
+model ExamTerm {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  name        String
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  weightage   Float    @default(0.0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resultSummaries ResultSummary[]
+  exams       Exam[]
+  calculationLogs CalculationLog[]
+
+  @@unique([tenantId, name])
+  @@map("exam_terms")
+}
+
+enum ResultStatus {
+  PASS
+  FAIL
+  WITHHELD
+  COMPARTMENT
+}
+
+model ResultSummary {
+  id           String       @id @default(uuid())
+  studentId    String       @map("student_id")
+  examTermId   String       @map("exam_term_id")
+  totalMarks   Float        @map("total_marks")
+  percentage   Float
+  classRank    Int          @map("class_rank")
+  sectionRank  Int          @map("section_rank")
+  resultStatus ResultStatus @map("result_status")
+  calculatedAt DateTime     @default(now()) @map("calculated_at")
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examTerm     ExamTerm     @relation(fields: [examTermId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examTermId])
+  @@map("result_summaries")
+}
+
+enum CalculationStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model CalculationLog {
+  id             String            @id @default(uuid())
+  examTermId     String            @map("exam_term_id")
+  status         CalculationStatus @default(PROCESSING)
+  startedAt      DateTime          @default(now()) @map("started_at")
+  completedAt    DateTime?         @map("completed_at")
+  processedCount Int               @default(0) @map("processed_count")
+  errorLog       Json?             @map("error_log")
+
+  examTerm       ExamTerm          @relation(fields: [examTermId], references: [id], onDelete: Cascade)
+
+  @@map("calculation_logs")
+}
+
+model SubjectAnalytics {
+  id          String   @id @default(uuid())
+  examId      String   @unique @map("exam_id")
+  average     Float
+  highest     Float
+  lowest      Float
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@map("subject_analytics")
+}
+
+enum PageSize {
+  A4
+  LETTER
+}
+
+model MarksheetTemplate {
+  id                 String   @id @default(uuid())
+  tenantId           String   @map("school_id")
+  name               String
+  structureJson      Json     @map("structure_json")
+  backgroundImageUrl String?  @map("background_image_url")
+  disclaimerText     String?  @map("disclaimer_text")
+  pageSize           PageSize @default(A4) @map("page_size")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  classes            Class[]
+
+  @@map("marksheet_templates")
 }
