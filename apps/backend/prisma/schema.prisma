@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  subjects           Subject[]
 
   @@map("tenants")
 }
@@ -278,6 +279,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  generatedPapers GeneratedPaper[]
 
   @@map("classes")
 }
@@ -463,4 +465,97 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// 7.D.01 Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  blueprints QuestionBlueprint[]
+  chapters   Chapter[]
+  questions  Question[]
+
+  @@map("subjects")
+}
+
+enum QuestionType {
+  MCQ
+  SHORT_ANSWER
+  LONG_ANSWER
+  TRUE_FALSE
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model Chapter {
+  id        String   @id @default(uuid())
+  subjectId String   @map("subject_id")
+  name      String
+
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  questions Question[]
+
+  @@map("chapters")
+}
+
+model Question {
+  id          String   @id @default(uuid())
+  subjectId   String   @map("subject_id")
+  chapterId   String   @map("chapter_id")
+  type        QuestionType
+  difficulty  DifficultyLevel
+  marks       Int
+  content     String
+  options     Json?    // For MCQs
+  correctAnswer String? @map("correct_answer")
+
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  chapter     Chapter  @relation(fields: [chapterId], references: [id])
+
+  @@map("questions")
+}
+
+// 7.D.01 & 7.D.02 Question Blueprint
+model QuestionBlueprint {
+  id                  String   @id @default(uuid())
+  name                String
+  subjectId           String   @map("subject_id")
+  totalMarks          Int      @map("total_marks")
+  durationMinutes     Int      @map("duration_minutes")
+  structure           Json
+  difficultyDistribution Json  @map("difficulty_distribution")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  subject             Subject  @relation(fields: [subjectId], references: [id])
+  generatedPapers     GeneratedPaper[]
+
+  @@map("question_blueprints")
+}
+
+// 7.D.09 Generated Paper
+model GeneratedPaper {
+  id            String   @id @default(uuid())
+  blueprintId   String   @map("blueprint_id")
+  classId       String   @map("class_id")
+  examDate      DateTime @map("exam_date")
+  questionsJson Json     @map("questions_json") // List of selected Question IDs
+  isFinalized   Boolean  @default(false) @map("is_finalized")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  blueprint     QuestionBlueprint @relation(fields: [blueprintId], references: [id])
+  class         Class             @relation(fields: [classId], references: [id])
+
+  @@map("generated_papers")
 }
