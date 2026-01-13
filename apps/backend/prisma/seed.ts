@@ -8,9 +8,9 @@ async function main() {
 
   // 2.B.09 Seed Plans
   const plans = [
-    { name: 'Silver', priceMonthly: 2000, featuresConfig: { students: 100, storage: '5GB' } },
-    { name: 'Gold', priceMonthly: 5000, featuresConfig: { students: 500, storage: '20GB' } },
-    { name: 'Platinum', priceMonthly: 10000, featuresConfig: { students: 'Unlimited', storage: '100GB' } },
+    { name: 'Silver', priceMonthly: 2000, priceYearly: 20000, featuresConfig: { students: 100, storage: '5GB' } },
+    { name: 'Gold', priceMonthly: 5000, priceYearly: 50000, featuresConfig: { students: 500, storage: '20GB' } },
+    { name: 'Platinum', priceMonthly: 10000, priceYearly: 100000, featuresConfig: { students: 'Unlimited', storage: '100GB' } },
   ];
 
   for (const plan of plans) {
@@ -20,11 +20,48 @@ async function main() {
       create: {
         name: plan.name,
         priceMonthly: plan.priceMonthly,
+        priceYearly: plan.priceYearly,
         featuresConfig: plan.featuresConfig,
       },
     });
   }
   console.log('Plans seeded.');
+
+  // Create Default Institute (Requirement 1)
+  const defaultInstituteName = 'Greenwood High';
+  const defaultSubdomain = 'greenwood';
+
+  const institute = await prisma.institute.upsert({
+    where: { subdomain: defaultSubdomain },
+    update: {},
+    create: {
+        name: defaultInstituteName,
+        subdomain: defaultSubdomain,
+        isActive: true,
+        logoUrl: 'https://example.com/logo.png',
+        subscriptionStatus: 'ACTIVE'
+    }
+  });
+  console.log({ institute });
+
+  // Create Default Subscription for the Institute
+  // We need a plan first
+  const silverPlan = await prisma.plan.findUnique({ where: { name: 'Silver' } });
+  if (silverPlan) {
+      await prisma.instituteSubscription.upsert({
+          where: { instituteId: institute.id },
+          update: {},
+          create: {
+              instituteId: institute.id,
+              planId: silverPlan.id,
+              billingCycle: 'YEARLY',
+              expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // 1 year from now
+              autoRenew: true
+          }
+      });
+      console.log('Subscription seeded.');
+  }
+
 
   // ১. পাসওয়ার্ড হ্যাশ করা (নিরাপত্তার জন্য)
   const saltRounds = 10;
