@@ -464,3 +464,35 @@ enum UserRole {
   MCM
   SUPPLIER
 }
+
+model TextbookEmbedding {
+  id           String                 @id @default(uuid())
+  subjectId    String                 @map("subject_id")
+  chapterId    String                 @map("chapter_id")
+  contentChunk String                 @map("content_chunk")
+  pageNumber   Int                    @map("page_number")
+  vector       Unsupported("vector(1536)")
+
+  @@map("textbook_embeddings")
+}
+model AiRequestLog {
+  id        String   @id @default(uuid())
+  studentId String   @map("student_id")
+  endpoint  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_request_logs")
+}
+
+model AiInteraction {
+  id        String   @id @default(uuid())
+  studentId String   @map("student_id")
+  question  String
+  answer    String
+  context   Json?
+  sourcePage Int?    @map("source_page")
+  isHelpful Boolean? @map("is_helpful")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ai_interactions")
+}
