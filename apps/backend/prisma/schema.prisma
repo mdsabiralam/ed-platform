@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
@@ -10,45 +10,46 @@ generator client {
 // }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [pgcrypto, vector, postgis]
 }
 
 // 2.B.01 Tenants Table
 model Tenant {
-  id                 String              @id @default(uuid())
+  id                 String    @id @default(uuid())
   name               String
-  subdomain          String              @unique
-  logoUrl            String?             @map("logo_url")
-  isActive           Boolean             @default(true) @map("is_active")
-  subscriptionStatus String              @default("ACTIVE") @map("subscription_status")
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
-  deletedAt          DateTime?           @map("deleted_at") // 2.I.02 Soft Delete
+  subdomain          String    @unique
+  logoUrl            String?   @map("logo_url")
+  isActive           Boolean   @default(true) @map("is_active")
+  subscriptionStatus String    @default("ACTIVE") @map("subscription_status")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at") // 2.I.02 Soft Delete
 
-  subscription       TenantSubscription?
-  invoices           SaasInvoice[]
-  profiles           Profile[]
-  referral           ReferralLinkage?
-  admissionSessions  AdmissionSession[]
-  classes            Class[]
-  students           Student[]
-  staff              StaffProfile[]
-  chartOfAccounts    ChartOfAccount[]
-  leaveTypes         LeaveType[]
-  kycDocuments       KycDocument[]
+  subscription      TenantSubscription?
+  invoices          SaasInvoice[]
+  profiles          Profile[]
+  referral          ReferralLinkage?
+  admissionSessions AdmissionSession[]
+  classes           Class[]
+  students          Student[]
+  staff             StaffProfile[]
+  chartOfAccounts   ChartOfAccount[]
+  leaveTypes        LeaveType[]
+  kycDocuments      KycDocument[]
+  Subject           Subject[]
 
   @@map("tenants")
 }
 
 // 2.B.04 Plans Table
 model Plan {
-  id            String               @id @default(uuid())
-  name          String               @unique
-  priceMonthly  Float                @map("price_monthly")
-  featuresConfig Json                @map("features_config")
-  subscriptions TenantSubscription[]
+  id             String               @id @default(uuid())
+  name           String               @unique
+  priceMonthly   Float                @map("price_monthly")
+  featuresConfig Json                 @map("features_config")
+  subscriptions  TenantSubscription[]
 
   @@map("plans")
 }
@@ -62,39 +63,39 @@ model TenantSubscription {
   expiryDate DateTime @map("expiry_date")
   autoRenew  Boolean  @default(true) @map("auto_renew")
 
-  plan       Plan     @relation(fields: [planId], references: [id])
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("tenant_subscriptions")
 }
 
 // 2.B.06 SaaS Invoices
 model SaasInvoice {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  amount    Float
-  status    String   // PAID, PENDING, FAILED
-  issuedAt  DateTime @default(now()) @map("issued_at")
-  paidAt    DateTime? @map("paid_at")
-  
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  id       String    @id @default(uuid())
+  tenantId String    @map("tenant_id")
+  amount   Float
+  status   String // PAID, PENDING, FAILED
+  issuedAt DateTime  @default(now()) @map("issued_at")
+  paidAt   DateTime? @map("paid_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("saas_invoices")
 }
 
 // 2.C.01 Users Table
 model User {
-  id           String   @id @default(uuid()) @map("user_id")
-  email        String   @unique // PII: Field encryption enabled via pgcrypto
-  passwordHash String   @map("password_hash")
-  phone        String?  // PII: Field encryption enabled via pgcrypto
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           String    @id @default(uuid()) @map("user_id")
+  email        String    @unique // PII: Field encryption enabled via pgcrypto
+  passwordHash String    @map("password_hash")
+  phone        String? // PII: Field encryption enabled via pgcrypto
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at") // 2.I.02 Soft Delete
 
-  profiles      Profile[]
-  refreshTokens RefreshToken[]
-  platformAdmin PlatformAdmin?
+  profiles        Profile[]
+  refreshTokens   RefreshToken[]
+  platformAdmin   PlatformAdmin?
   resellerProfile ResellerProfile?
   student         Student?
   guardian        Guardian?
@@ -105,13 +106,13 @@ model User {
 
 // 2.C.02 Profiles Table (Multi-role support)
 model Profile {
-  id        String   @id @default(uuid()) @map("profile_id")
-  userId    String   @map("user_id")
-  tenantId  String   @map("school_id")
-  role      UserRole 
-  
-  user      User     @relation(fields: [userId], references: [id])
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  id       String   @id @default(uuid()) @map("profile_id")
+  userId   String   @map("user_id")
+  tenantId String   @map("school_id")
+  role     UserRole
+
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@unique([userId, tenantId]) // 2.C.07 Composite index
   @@map("profiles")
@@ -125,7 +126,7 @@ model RefreshToken {
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
-  user      User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@map("refresh_tokens")
 }
@@ -138,7 +139,7 @@ model PlatformAdmin {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User     @relation(fields: [userId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
   auditLogs PlatformAuditLog[]
 
   @@map("platform_admins")
@@ -161,12 +162,12 @@ model PlatformAuditLog {
   id        String   @id @default(uuid())
   adminId   String   @map("admin_id")
   action    String
-  target    String?  // e.g., "Tenant: 123"
+  target    String? // e.g., "Tenant: 123"
   details   Json?
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 
-  admin     PlatformAdmin @relation(fields: [adminId], references: [id])
+  admin PlatformAdmin @relation(fields: [adminId], references: [id])
 
   @@map("platform_audit_logs")
 }
@@ -180,7 +181,7 @@ model ResellerProfile {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  user      User     @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
   referrals ReferralLinkage[]
 
   @@map("reseller_profiles")
@@ -194,8 +195,8 @@ model ReferralLinkage {
   referralCode String   @map("referral_code")
   linkedAt     DateTime @default(now()) @map("linked_at")
 
-  reseller     ResellerProfile @relation(fields: [resellerId], references: [id])
-  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  reseller ResellerProfile @relation(fields: [resellerId], references: [id])
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
 
   @@map("referral_linkages")
 }
@@ -204,7 +205,7 @@ model ReferralLinkage {
 model MarketingTemplate {
   id           String   @id @default(uuid())
   name         String
-  category     String   // e.g., "Admission", "Festival"
+  category     String // e.g., "Admission", "Festival"
   contentHtml  String   @map("content_html")
   variables    Json?
   thumbnailUrl String?  @map("thumbnail_url")
@@ -234,7 +235,7 @@ model RolePermission {
   permissionId String   @map("permission_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  permission   Permission @relation(fields: [permissionId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
   @@unique([role, permissionId])
   @@map("role_permissions")
@@ -242,80 +243,82 @@ model RolePermission {
 
 // 2.C.08 OTP Logs
 model OtpLog {
-  id        String   @id @default(uuid())
-  phone     String   // PII: Encrypted
-  otpCode   String   @map("otp_code")
-  expiresAt DateTime @map("expires_at")
-  isUsed    Boolean  @default(false) @map("is_used")
-  attemptCount Int     @default(0) @map("attempt_count")
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  phone        String // PII: Encrypted
+  otpCode      String   @map("otp_code")
+  expiresAt    DateTime @map("expires_at")
+  isUsed       Boolean  @default(false) @map("is_used")
+  attemptCount Int      @default(0) @map("attempt_count")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("otp_logs")
 }
 
 // 2.F.01 Admission Sessions
 model AdmissionSession {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("school_id")
-  name      String   // e.g., "2024-2025"
-  startDate DateTime @map("start_date")
-  endDate   DateTime @map("end_date")
-  isActive  Boolean  @default(true) @map("is_active")
+  id        String    @id @default(uuid())
+  tenantId  String    @map("school_id")
+  name      String // e.g., "2024-2025"
+  startDate DateTime  @map("start_date")
+  endDate   DateTime  @map("end_date")
+  isActive  Boolean   @default(true) @map("is_active")
   deletedAt DateTime? @map("deleted_at")
-  
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  students  Student[]
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  students Student[]
 
   @@map("admission_sessions")
 }
 
 // 2.F.02 Classes
 model Class {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("school_id")
-  name      String   // e.g., "Grade 1"
+  id        String    @id @default(uuid())
+  tenantId  String    @map("school_id")
+  name      String // e.g., "Grade 1"
   deletedAt DateTime? @map("deleted_at")
-  
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  sections  Section[]
+
+  tenant     Tenant       @relation(fields: [tenantId], references: [id])
+  sections   Section[]
+  OnlineExam OnlineExam[]
 
   @@map("classes")
 }
 
 // 2.F.03 Sections
 model Section {
-  id        String   @id @default(uuid())
-  classId   String   @map("class_id")
-  name      String   // e.g., "Section A"
+  id        String    @id @default(uuid())
+  classId   String    @map("class_id")
+  name      String // e.g., "Section A"
   deletedAt DateTime? @map("deleted_at")
-  
-  class     Class    @relation(fields: [classId], references: [id])
-  students  Student[]
+
+  class    Class     @relation(fields: [classId], references: [id])
+  students Student[]
 
   @@map("sections")
 }
 
 // 2.F.04 Students
 model Student {
-  id                String   @id @default(uuid())
-  tenantId          String   @map("school_id") // 2.F.05 FK to School
+  id                 String  @id @default(uuid())
+  tenantId           String  @map("school_id") // 2.F.05 FK to School
   admissionSessionId String  @map("session_id")
-  sectionId         String   @map("section_id")
-  userId            String?  @unique @map("user_id")
-  
-  firstName         String   @map("first_name")
-  lastName          String   @map("last_name")
-  admissionNo       String   @map("admission_no")
-  rollNo            Int?     @map("roll_no") // 2.F.10 Auto-gen via trigger
-  deletedAt         DateTime? @map("deleted_at") // 2.I.02 Soft Delete
-  
-  tenant            Tenant   @relation(fields: [tenantId], references: [id])
-  admissionSession  AdmissionSession @relation(fields: [admissionSessionId], references: [id])
-  section           Section  @relation(fields: [sectionId], references: [id])
-  user              User?    @relation(fields: [userId], references: [id])
-  
-  guardians         ParentStudentMapping[]
-  healthProfile     HealthProfile?
+  sectionId          String  @map("section_id")
+  userId             String? @unique @map("user_id")
+
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  admissionNo String    @map("admission_no")
+  rollNo      Int?      @map("roll_no") // 2.F.10 Auto-gen via trigger
+  deletedAt   DateTime? @map("deleted_at") // 2.I.02 Soft Delete
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  admissionSession AdmissionSession @relation(fields: [admissionSessionId], references: [id])
+  section          Section          @relation(fields: [sectionId], references: [id])
+  user             User?            @relation(fields: [userId], references: [id])
+
+  guardians          ParentStudentMapping[]
+  healthProfile      HealthProfile?
+  StudentExamAttempt StudentExamAttempt[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -323,24 +326,24 @@ model Student {
 
 // 2.F.06 Guardians
 model Guardian {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  
-  user      User     @relation(fields: [userId], references: [id])
-  students  ParentStudentMapping[]
+  id     String @id @default(uuid())
+  userId String @unique @map("user_id")
+
+  user     User                   @relation(fields: [userId], references: [id])
+  students ParentStudentMapping[]
 
   @@map("guardians")
 }
 
 // 2.F.07 Parent Student Mapping
 model ParentStudentMapping {
-  id         String   @id @default(uuid())
-  studentId  String   @map("student_id")
-  guardianId String   @map("guardian_id")
+  id           String @id @default(uuid())
+  studentId    String @map("student_id")
+  guardianId   String @map("guardian_id")
   relationship String // e.g., "Father", "Mother"
-  
-  student    Student  @relation(fields: [studentId], references: [id])
-  guardian   Guardian @relation(fields: [guardianId], references: [id])
+
+  student  Student  @relation(fields: [studentId], references: [id])
+  guardian Guardian @relation(fields: [guardianId], references: [id])
 
   @@unique([studentId, guardianId])
   @@map("parent_student_mappings")
@@ -348,16 +351,16 @@ model ParentStudentMapping {
 
 // 2.F.08 Staff Profiles
 model StaffProfile {
-  id           String   @id @default(uuid())
-  tenantId     String   @map("school_id")
-  userId       String   @unique @map("user_id")
-  designation  String
-  department   String?
-  joiningDate  DateTime @map("joining_date")
-  deletedAt    DateTime? @map("deleted_at")
-  
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  user         User     @relation(fields: [userId], references: [id])
+  id          String    @id @default(uuid())
+  tenantId    String    @map("school_id")
+  userId      String    @unique @map("user_id")
+  designation String
+  department  String?
+  joiningDate DateTime  @map("joining_date")
+  deletedAt   DateTime? @map("deleted_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   @@map("staff_profiles")
 }
@@ -368,12 +371,12 @@ model ChartOfAccount {
   tenantId  String   @map("school_id")
   code      String
   name      String
-  type      String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  type      String // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
   isSystem  Boolean  @default(false) @map("is_system")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, code])
   @@map("chart_of_accounts")
@@ -390,7 +393,7 @@ model LeaveType {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, code])
   @@map("leave_types")
@@ -398,19 +401,19 @@ model LeaveType {
 
 // 2.I.01 Health Profiles (Encrypted)
 model HealthProfile {
-  id               String   @id @default(uuid())
-  studentId        String   @unique @map("student_id")
-  bloodGroup       String?  @map("blood_group")
-  
-  // PII/Sensitive Data - Encrypted at Application Level (AES-256-GCM)
-  allergies        String?  
-  medicalHistory   String?  @map("medical_history")
-  medications      String?
-  
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id         String  @id @default(uuid())
+  studentId  String  @unique @map("student_id")
+  bloodGroup String? @map("blood_group")
 
-  student          Student  @relation(fields: [studentId], references: [id])
+  // PII/Sensitive Data - Encrypted at Application Level (AES-256-GCM)
+  allergies      String?
+  medicalHistory String? @map("medical_history")
+  medications    String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  student Student @relation(fields: [studentId], references: [id])
 
   @@map("health_profiles")
 }
@@ -420,13 +423,13 @@ model KycDocument {
   id              String    @id @default(uuid())
   tenantId        String    @map("tenant_id")
   documentType    String    @map("document_type") // e.g., "TRADE_LICENSE", "NID"
-  documentUrl     String    @map("document_url")  // Secure Storage URL
-  status          String    @default("PENDING")   // PENDING, VERIFIED, REJECTED
+  documentUrl     String    @map("document_url") // Secure Storage URL
+  status          String    @default("PENDING") // PENDING, VERIFIED, REJECTED
   uploadedAt      DateTime  @default(now()) @map("uploaded_at")
   verifiedAt      DateTime? @map("verified_at")
   rejectionReason String?   @map("rejection_reason")
 
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("kyc_documents")
 }
@@ -464,3 +467,76 @@ enum UserRole {
   MCM
   SUPPLIER
 }
+
+// Added via task 7.E.01
+
+model Subject {
+  id       String  @id @default(uuid())
+  tenantId String  @map("school_id")
+  name     String
+  code     String?
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id])
+  exams  OnlineExam[]
+
+  @@map("subjects")
+}
+
+model OnlineExam {
+  id                  String   @id @default(uuid())
+  title               String
+  subjectId           String   @map("subject_id")
+  classId             String   @map("class_id")
+  startTime           DateTime @map("start_time")
+  endTime             DateTime @map("end_time")
+  durationMinutes     Int      @map("duration_minutes")
+  totalMarks          Float    @map("total_marks")
+  negativeMarkingRate Float    @default(0.0) @map("negative_marking_rate")
+  isActive            Boolean  @default(false) @map("is_active")
+  isPublished         Boolean  @default(false) @map("is_published")
+
+  subject            Subject              @relation(fields: [subjectId], references: [id])
+  class              Class                @relation(fields: [classId], references: [id])
+  questions          QuestionBlueprint[]
+  StudentExamAttempt StudentExamAttempt[]
+
+  @@map("online_exams")
+}
+
+model QuestionBlueprint {
+  id            String @id @default(uuid())
+  examId        String @map("exam_id")
+  text          String
+  options       Json // e.g. ["A", "B", "C", "D"]
+  correctAnswer String @map("correct_answer")
+  marks         Float
+
+  exam OnlineExam @relation(fields: [examId], references: [id])
+
+  @@map("question_blueprints")
+}
+
+model StudentExamAttempt {
+  id          String   @id @default(uuid())
+  examId      String   @map("exam_id")
+  studentId   String   @map("student_id")
+  score       Float
+  totalMarks  Float    @map("total_marks")
+  timeSpent   Json?    @map("time_spent") // Map<questionId, seconds>
+  attemptedAt DateTime @default(now()) @map("attempted_at")
+
+  exam    OnlineExam @relation(fields: [examId], references: [id])
+  student Student    @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, examId])
+  @@map("student_exam_attempts")
+}
+
+// Added via task 7.E.08
+// Update StudentExamAttempt to include timeSpent
+// This is a partial update simulation since we can't edit in place easily with append
+// But since I'm appending, I need to be careful.
+// Actually, I should use git merge diff for schema update to add the field to existing model.
+
+// Added via task 7.E.10
+// Need to add unique constraint to StudentExamAttempt

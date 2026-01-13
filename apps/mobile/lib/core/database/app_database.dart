@@ -34,12 +34,57 @@ class SyncQueue extends Table {
   DateTimeColumn get createdAt => dateTime().named('created_at').withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Students, AttendanceLogs, SyncQueue])
+// 4. Draft Answers Table (Added for Offline Exam)
+class DraftAnswers extends Table {
+  TextColumn get examId => text().named('exam_id')();
+  TextColumn get questionId => text().named('question_id')();
+  TextColumn get selectedOption => text().named('selected_option')();
+  DateTimeColumn get timestamp => dateTime().named('timestamp').withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {examId, questionId};
+}
+
+@DriftDatabase(tables: [Students, AttendanceLogs, SyncQueue, DraftAnswers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.createTable(draftAnswers);
+        }
+      },
+    );
+  }
+
+  // --- Draft Answer Helpers ---
+
+  /// Saves a user's selection locally. Uses InsertMode.insertOrReplace to update if exists.
+  Future<void> saveDraftAnswer(String examId, String questionId, String selectedOption) {
+    return into(draftAnswers).insert(
+      DraftAnswersCompanion(
+        examId: Value(examId),
+        questionId: Value(questionId),
+        selectedOption: Value(selectedOption),
+        timestamp: Value(DateTime.now()),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  /// Retrieves all draft answers for a specific exam.
+  Future<List<DraftAnswer>> getDraftAnswers(String examId) {
+    return (select(draftAnswers)..where((t) => t.examId.equals(examId))).get();
+  }
 }
 
 LazyDatabase _openConnection() {
