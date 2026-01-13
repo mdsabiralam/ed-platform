@@ -1,9 +1,136 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+async function cleanUp() {
+  console.log('Cleaning up database...');
+  // Delete in reverse order of dependencies to avoid foreign key constraints
+  await prisma.rolePermission.deleteMany({});
+  await prisma.permission.deleteMany({});
+  await prisma.parentStudentMapping.deleteMany({});
+  await prisma.guardian.deleteMany({});
+  await prisma.student.deleteMany({});
+  await prisma.staffProfile.deleteMany({});
+  await prisma.profile.deleteMany({});
+  await prisma.platformAdmin.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.leaveType.deleteMany({}); // HR
+  await prisma.chartOfAccount.deleteMany({}); // Finance
+  await prisma.tenantSubscription.deleteMany({});
+  await prisma.plan.deleteMany({});
+  await prisma.tenant.deleteMany({});
+  console.log('Database cleanup completed.');
+}
+
+async function seedPermissions() {
+  console.log('Seeding permissions...');
+
+  // Define permissions
+  const permissions = [
+    { action: 'can_mark_attendance', description: 'Allows marking student attendance' },
+    { action: 'can_view_own_schedule', description: 'Allows viewing own class schedule' },
+    { action: 'can_collect_fees', description: 'Allows collecting student fees' },
+  ];
+
+  // Create Permission records
+  for (const perm of permissions) {
+    await prisma.permission.create({
+      data: perm,
+    });
+  }
+
+  // Define Role Mappings
+  const roleMappings = [
+    {
+      role: UserRole.TEACHER,
+      actions: ['can_mark_attendance', 'can_view_own_schedule'],
+    },
+    {
+      role: UserRole.STAFF, // Mapping ACCOUNTANT use case to STAFF role
+      actions: ['can_collect_fees'],
+    },
+  ];
+
+  // Create RolePermission records
+  for (const mapping of roleMappings) {
+    for (const action of mapping.actions) {
+      const permission = await prisma.permission.findUnique({
+        where: { action },
+      });
+
+      if (permission) {
+        await prisma.rolePermission.create({
+          data: {
+            role: mapping.role,
+            permissionId: permission.id,
+          },
+        });
+      }
+    }
+  }
+  console.log('Permissions and Role Mappings seeded.');
+}
+
+async function seedChartOfAccounts(tenantId: string) {
+  console.log('Seeding Chart of Accounts...');
+  const coaData = [
+    // Assets
+    { code: '1001', name: 'Cash in Hand', type: 'ASSET' },
+    { code: '1002', name: 'Bank Accounts', type: 'ASSET' },
+    // Revenue
+    { code: '4001', name: 'Tuition Fees', type: 'REVENUE' },
+    { code: '4002', name: 'Transport Fees', type: 'REVENUE' },
+    { code: '4003', name: 'Admission Fees', type: 'REVENUE' },
+    // Expenses
+    { code: '5001', name: 'Staff Salary', type: 'EXPENSE' },
+    { code: '5002', name: 'Utility Bills', type: 'EXPENSE' },
+    { code: '5003', name: 'Maintenance', type: 'EXPENSE' },
+  ];
+
+  for (const acc of coaData) {
+    await prisma.chartOfAccount.create({
+      data: {
+        tenantId: tenantId,
+        code: acc.code,
+        name: acc.name,
+        type: acc.type,
+        isSystem: true, // Mark as template/system default
+      },
+    });
+  }
+  console.log('Chart of Accounts seeded.');
+}
+
+async function seedLeaveTypes(tenantId: string) {
+  console.log('Seeding Leave Types...');
+  const leaveData = [
+    { code: 'CL', name: 'Casual Leave', daysAllowed: 12, isPaid: true },
+    { code: 'SL', name: 'Sick Leave', daysAllowed: 10, isPaid: true },
+    { code: 'PL', name: 'Privilege Leave', daysAllowed: 15, isPaid: true },
+  ];
+
+  for (const leave of leaveData) {
+    await prisma.leaveType.create({
+      data: {
+        tenantId: tenantId,
+        code: leave.code,
+        name: leave.name,
+        daysAllowed: leave.daysAllowed,
+        isPaid: leave.isPaid,
+      },
+    });
+  }
+  console.log('Leave Types seeded.');
+}
+
 async function main() {
+  // 1. Clean up existing data
+  await cleanUp();
+
+  // 2. Seed Permissions
+  await seedPermissions();
+
   console.log('Seeding database...');
 
   // 2.B.09 Seed Plans
@@ -11,13 +138,12 @@ async function main() {
     { name: 'Silver', priceMonthly: 2000, featuresConfig: { students: 100, storage: '5GB' } },
     { name: 'Gold', priceMonthly: 5000, featuresConfig: { students: 500, storage: '20GB' } },
     { name: 'Platinum', priceMonthly: 10000, featuresConfig: { students: 'Unlimited', storage: '100GB' } },
+    { name: 'PLATFORM_OWNER', priceMonthly: 0, featuresConfig: { students: 'Unlimited', storage: 'Unlimited' } }, // High Tier
   ];
 
   for (const plan of plans) {
-    await prisma.plan.upsert({
-      where: { name: plan.name },
-      update: {},
-      create: {
+    await prisma.plan.create({
+      data: {
         name: plan.name,
         priceMonthly: plan.priceMonthly,
         featuresConfig: plan.featuresConfig,
@@ -26,24 +152,64 @@ async function main() {
   }
   console.log('Plans seeded.');
 
-  // ১. পাসওয়ার্ড হ্যাশ করা (নিরাপত্তার জন্য)
-  const saltRounds = 10;
-  const password = await bcrypt.hash('SuperSecretPassword123!', saltRounds);
+  // 2.H.04: Super Admin Institute Seed
+  // 1. Create 'EduMatrix HQ' Institute
+  const platformOwnerPlan = await prisma.plan.findUniqueOrThrow({ where: { name: 'PLATFORM_OWNER' } });
 
-  // 2.C.10 Create Super Admin User
-  // Note: In real scenario, Super Admin might not need a profile linked to a tenant immediately, 
-  // or linked to a default "Admin Tenant". For now, creating just the User.
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@edplatform.com' },
-    update: {}, // ইউজার ইতিমধ্যে থাকলে কিছু আপডেট করার দরকার নেই
-    create: {
-      email: 'admin@edplatform.com',
+  const eduMatrixHQ = await prisma.tenant.create({
+    data: {
+      name: 'EduMatrix HQ',
+      subdomain: 'admin',
+      subscriptionStatus: 'ACTIVE',
+      subscription: {
+        create: {
+          planId: platformOwnerPlan.id,
+          expiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 100)), // 100 years
+          autoRenew: true,
+        },
+      },
+    },
+  });
+  console.log(`Institute 'EduMatrix HQ' created with ID: ${eduMatrixHQ.id}`);
+
+  // 4. Create 'Super Admin' User linked to this institute
+  const saltRounds = 10;
+  const password = await bcrypt.hash('securePassword123', saltRounds); // Hashed password
+
+  const superAdmin = await prisma.user.create({
+    data: {
+      email: 'admin@edumatrix.com', // Using a specific email for the super admin
       passwordHash: password,
       phone: '+8801700000000',
+      profiles: {
+        create: {
+          tenantId: eduMatrixHQ.id,
+          role: UserRole.SUPER_ADMIN,
+        },
+      },
+      platformAdmin: {
+        create: {
+          role: 'SUPER_ADMIN',
+        },
+      },
+    },
+    include: {
+      profiles: true,
+      platformAdmin: true,
     },
   });
 
-  console.log({ superAdmin });
+  console.log('Super Admin user created:', {
+    email: superAdmin.email,
+    tenant: eduMatrixHQ.name,
+    role: superAdmin.profiles[0].role,
+  });
+
+  // 2.H.06: Seed Chart of Accounts for the Template Institute
+  await seedChartOfAccounts(eduMatrixHQ.id);
+
+  // 2.H.07: Seed Leave Types for the Template Institute
+  await seedLeaveTypes(eduMatrixHQ.id);
 }
 
 main()
