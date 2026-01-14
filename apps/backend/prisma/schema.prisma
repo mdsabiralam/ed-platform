@@ -39,6 +39,21 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  // Academic / Timetable Relations
+  subjects             Subject[]
+  rooms                Room[]
+  timeSlots            TimeSlot[]
+  routineEntries       RoutineEntry[]
+  routineSubstitutions RoutineSubstitution[]
+  homeworks            Homework[]
+  curriculumPlans      CurriculumPlan[]
+
+  // Exam Relations
+  examTerms            ExamTerm[]
+  examGroups           ExamGroup[]
+  exams                Exam[]
+  gradingScales        GradingScale[]
+
   @@map("tenants")
 }
 
@@ -278,6 +293,8 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  routineEntries RoutineEntry[]
+  exams        Exam[]
 
   @@map("classes")
 }
@@ -291,6 +308,8 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  routineEntries RoutineEntry[]
+  homeworks    Homework[]
 
   @@map("sections")
 }
@@ -316,6 +335,10 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  homeworkSubmissions HomeworkSubmission[]
+  hallTickets       HallTicket[]
+  marks             StudentMark[]
+  results           ResultSummary[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +381,11 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+
+  routineEntries RoutineEntry[] @relation("OriginalTeacher")
+  substitutions  RoutineSubstitution[] @relation("SubstituteTeacher")
+  assignedHomeworks Homework[] @relation("HomeworkTeacher")
+  invigilationDuties InvigilationDuty[]
 
   @@map("staff_profiles")
 }
@@ -463,4 +491,377 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// Academic / Timetable Models
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum SubstitutionStatus {
+  PENDING
+  ASSIGNED
+  COMPLETED
+  CANCELLED
+}
+
+enum HomeworkStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+}
+
+enum CurriculumStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  routineEntries RoutineEntry[]
+  homeworks    Homework[]
+  curriculumPlans CurriculumPlan[]
+  exams        Exam[]
+  gradingMaps  SubjectGradingMap[]
+  examSchedules ExamSchedule[]
+  marks        StudentMark[]
+
+  @@unique([tenantId, code])
+  @@map("subjects")
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  capacity  Int
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  routineEntries RoutineEntry[]
+  examSchedules  ExamSchedule[]
+  invigilationDuties InvigilationDuty[]
+
+  @@unique([tenantId, name])
+  @@map("rooms")
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+  name      String? // e.g., "Period 1"
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  routineEntries RoutineEntry[]
+
+  @@map("time_slots")
+}
+
+model RoutineEntry {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("school_id")
+  classId        String   @map("class_id")
+  sectionId      String   @map("section_id")
+  subjectId      String   @map("subject_id")
+  teacherId      String   @map("teacher_id") // Original Teacher
+  roomId         String?  @map("room_id")
+  slotId         String   @map("slot_id")
+  dayOfWeek      DayOfWeek @map("day_of_week")
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  class          Class        @relation(fields: [classId], references: [id])
+  section        Section      @relation(fields: [sectionId], references: [id])
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  originalTeacher StaffProfile @relation("OriginalTeacher", fields: [teacherId], references: [id])
+  room           Room?        @relation(fields: [roomId], references: [id])
+  slot           TimeSlot     @relation(fields: [slotId], references: [id])
+
+  substitutions  RoutineSubstitution[]
+
+  @@map("routine_entries")
+}
+
+model RoutineSubstitution {
+  id                 String   @id @default(uuid())
+  tenantId           String   @map("school_id")
+  routineEntryId     String   @map("routine_entry_id")
+  substituteTeacherId String?  @map("substitute_teacher_id")
+  date               DateTime
+  status             SubstitutionStatus @default(PENDING)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  tenant             Tenant        @relation(fields: [tenantId], references: [id])
+  routineEntry       RoutineEntry  @relation(fields: [routineEntryId], references: [id])
+  substituteTeacher  StaffProfile? @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id])
+
+  @@map("routine_substitutions")
+}
+
+model Homework {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  sectionId   String   @map("section_id")
+  subjectId   String   @map("subject_id")
+  teacherId   String   @map("teacher_id")
+  title       String
+  description String?
+  dueDate     DateTime @map("due_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  section     Section  @relation(fields: [sectionId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  teacher     StaffProfile @relation("HomeworkTeacher", fields: [teacherId], references: [id])
+  submissions HomeworkSubmission[]
+
+  @@map("homeworks")
+}
+
+model HomeworkSubmission {
+  id          String   @id @default(uuid())
+  homeworkId  String   @map("homework_id")
+  studentId   String   @map("student_id")
+  submissionUrl String? @map("submission_url")
+  status      HomeworkStatus @default(PENDING)
+  grade       String?  // e.g., "A", "5 stars"
+  feedback    String?
+  submittedAt DateTime? @map("submitted_at")
+
+  homework    Homework @relation(fields: [homeworkId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([homeworkId, studentId])
+  @@map("homework_submissions")
+}
+
+model CurriculumPlan {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  subjectId   String   @map("subject_id")
+  chapterName String   @map("chapter_name")
+  plannedDate DateTime? @map("planned_date")
+  actualCompletionDate DateTime? @map("actual_completion_date")
+  status      CurriculumStatus @default(PENDING)
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+
+  @@map("curriculum_plans")
+}
+
+// Division 6: Exam & Results
+
+model ExamTerm {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  name            String
+  weightagePercent Float   @map("weightage_percent")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  isActive        Boolean  @default(true) @map("is_active")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  exams           Exam[]
+  results         ResultSummary[]
+
+  @@unique([tenantId, name])
+  @@map("exam_terms")
+}
+
+model ExamType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  exams       Exam[]
+
+  @@map("exam_types")
+}
+
+model ExamGroup {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  exams     Exam[]
+  hallTickets HallTicket[]
+
+  @@map("exam_groups")
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  classId     String   @map("class_id")
+  subjectId   String   @map("subject_id")
+  termId      String   @map("term_id")
+  typeId      String   @map("type_id")
+  groupId     String?  @map("group_id")
+  maxMarks    Float    @map("max_marks")
+  examDate    DateTime @map("exam_date")
+  isLocked    Boolean  @default(false) @map("is_locked")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  term        ExamTerm @relation(fields: [termId], references: [id])
+  type        ExamType @relation(fields: [typeId], references: [id])
+  group       ExamGroup? @relation(fields: [groupId], references: [id])
+
+  examSchedules ExamSchedule[]
+  marks         StudentMark[]
+
+  @@map("exams")
+}
+
+model HallTicket {
+  id          String   @id @default(uuid())
+  studentId   String   @map("student_id")
+  examGroupId String   @map("exam_group_id")
+  rollNo      String   @map("roll_no") // Generated
+  examCenter  String?  @map("exam_center")
+  seatNumber  String?  @map("seat_number")
+  generatedAt DateTime @default(now()) @map("generated_at")
+
+  student     Student   @relation(fields: [studentId], references: [id])
+  examGroup   ExamGroup @relation(fields: [examGroupId], references: [id])
+
+  @@unique([studentId, examGroupId])
+  @@map("hall_tickets")
+}
+
+// 6.B Grading Engine
+
+model GradingScale {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  name         String
+  type         String   // SCHOLASTIC, CO_SCHOLASTIC
+  isMarksBased Boolean  @default(true) @map("is_marks_based")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  logic        GradingLogic[]
+  subjectMaps  SubjectGradingMap[]
+
+  @@map("grading_scales")
+}
+
+model GradingLogic {
+  id           String   @id @default(uuid())
+  scaleId      String   @map("scale_id")
+  minScore     Float    @map("min_score")
+  maxScore     Float    @map("max_score")
+  gradePoint   Float    @map("grade_point")
+  label        String   // A1, A2
+
+  scale        GradingScale @relation(fields: [scaleId], references: [id])
+
+  @@map("grading_logic")
+}
+
+model SubjectGradingMap {
+  id             String   @id @default(uuid())
+  subjectId      String   @map("subject_id")
+  gradingScaleId String   @map("grading_scale_id")
+
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  gradingScale   GradingScale @relation(fields: [gradingScaleId], references: [id])
+
+  @@unique([subjectId])
+  @@map("subject_grading_maps")
+}
+
+// 6.C Exam Scheduling & Invigilation
+
+model ExamSchedule {
+  id              String   @id @default(uuid())
+  examId          String   @map("exam_id")
+  subjectId       String   @map("subject_id")
+  date            DateTime
+  startTime       DateTime @map("start_time")
+  durationMinutes Int      @map("duration_minutes")
+  roomId          String?  @map("room_id")
+
+  exam            Exam     @relation(fields: [examId], references: [id])
+  subject         Subject  @relation(fields: [subjectId], references: [id])
+  room            Room?    @relation(fields: [roomId], references: [id])
+  invigilationDuties InvigilationDuty[]
+
+  @@map("exam_schedules")
+}
+
+model InvigilationDuty {
+  id             String   @id @default(uuid())
+  examScheduleId String   @map("exam_schedule_id")
+  staffId        String   @map("staff_id")
+  roomId         String?  @map("room_id")
+  isConfirmed    Boolean  @default(false) @map("is_confirmed")
+
+  examSchedule   ExamSchedule @relation(fields: [examScheduleId], references: [id])
+  staff          StaffProfile @relation(fields: [staffId], references: [id])
+  room           Room?        @relation(fields: [roomId], references: [id])
+
+  @@map("invigilation_duties")
+}
+
+// 6.D & 6.E Marks & Results
+
+model StudentMark {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  examId         String   @map("exam_id")
+  subjectId      String   @map("subject_id")
+  theoryMarks    Float    @default(0) @map("theory_marks")
+  practicalMarks Float    @default(0) @map("practical_marks")
+  totalMarks     Float    @map("total_marks")
+  isAbsent       Boolean  @default(false) @map("is_absent")
+  remarks        String?
+
+  student        Student  @relation(fields: [studentId], references: [id])
+  exam           Exam     @relation(fields: [examId], references: [id])
+  subject        Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, examId, subjectId])
+  @@map("student_marks")
+}
+
+enum ResultStatus {
+  PASS
+  FAIL
+  WITHHELD
+  COMPARTMENT
+}
+
+model ResultSummary {
+  id             String   @id @default(uuid())
+  studentId      String   @map("student_id")
+  examTermId     String   @map("exam_term_id")
+  totalMarks     Float    @map("total_marks")
+  percentage     Float
+  classRank      Int?     @map("class_rank")
+  sectionRank    Int?     @map("section_rank")
+  resultStatus   ResultStatus @map("result_status")
+  calculatedAt   DateTime @default(now()) @map("calculated_at")
+
+  student        Student  @relation(fields: [studentId], references: [id])
+  examTerm       ExamTerm @relation(fields: [examTermId], references: [id])
+
+  @@map("result_summaries")
 }
