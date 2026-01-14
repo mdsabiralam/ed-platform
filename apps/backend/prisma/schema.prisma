@@ -38,6 +38,9 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  teacherTrainings   TeacherTraining[]
+  serviceBooks       ServiceBook[]
+  classObservations  ClassObservation[]
 
   @@map("tenants")
 }
@@ -358,6 +361,9 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  trainingAttendances TrainingAttendance[]
+  serviceBooks ServiceBook[]
+  classObservations ClassObservation[]
 
   @@map("staff_profiles")
 }
@@ -443,6 +449,78 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// 7.F.01 Teacher Training
+model TeacherTraining {
+  id              String   @id @default(uuid())
+  title           String
+  description     String
+  date            DateTime
+  durationHours   Int      @map("duration_hours")
+  resourcePerson  String   @map("resource_person")
+  resourceUrls    String[] @map("resource_urls")
+  tenantId        String   @map("school_id")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  attendances     TrainingAttendance[]
+
+  @@map("teacher_trainings")
+}
+
+// 7.F.02 Training Attendance
+model TrainingAttendance {
+  id               String   @id @default(uuid())
+  trainingId       String   @map("training_id")
+  staffId          String   @map("staff_id")
+  status           TrainingAttendanceStatus
+  feedbackScore    Int?     @map("feedback_score")
+  feedbackComments String?  @map("feedback_comments")
+  certificateUrl   String?  @map("certificate_url")
+
+  training         TeacherTraining @relation(fields: [trainingId], references: [id])
+  staff            StaffProfile    @relation(fields: [staffId], references: [id])
+
+  @@unique([trainingId, staffId])
+  @@map("training_attendances")
+}
+
+enum TrainingAttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+// 7.F.04 Service Book
+model ServiceBook {
+  id            String   @id @default(uuid())
+  staffId       String   @map("staff_id")
+  tenantId      String   @map("school_id")
+  entryType     String   @map("entry_type")
+  description   String
+  date          DateTime
+  durationHours Int?     @map("duration_hours")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  staff         StaffProfile @relation(fields: [staffId], references: [id])
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@map("service_books")
+}
+
+// 7.F.09 Class Observation (for Training Impact)
+model ClassObservation {
+  id            String   @id @default(uuid())
+  staffId       String   @map("staff_id")
+  tenantId      String   @map("school_id")
+  date          DateTime
+  rating        Float
+  feedback      String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  staff         StaffProfile @relation(fields: [staffId], references: [id])
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@map("class_observations")
 }
 
 // 2.C.03 Roles Enum
