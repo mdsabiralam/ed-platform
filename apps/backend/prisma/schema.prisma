@@ -39,6 +39,17 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  // Division 7 Relations
+  curriculumPlans    CurriculumPlan[]
+  subjects           Subject[]
+  syllabusLogs       SyllabusLog[]
+  questionBanks      QuestionBank[]
+  questionBlueprints QuestionBlueprint[]
+  teacherTrainings   TeacherTraining[]
+  learningResources  LearningResource[]
+  homeworks          Homework[]
+  onlineExams        OnlineExam[]
+
   @@map("tenants")
 }
 
@@ -278,6 +289,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  curriculumPlans CurriculumPlan[]
 
   @@map("classes")
 }
@@ -291,6 +303,7 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  syllabusLogs SyllabusLog[]
 
   @@map("sections")
 }
@@ -316,6 +329,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  homeworkSubmissions HomeworkSubmission[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +372,8 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  syllabusLogs SyllabusLog[]
+  trainingAttendances TrainingAttendance[]
 
   @@map("staff_profiles")
 }
@@ -443,6 +459,267 @@ model TableAuditLog {
   changedAt DateTime @default(now()) @map("changed_at")
 
   @@map("table_audit_logs")
+}
+
+// 7.A.01 Curriculum Plans
+model CurriculumPlan {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  classId         String   @map("class_id")
+  subjectId       String   @map("subject_id")
+  academicYear    String   @map("academic_year")
+  version         String   @default("1.0") // 7.A.05
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  class           Class            @relation(fields: [classId], references: [id])
+  subject         Subject          @relation(fields: [subjectId], references: [id])
+
+  chapters        Chapter[]
+
+  @@map("curriculum_plans")
+  @@unique([tenantId, classId, subjectId, academicYear, version])
+}
+
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  curriculumPlans CurriculumPlan[]
+  questionBank    QuestionBank[]
+  learningResources LearningResource[]
+  onlineExams     OnlineExam[]
+  homeworks       Homework[]
+
+  @@map("subjects")
+}
+
+// 7.A.02 Chapters
+model Chapter {
+  id                  String   @id @default(uuid())
+  planId              String   @map("plan_id")
+  chapterNumber       Int      @map("chapter_number")
+  name                String
+  description         String?
+  targetCompletionDate DateTime? @map("target_completion_date") // 7.A.06
+
+  plan                CurriculumPlan @relation(fields: [planId], references: [id])
+  topics              Topic[]
+  learningResources   LearningResource[]
+
+  @@map("chapters")
+}
+
+// 7.A.03 Topics
+model Topic {
+  id             String   @id @default(uuid())
+  chapterId      String   @map("chapter_id")
+  name           String
+  estimatedHours Float    @map("estimated_hours")
+  orderIndex     Int      @default(0) @map("order_index") // For Drag-and-drop 7.A.09
+  actualCompletionDate DateTime? @map("actual_completion_date") // 7.B.02 Denormalized field
+
+  chapter        Chapter  @relation(fields: [chapterId], references: [id])
+  outcomes       LearningOutcome[]
+  syllabusLogs   SyllabusLog[]
+  learningResources LearningResource[]
+
+  @@map("topics")
+}
+
+// 7.A.07 Learning Outcomes
+model LearningOutcome {
+  id          String   @id @default(uuid())
+  topicId     String   @map("topic_id")
+  description String
+
+  topic       Topic    @relation(fields: [topicId], references: [id])
+
+  @@map("learning_outcomes")
+}
+
+// 7.B.01 Syllabus Logs
+model SyllabusLog {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("school_id")
+  topicId        String   @map("topic_id")
+  teacherId      String   @map("teacher_id") // StaffProfile
+  sectionId      String   @map("section_id")
+  completionDate DateTime @map("completion_date")
+  remarks        String?  @map("remarks") // 7.B.01
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  topic          Topic        @relation(fields: [topicId], references: [id]) // Removed Cascade for 7.A.10 Integrity
+  teacher        StaffProfile @relation(fields: [teacherId], references: [id])
+  section        Section      @relation(fields: [sectionId], references: [id])
+
+  @@map("syllabus_logs")
+}
+
+// 7.C.01 Question Bank
+model QuestionBank {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  subjectId   String   @map("subject_id")
+  topicTag    String?  @map("topic_tag")
+  topicId     String?  @map("topic_id")
+  difficulty  String   // Easy, Medium, Hard
+  marks       Int
+  type        QuestionType
+  content     String   // HTML/Markdown
+  imageUrl    String?  @map("image_url")
+  bloomsLevel BloomsLevel? @map("blooms_level")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+
+  @@map("question_bank")
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+  LONG_ANSWER
+}
+
+enum BloomsLevel {
+  REMEMBER
+  UNDERSTAND
+  APPLY
+  ANALYZE
+  EVALUATE
+  CREATE
+}
+
+// 7.D.01 Question Blueprints
+model QuestionBlueprint {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  title     String
+  structure Json     // Rules: {"Easy": "40%", ...}
+  totalMarks Int     @map("total_marks")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@map("question_blueprints")
+}
+
+// 7.F.01 Teacher Trainings
+model TeacherTraining {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("school_id")
+  title          String
+  date           DateTime
+  resourcePerson String?  @map("resource_person")
+  description    String?
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  attendances    TrainingAttendance[]
+
+  @@map("teacher_trainings")
+}
+
+model TrainingAttendance {
+  id         String   @id @default(uuid())
+  trainingId String   @map("training_id")
+  staffId    String   @map("staff_id")
+  status     String   // PRESENT, ABSENT
+  feedback   String?  // 7.F.03
+  rating     Int?     // 7.F.03
+
+  training   TeacherTraining @relation(fields: [trainingId], references: [id])
+  staff      StaffProfile    @relation(fields: [staffId], references: [id])
+
+  @@unique([trainingId, staffId])
+  @@map("training_attendance")
+}
+
+// 7.G.01 Learning Resources
+model LearningResource {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  title     String
+  type      ResourceType
+  url       String
+  subjectId String?  @map("subject_id")
+  chapterId String?  @map("chapter_id")
+  topicId   String?  @map("topic_id")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+  chapter   Chapter? @relation(fields: [chapterId], references: [id])
+  topic     Topic?   @relation(fields: [topicId], references: [id])
+
+  @@map("learning_resources")
+}
+
+enum ResourceType {
+  VIDEO
+  PDF
+  LINK
+  AUDIO
+}
+
+// 7.H Homework
+model Homework {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("school_id")
+  classId        String   @map("class_id")
+  sectionId      String   @map("section_id")
+  subjectId      String   @map("subject_id") // Should reference Subject model now
+  teacherId      String   @map("teacher_id")
+  title          String
+  description    String?
+  dueDate        DateTime @map("due_date")
+  rubric         Json?    // 7.H.01
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  subject        Subject  @relation(fields: [subjectId], references: [id])
+  // ... other relations
+  submissions    HomeworkSubmission[]
+
+  @@map("homeworks")
+}
+
+model HomeworkSubmission {
+  id         String   @id @default(uuid())
+  homeworkId String   @map("homework_id")
+  studentId  String   @map("student_id")
+  fileUrl    String?  @map("file_url")
+  status     String   // SUBMITTED, REDO, GRADED
+  marks      Float?
+  feedback   String?  // Text
+  audioFeedbackUrl String? @map("audio_feedback_url") // 7.H.04
+  annotations Json?   // 7.H.02 (Serialized annotations)
+
+  homework   Homework @relation(fields: [homeworkId], references: [id])
+  student    Student  @relation(fields: [studentId], references: [id])
+
+  @@map("homework_submissions")
+}
+
+// 7.E Online Assessment
+model OnlineExam {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  subjectId       String   @map("subject_id")
+  title           String
+  startTime       DateTime @map("start_time")
+  endTime         DateTime @map("end_time")
+  durationMinutes Int      @map("duration_minutes")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  subject         Subject  @relation(fields: [subjectId], references: [id])
+
+  @@map("online_exams")
 }
 
 // 2.C.03 Roles Enum
