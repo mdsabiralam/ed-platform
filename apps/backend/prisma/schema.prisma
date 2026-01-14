@@ -402,7 +402,7 @@ model HealthProfile {
   studentId        String   @unique @map("student_id")
   bloodGroup       String?  @map("blood_group")
   
-  // PII/Sensitive Data - Encrypted at Application Level (AES-256-GCM)
+  // PII/Sensitive Data - Encrypted at Database Level via View Proxy
   allergies        String?  
   medicalHistory   String?  @map("medical_history")
   medications      String?
