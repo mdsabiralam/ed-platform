@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedGradingScales } from './seed-grading-scales';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,9 @@ async function main() {
   });
 
   console.log({ superAdmin });
+
+  // 2.D.01 Seed Grading Scales
+  await seedGradingScales();
 }
 
 main()

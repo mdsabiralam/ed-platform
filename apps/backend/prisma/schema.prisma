@@ -38,6 +38,11 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  gradingScales      GradingScale[]
+  subjects           Subject[]
+  examTerms          ExamTerm[]
+  studentFeeLedgers  StudentFeeLedger[]
+  resultSummaries    ResultSummary[]
 
   @@map("tenants")
 }
@@ -278,6 +283,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  exams     Exam[]
 
   @@map("classes")
 }
@@ -316,6 +322,10 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  studentMarks      StudentMark[]
+  feeLedgers        StudentFeeLedger[]
+  socialArtifacts   SocialArtifact[]
+  resultSummaries   ResultSummary[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -463,4 +473,153 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 2.D.01 Grading Scales
+model GradingScale {
+  id           String   @id @default(uuid())
+  tenantId     String?  @map("school_id")
+  name         String
+  isMarksBased Boolean  @default(true) @map("is_marks_based")
+  rules        Json     // Structure: GradingScaleRule[]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("grading_scales")
+}
+
+// 2.D.02 Academic: Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exams     Exam[]
+
+  @@unique([tenantId, name])
+  @@map("subjects")
+}
+
+// 2.D.03 Academic: Exam Terms
+model ExamTerm {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String   // e.g., "Mid Term", "Final"
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exams     Exam[]
+  resultSummaries ResultSummary[]
+
+  @@map("exam_terms")
+}
+
+// 2.D.04 Academic: Exams
+model Exam {
+  id          String   @id @default(uuid())
+  classId     String   @map("class_id")
+  subjectId   String   @map("subject_id")
+  examTermId  String   @map("exam_term_id")
+  maxMarks    Float    @map("max_marks")
+  date        DateTime
+
+  class       Class    @relation(fields: [classId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  examTerm    ExamTerm @relation(fields: [examTermId], references: [id])
+  studentMarks StudentMark[]
+
+  @@map("exams")
+}
+
+// 2.D.05 Academic: Student Marks
+model StudentMark {
+  id            String   @id @default(uuid())
+  examId        String   @map("exam_id")
+  studentId     String   @map("student_id")
+  marksObtained Float    @map("marks_obtained")
+  isAbsent      Boolean  @default(false) @map("is_absent")
+  remarks       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  exam          Exam     @relation(fields: [examId], references: [id])
+  student       Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([examId, studentId])
+  @@map("student_marks")
+}
+
+// 2.H.08 Finance: Student Fee Ledger
+model StudentFeeLedger {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  studentId String   @map("student_id")
+  amountDue Float    @map("amount_due")
+  status    String   // PAID, PENDING, OVERDUE
+  dueDate   DateTime @map("due_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("student_fee_ledgers")
+}
+
+// 2.K.01 Social: Social Artifacts
+model SocialArtifact {
+  id           String   @id @default(uuid())
+  studentId    String   @map("student_id")
+  publicSlug   String   @unique @map("public_slug")
+  metadata     Json?    // Stores context like examId
+  expiry       DateTime?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  analytics    ShareAnalytics[]
+
+  @@map("social_artifacts")
+}
+
+// 2.K.02 Social: Share Analytics
+model ShareAnalytics {
+  id             String   @id @default(uuid())
+  artifactId     String   @map("artifact_id")
+  platform       String   // whatsapp, facebook, browser, bot
+  clicks         Int      @default(0)
+  uniqueVisitors Int      @default(0) @map("unique_visitors")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  artifact       SocialArtifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([artifactId, platform])
+  @@map("share_analytics")
+}
+
+// 2.D.06 Academic: Result Summaries
+model ResultSummary {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("school_id")
+  studentId    String   @map("student_id")
+  examTermId   String   @map("exam_term_id")
+  totalMarks   Float    @map("total_marks")
+  percentage   Float
+  classRank    Int?     @map("class_rank")
+  sectionRank  Int?     @map("section_rank")
+  resultStatus String   @map("result_status") // PASS, FAIL, WITHHELD, COMPARTMENT
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  examTerm     ExamTerm @relation(fields: [examTermId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examTermId])
+  @@map("result_summaries")
 }
