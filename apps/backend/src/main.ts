@@ -49,12 +49,12 @@ async function bootstrap() {
   // ৩. গ্লোবাল সেটিংস
   app.enableCors(); // ক্রস অরিজিন অন করা
   app.setGlobalPrefix('api');
-  app.useGlobalFilters(new AllExceptionsFilter()); 
+  app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
-    // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
+  // ৪. সার্ভার চালু করা (0.0.0.0 দেওয়া যাতে এমুলেটর পায়)
   await app.listen(3001, '0.0.0.0');
-  
+
   // কনসোলে লিংক প্রিন্ট হবে
   console.log(`Application is running on: ${await app.getUrl()}`);
 }

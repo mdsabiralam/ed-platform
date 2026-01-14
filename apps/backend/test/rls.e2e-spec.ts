@@ -37,7 +37,9 @@ describe('RLS Policy Verification (e2e)', () => {
 
   it('should allow setting session claims via raw SQL', async () => {
     // এই টেস্টটি নিশ্চিত করে যে আমরা RLS বাইপাস বা সিমুলেট করতে পারছি
-    const result = await prisma.$executeRawUnsafe(`SET "request.jwt.claims" = '{"sub":"test-user", "role":"ADMIN"}'`);
+    const result = await prisma.$executeRawUnsafe(
+      `SET "request.jwt.claims" = '{"sub":"test-user", "role":"ADMIN"}'`,
+    );
     expect(result).toBeDefined();
   });
 });
