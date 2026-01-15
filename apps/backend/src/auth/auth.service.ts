@@ -1,0 +1,101 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { LoginDto } from './dto/login.dto';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
+
+  async login(loginDto: LoginDto, ipAddress: string, userAgent: string) {
+    const { email, password } = loginDto;
+    const userWithProfiles = await this.validateUser(email, password);
+
+    // Strip sensitive data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...safeUser } = userWithProfiles;
+
+    const { refreshToken } = await this.generateRefreshToken(
+      safeUser.id,
+      userAgent,
+      ipAddress,
+    );
+
+    let accessToken: string | null = null;
+    if (safeUser.profiles.length === 1) {
+      const profile = safeUser.profiles[0];
+      const tokenResult = this.generateAccessToken(safeUser, profile);
+      accessToken = tokenResult.accessToken;
+    }
+
+    return {
+      message:
+        safeUser.profiles.length > 1
+          ? 'Please select a profile'
+          : 'Login successful',
+      user: safeUser,
+      profiles: safeUser.profiles,
+      refreshToken,
+      accessToken,
+    };
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException();
+    }
+
+    const isMatch = await bcrypt.compare(pass, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException();
+    }
+
+    const profiles = await this.getUserProfiles(user.id);
+    return { ...user, profiles };
+  }
+
+  private async getUserProfiles(userId: string) {
+    return this.prisma.profile.findMany({
+      where: { userId },
+      include: { tenant: true },
+    });
+  }
+
+  generateAccessToken(user: any, currentProfile: any) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: currentProfile.role,
+      instituteId: currentProfile.tenantId,
+    };
+    return {
+      accessToken: this.jwtService.sign(payload),
+    };
+  }
+
+  async generateRefreshToken(userId: string, userAgent: string, ipAddress: string) {
+    const refreshToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = await bcrypt.hash(refreshToken, 10);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        tokenHash,
+        userAgent,
+        ipAddress,
+        expiresAt,
+      },
+    });
+
+    return { refreshToken };
+  }
+}
