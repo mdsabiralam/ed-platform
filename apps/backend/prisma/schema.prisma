@@ -132,11 +132,12 @@ model RefreshToken {
 
 // 2.E.01 Platform Admins
 model PlatformAdmin {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  role      String   @default("SUPER_ADMIN")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String            @id @default(uuid())
+  userId      String            @unique @map("user_id")
+  role        PlatformAdminRole @default(OWNER)
+  accessLevel String            @map("access_level")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
 
   user      User     @relation(fields: [userId], references: [id])
   auditLogs PlatformAuditLog[]
@@ -144,11 +145,17 @@ model PlatformAdmin {
   @@map("platform_admins")
 }
 
+enum PlatformAdminRole {
+  OWNER
+  SUPPORT
+}
+
 // 2.E.02 Global Configs
 model GlobalConfig {
   id          String   @id @default(uuid())
   key         String   @unique
   value       Json
+  isEncrypted Boolean  @default(false) @map("is_encrypted")
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -158,13 +165,13 @@ model GlobalConfig {
 
 // 2.E.03 Platform Audit Logs
 model PlatformAuditLog {
-  id        String   @id @default(uuid())
-  adminId   String   @map("admin_id")
-  action    String
-  target    String?  // e.g., "Tenant: 123"
-  details   Json?
-  ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  adminId           String   @map("admin_id")
+  action            String
+  targetInstituteId String?  @map("target_institute_id")
+  details           Json?
+  ipAddress         String?  @map("ip_address")
+  timestamp         DateTime @default(now()) @map("timestamp")
 
   admin     PlatformAdmin @relation(fields: [adminId], references: [id])
 
@@ -173,12 +180,16 @@ model PlatformAuditLog {
 
 // 2.E.07 Reseller Profiles
 model ResellerProfile {
-  id             String   @id @default(uuid())
-  userId         String   @unique @map("user_id")
-  commissionRate Float    @default(10.0) @map("commission_rate") // Percentage
-  totalEarnings  Float    @default(0.0) @map("total_earnings")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             String        @id @default(uuid())
+  userId         String        @unique @map("user_id")
+  agencyName     String?       @map("agency_name")
+  referralCode   String        @unique @map("referral_code")
+  tier           ResellerTier  @default(SILVER)
+  kycStatus      KycStatus     @default(PENDING) @map("kyc_status")
+  commissionRate Float         @default(10.0) @map("commission_rate") // Percentage
+  totalEarnings  Float         @default(0.0) @map("total_earnings")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   user      User     @relation(fields: [userId], references: [id])
   referrals ReferralLinkage[]
@@ -186,33 +197,52 @@ model ResellerProfile {
   @@map("reseller_profiles")
 }
 
+enum ResellerTier {
+  SILVER
+  GOLD
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 // 2.E.08 Referral Linkages
 model ReferralLinkage {
-  id           String   @id @default(uuid())
-  resellerId   String   @map("reseller_id")
-  tenantId     String   @unique @map("tenant_id")
-  referralCode String   @map("referral_code")
-  linkedAt     DateTime @default(now()) @map("linked_at")
+  id             String   @id @default(uuid())
+  resellerId     String   @map("reseller_id")
+  instituteId    String   @unique @map("institute_id")
+  referralCode   String   @map("referral_code")
+  commissionRate Float    @default(10.0) @map("commission_rate")
+  onboardedAt    DateTime @default(now()) @map("onboarded_at")
 
   reseller     ResellerProfile @relation(fields: [resellerId], references: [id])
-  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  institute    Tenant          @relation(fields: [instituteId], references: [id])
 
   @@map("referral_linkages")
 }
 
 // 2.E.10 Marketing Templates
 model MarketingTemplate {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   name         String
-  category     String   // e.g., "Admission", "Festival"
-  contentHtml  String   @map("content_html")
+  category     MarketingCategory @default(GENERAL)
+  contentHtml  String            @map("content_html")
+  svgContent   String?           @map("svg_content")
   variables    Json?
-  thumbnailUrl String?  @map("thumbnail_url")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  thumbnailUrl String?           @map("thumbnail_url")
+  isActive     Boolean           @default(true) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
 
   @@map("marketing_templates")
+}
+
+enum MarketingCategory {
+  FESTIVAL
+  ADMISSION
+  GENERAL
 }
 
 // 2.C.06 Permissions
