@@ -1,5 +1,6 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, Optional } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { ClsService } from 'nestjs-cls';
 import * as crypto from 'crypto';
 
 // Encryption helpers for 2.I.01
@@ -38,7 +39,14 @@ function decrypt(text: string): string {
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
-  constructor() {
+  constructor(
+    @Optional() private readonly cls?: ClsService,
+  ) {
+    // 2.G.05 High Concurrency & Connection Pooling
+    // Connection pooling is configured via the DATABASE_URL environment variable.
+    // Example: postgresql://user:pass@host:5432/db?connection_limit=20&pool_timeout=10
+    // The query engine creates a connection pool with the specified limit.
+
     // 2.I.04 Set up SSL/TLS enforcement for all DB connections
     const url = process.env.DATABASE_URL;
     const isProduction = process.env.NODE_ENV === 'production';
@@ -54,13 +62,78 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
 
     super({
-      log: ['info', 'warn', 'error'], // লগিং এনাবল করা হলো
+      log: ['info', 'warn', 'error'],
       datasources,
     });
   }
 
   async onModuleInit() {
     await this.$connect();
+
+    // 2.G.09 Application Level RLS Middleware
+    // Automatically injects instituteId filter based on CLS context
+    this.$use(async (params, next) => {
+      // Check if we have an active CLS context and an instituteId
+      const instituteId = this.cls?.get('instituteId');
+
+      // List of models that should be scoped by instituteId
+      // Note: 'Institute' model itself is scoped by 'id' usually, handled separately or excluded if admin access
+      // Removed 'User' (Global) and 'Section' (Nested via Class) as they lack direct instituteId
+      const instituteScopedModels = [
+        'Student', 'StaffProfile', 'Class', 'Profile',
+        'AdmissionSession', 'InstituteSubscription', 'SaasInvoice',
+        'ChartOfAccount', 'LeaveType', 'KycDocument', 'ReferralLinkage'
+      ];
+
+      // Skip if no institute context (e.g. system background jobs, or public routes)
+      // Also skip if model is not one of the scoped ones
+      if (instituteId && params.model && instituteScopedModels.includes(params.model)) {
+
+        // Handle Find operations
+        if (['findUnique', 'findFirst', 'findMany', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
+          if (params.action === 'findUnique') {
+            // findUnique only accepts unique fields. If we add a non-unique filter, we must use findFirst.
+            params.action = 'findFirst';
+            params.args.where = { ...params.args.where, instituteId };
+          } else {
+            if (!params.args.where) {
+              params.args.where = { instituteId };
+            } else {
+              // Ensure we don't overwrite existing where clauses, but merge them
+              // And enforce instituteId. If creating a complex query, manual handling might be needed,
+              // but for top-level filter this is usually sufficient.
+              // Note: This overrides any manual 'instituteId' passed in 'where', which is good for security.
+              params.args.where = { ...params.args.where, instituteId };
+            }
+          }
+        }
+
+        // Handle Create operations - Auto-assign instituteId
+        if (['create', 'createMany'].includes(params.action)) {
+          if (params.action === 'create') {
+            params.args.data = { ...params.args.data, instituteId };
+          }
+          if (params.action === 'createMany') {
+             if (Array.isArray(params.args.data)) {
+               params.args.data = params.args.data.map(item => ({ ...item, instituteId }));
+             } else {
+               params.args.data = { ...params.args.data, instituteId };
+             }
+          }
+        }
+
+        // Handle Update/Delete operations - Ensure scope
+        if (['update', 'updateMany', 'delete', 'deleteMany'].includes(params.action)) {
+           if (!params.args.where) {
+             params.args.where = { instituteId };
+           } else {
+             params.args.where = { ...params.args.where, instituteId };
+           }
+        }
+      }
+
+      return next(params);
+    });
 
     // 2.I.01 & 2.I.07 Column-level encryption (HealthProfile & KycDocument)
     this.$use(async (params, next) => {
@@ -74,7 +147,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       const sensitiveFields = encryptionMap[params.model];
 
       if (sensitiveFields) {
-        
         const encryptObject = (obj: any) => {
           if (!obj) return;
           for (const field of sensitiveFields) {
@@ -122,62 +194,49 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     });
 
     // 2.I.02 Soft Delete Middleware
+    // Updated to use Institute instead of Tenant and isDeleted logic
     this.$use(async (params, next) => {
-      // যেসব মডেলে soft delete আছে
-      const softDeleteModels = ['Tenant', 'User', 'Student', 'StaffProfile', 'Class', 'Section', 'AdmissionSession'];
+      const softDeleteModels = ['Institute', 'User', 'Student', 'StaffProfile', 'Class', 'Section', 'AdmissionSession'];
       
       if (params.model && softDeleteModels.includes(params.model)) {
         if (params.action === 'delete') {
-          // Delete -> Update deletedAt
+          // Delete -> Update deletedAt and isDeleted
           params.action = 'update';
-          params.args['data'] = { deletedAt: new Date() };
+          params.args['data'] = { deletedAt: new Date(), isDeleted: true };
         }
         if (params.action === 'deleteMany') {
-          // DeleteMany -> UpdateMany deletedAt
+          // DeleteMany -> UpdateMany
           params.action = 'updateMany';
           if (params.args.data != undefined) {
             params.args.data['deletedAt'] = new Date();
+            params.args.data['isDeleted'] = true;
           } else {
-            params.args['data'] = { deletedAt: new Date() };
+            params.args['data'] = { deletedAt: new Date(), isDeleted: true };
           }
         }
         if (params.action === 'findUnique' || params.action === 'findFirst') {
-           // findUnique কে findFirst এ পরিবর্তন করা যাতে ফিল্টার যোগ করা যায়
+           // findUnique -> findFirst to allow filtering
            params.action = 'findFirst';
            if (!params.args.where) {
-             params.args.where = { deletedAt: null };
-           } else if (params.args.where.deletedAt === undefined) {
-             params.args.where['deletedAt'] = null;
+             params.args.where = { isDeleted: false };
+           } else if (params.args.where.isDeleted === undefined) {
+             params.args.where['isDeleted'] = false;
            }
         }
         if (['findMany', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
            if (params.args.where) {
-             if (params.args.where.deletedAt == undefined) {
-               params.args.where['deletedAt'] = null;
+             if (params.args.where.isDeleted == undefined) {
+               params.args.where['isDeleted'] = false;
              }
            } else {
-             params.args['where'] = { deletedAt: null };
+             params.args['where'] = { isDeleted: false };
            }
         }
       }
       return next(params);
     });
 
-    // 2.I.03 Create a database user for "Read-Only" analytics
-    // Note: This is handled via SQL script. Please run 'prisma/create_analytics_user.sql' in your database.
-
-    // 2.I.06 Implement "Audit Trigger" for critical tables (Fees/Marks)
-    // Note: This is handled via SQL script. Please run 'prisma/audit_triggers.sql' in your database.
-
-    // 2.I.07 Create kyc_documents table with secure URL storage
-    // Note: Table creation is handled via SQL script 'prisma/create_kyc_documents.sql'.
-    // Encryption logic is handled in the middleware above.
-
-    // 2.I.08 Define password_policies in global_configs
-    // Note: This is handled via SQL script. Please run 'prisma/setup_password_policy.sql' in your database.
-
     // 2.I.09 Test SQL injection vulnerability on search inputs
-    // Middleware to warn about Raw SQL usage where injection risks might exist
     this.$use(async (params, next) => {
       const rawActions = ['executeRaw', 'queryRaw', 'runCommandRaw', 'executeRawUnsafe', 'queryRawUnsafe'];
       if (rawActions.includes(params.action)) {
@@ -185,36 +244,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
       return next(params);
     });
-
-    // 2.I.10 Document GDPR/DPDP compliance strategy
-    // Note: Please refer to 'prisma/GDPR_COMPLIANCE.md' for the detailed strategy.
-
-    // 2.J.01 Verify all tables are created in the cloud DB
-    // Note: Run 'npx ts-node prisma/verify_tables.ts' to list all tables.
-
-    // 2.J.02 Verify RLS policies are active and working
-    // Note: Run 'npx ts-node prisma/verify_rls.ts' to check RLS status.
-
-    // 2.J.03 Check if the 'analytics_reader' user has correct permissions
-    // Note: Run 'npx ts-node prisma/verify_analytics_permissions.ts' to verify.
-
-    // 2.J.03 (Part 2) Verify pgvector is ready for embeddings
-    // Note: Run 'npx ts-node prisma/verify_pgvector.ts' to verify.
-
-    // 2.J.04 Check database latency from Backend
-    // Note: Run 'npx ts-node prisma/check_db_latency.ts' to check latency.
-
-    // 2.J.05 Commit schema.prisma to Git
-    // Note: This is a manual Git operation. Please run git commands to commit the schema.
-
-    // 2.J.06 Generate Entity Relationship Diagram (ERD)
-    // Note: Run 'npx prisma generate' to create 'prisma/ERD.svg'.
-
-    // 2.J.07 Share ERD with Mobile team for local DB mirroring
-    // Note: Run 'npx ts-node prisma/share_erd.ts' to copy ERD to mobile app.
-
-    // 2.J.08 Merge feature/database-setup into dev branch
-    // Note: This is a Git operation. Ensure all changes are committed, then merge into dev.
   }
 
   async onModuleDestroy() {
