@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
 import 'package:mobile/core/services/sync_service.dart';
+import 'package:mobile/core/services/token_storage_service.dart';
+import 'package:mobile/data/auth_repository.dart';
+import 'package:mobile/features/auth/bloc/auth_bloc.dart';
 import 'package:mobile/features/saas/plans_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -15,40 +18,71 @@ Future<void> main() async {
   }, appRunner: () => runApp(const EdApp()));
 }
 
-class EdApp extends StatelessWidget {
+class EdApp extends StatefulWidget {
   const EdApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // 1.E.07: ApiClient Instance
-    final apiClient = ApiClient();
+  State<EdApp> createState() => _EdAppState();
+}
 
-    // 1.F.06: Database Instance
-    final database = AppDatabase();
+class _EdAppState extends State<EdApp> {
+  late final ApiClient apiClient;
+  late final AppDatabase database;
+  late final SyncService syncService;
+  late final TokenStorageService tokenStorageService;
+  late final AuthRepository authRepository;
+  late final AuthBloc authBloc;
+  late final PlansCubit plansCubit;
 
-    // 1.F.07: Sync Service Instance
-    final syncService = SyncService(
+  @override
+  void initState() {
+    super.initState();
+    tokenStorageService = TokenStorageService();
+    apiClient = ApiClient(tokenStorageService);
+    database = AppDatabase();
+    syncService = SyncService(
       db: database,
       apiClient: apiClient,
       connectivityService: ConnectivityService(),
     );
+    authRepository = AuthRepository(apiClient, tokenStorageService);
+    authBloc = AuthBloc(
+      authRepository: authRepository,
+      tokenStorageService: tokenStorageService,
+    )..add(AppStarted());
+    plansCubit = PlansCubit(apiClient);
+  }
+
+  @override
+  void dispose() {
+    authBloc.close();
+    plansCubit.close();
+    tokenStorageService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Create router with authBloc dependency
+    final router = createAppRouter(authBloc);
 
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<ApiClient>.value(value: apiClient),
         RepositoryProvider<AppDatabase>.value(value: database),
         RepositoryProvider<SyncService>.value(value: syncService),
+        RepositoryProvider<TokenStorageService>.value(value: tokenStorageService),
+        RepositoryProvider<AuthRepository>.value(value: authRepository),
       ],
       child: MultiBlocProvider(
         providers: [
-          // 1.E.03: State Management (Cubit)
-          BlocProvider<PlansCubit>(create: (context) => PlansCubit(apiClient)),
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<PlansCubit>.value(value: plansCubit),
         ],
         child: MaterialApp.router(
           title: 'Ed Platform',
           theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-          // 1.E.04: GoRouter Configuration
-          routerConfig: appRouter,
+          routerConfig: router,
         ),
       ),
     );
