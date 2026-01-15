@@ -1,0 +1,66 @@
+import { Controller, Get, Query, Param, Headers } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiParam, ApiHeader } from '@nestjs/swagger';
+import { AnalyticsService } from './analytics.service';
+
+@ApiTags('Analytics')
+@Controller('api')
+export class AnalyticsController {
+  constructor(private readonly analyticsService: AnalyticsService) {}
+
+  @Get('analytics/section/toppers')
+  @ApiOperation({ summary: 'Get Top 3 students in a section for a specific exam term' })
+  @ApiQuery({ name: 'sectionId', required: true, description: 'ID of the section' })
+  @ApiQuery({ name: 'examTermId', required: true, description: 'ID of the exam term' })
+  async getSectionToppers(
+    @Query('sectionId') sectionId: string,
+    @Query('examTermId') examTermId: string,
+  ) {
+    return this.analyticsService.getSectionToppers(sectionId, examTermId);
+  }
+
+  @Get('academic/analytics/student/progress/:studentId')
+  @ApiOperation({ summary: 'Get student academic progress (last 6 terms)' })
+  @ApiParam({ name: 'studentId', required: true, description: 'ID of the student' })
+  async getStudentProgress(@Param('studentId') studentId: string) {
+    return this.analyticsService.getStudentProgress(studentId);
+  }
+
+  @Get('analytics/teacher/performance')
+  @ApiOperation({ summary: 'Get teacher performance for a subject in a section' })
+  @ApiHeader({ name: 'x-user-id', required: false, description: 'Simulated User ID for RLS Check' })
+  @ApiQuery({ name: 'sectionId', required: true })
+  @ApiQuery({ name: 'subjectId', required: true })
+  @ApiQuery({ name: 'examTermId', required: true })
+  async getTeacherPerformance(
+    @Query('sectionId') sectionId: string,
+    @Query('subjectId') subjectId: string,
+    @Query('examTermId') examTermId: string,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.analyticsService.getTeacherPerformance(sectionId, subjectId, examTermId, userId);
+  }
+
+  @Get('analytics/result-engagement')
+  @ApiOperation({ summary: 'Get result engagement metrics (views vs published)' })
+  @ApiQuery({ name: 'examTermId', required: true })
+  async getResultEngagement(@Query('examTermId') examTermId: string) {
+    return this.analyticsService.getResultEngagement(examTermId);
+  }
+
+  @Get('analytics/distinction-holders')
+  @ApiOperation({ summary: 'Get subject-wise distinction holders' })
+  @ApiQuery({ name: 'classId', required: true })
+  @ApiQuery({ name: 'examTermId', required: true })
+  @ApiQuery({ name: 'threshold', required: false, description: 'Percentage threshold (default 75)' })
+  async getDistinctionHolders(
+    @Query('classId') classId: string,
+    @Query('examTermId') examTermId: string,
+    @Query('threshold') threshold?: number,
+  ) {
+    return this.analyticsService.getDistinctionHolders(
+      classId,
+      examTermId,
+      threshold ? Number(threshold) : undefined,
+    );
+  }
+}

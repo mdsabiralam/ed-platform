@@ -8,6 +8,10 @@ import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
+import { PrincipalModule } from './principal/principal.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { BroadsheetModule } from './academic/analytics/broadsheet/broadsheet.module';
+import { MarksheetController } from './academic/marksheet/marksheet.controller';
 
 @Module({
   imports: [
@@ -15,8 +19,11 @@ import { TenantModule } from './tenants/tenant.module';
     PrismaModule,
     SaasModule,
     TenantModule,
+    PrincipalModule,
+    AnalyticsModule,
+    BroadsheetModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, MarksheetController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
