@@ -87,7 +87,8 @@ model User {
   id           String   @id @default(uuid()) @map("user_id")
   email        String   @unique // PII: Field encryption enabled via pgcrypto
   passwordHash String   @map("password_hash")
-  phone        String?  // PII: Field encryption enabled via pgcrypto
+  phone        String   // PII: Field encryption enabled via pgcrypto
+  isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at") // 2.I.02 Soft Delete
@@ -113,7 +114,8 @@ model Profile {
   user      User     @relation(fields: [userId], references: [id])
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
-  @@unique([userId, tenantId]) // 2.C.07 Composite index
+  @@unique([userId, tenantId]) // 2.C.05 Composite Unique Constraint
+  @@index([userId, tenantId]) // 2.C.07 Composite index for optimized login
   @@map("profiles")
 }
 
@@ -121,8 +123,9 @@ model Profile {
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  token     String   @unique
+  tokenHash String   @unique @map("token_hash")
   expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
 
   user      User     @relation(fields: [userId], references: [id])
@@ -218,35 +221,22 @@ model MarketingTemplate {
 // 2.C.06 Permissions
 model Permission {
   id          String   @id @default(uuid())
-  action      String   @unique // e.g., "view:fees", "create:student"
-  description String?
+  role        UserRole
+  resource    String   // e.g., "fees"
+  action      String   // e.g., "create", "view"
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  rolePermissions RolePermission[]
-
   @@map("permissions")
-}
-
-model RolePermission {
-  id           String   @id @default(uuid())
-  role         UserRole
-  permissionId String   @map("permission_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  permission   Permission @relation(fields: [permissionId], references: [id])
-
-  @@unique([role, permissionId])
-  @@map("role_permissions")
 }
 
 // 2.C.08 OTP Logs
 model OtpLog {
   id        String   @id @default(uuid())
   phone     String   // PII: Encrypted
-  otpCode   String   @map("otp_code")
+  code      String   @map("otp_code")
   expiresAt DateTime @map("expires_at")
-  isUsed    Boolean  @default(false) @map("is_used")
+  verified  Boolean  @default(false) @map("is_verified")
   attemptCount Int     @default(0) @map("attempt_count")
   createdAt DateTime @default(now()) @map("created_at")
 
