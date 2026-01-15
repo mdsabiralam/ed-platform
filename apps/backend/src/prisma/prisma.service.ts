@@ -124,7 +124,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // 2.I.02 Soft Delete Middleware
     this.$use(async (params, next) => {
       // যেসব মডেলে soft delete আছে
-      const softDeleteModels = ['Tenant', 'User', 'Student', 'StaffProfile', 'Class', 'Section', 'AdmissionSession'];
+      const softDeleteModels = ['Institute', 'User', 'Student', 'StaffProfile', 'AcademicClass', 'Section', 'AdmissionSession'];
       
       if (params.model && softDeleteModels.includes(params.model)) {
         if (params.action === 'delete') {
@@ -163,19 +163,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       return next(params);
     });
 
-    // 2.I.03 Create a database user for "Read-Only" analytics
-    // Note: This is handled via SQL script. Please run 'prisma/create_analytics_user.sql' in your database.
-
-    // 2.I.06 Implement "Audit Trigger" for critical tables (Fees/Marks)
-    // Note: This is handled via SQL script. Please run 'prisma/audit_triggers.sql' in your database.
-
-    // 2.I.07 Create kyc_documents table with secure URL storage
-    // Note: Table creation is handled via SQL script 'prisma/create_kyc_documents.sql'.
-    // Encryption logic is handled in the middleware above.
-
-    // 2.I.08 Define password_policies in global_configs
-    // Note: This is handled via SQL script. Please run 'prisma/setup_password_policy.sql' in your database.
-
     // 2.I.09 Test SQL injection vulnerability on search inputs
     // Middleware to warn about Raw SQL usage where injection risks might exist
     this.$use(async (params, next) => {
@@ -185,36 +172,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
       return next(params);
     });
-
-    // 2.I.10 Document GDPR/DPDP compliance strategy
-    // Note: Please refer to 'prisma/GDPR_COMPLIANCE.md' for the detailed strategy.
-
-    // 2.J.01 Verify all tables are created in the cloud DB
-    // Note: Run 'npx ts-node prisma/verify_tables.ts' to list all tables.
-
-    // 2.J.02 Verify RLS policies are active and working
-    // Note: Run 'npx ts-node prisma/verify_rls.ts' to check RLS status.
-
-    // 2.J.03 Check if the 'analytics_reader' user has correct permissions
-    // Note: Run 'npx ts-node prisma/verify_analytics_permissions.ts' to verify.
-
-    // 2.J.03 (Part 2) Verify pgvector is ready for embeddings
-    // Note: Run 'npx ts-node prisma/verify_pgvector.ts' to verify.
-
-    // 2.J.04 Check database latency from Backend
-    // Note: Run 'npx ts-node prisma/check_db_latency.ts' to check latency.
-
-    // 2.J.05 Commit schema.prisma to Git
-    // Note: This is a manual Git operation. Please run git commands to commit the schema.
-
-    // 2.J.06 Generate Entity Relationship Diagram (ERD)
-    // Note: Run 'npx prisma generate' to create 'prisma/ERD.svg'.
-
-    // 2.J.07 Share ERD with Mobile team for local DB mirroring
-    // Note: Run 'npx ts-node prisma/share_erd.ts' to copy ERD to mobile app.
-
-    // 2.J.08 Merge feature/database-setup into dev branch
-    // Note: This is a Git operation. Ensure all changes are committed, then merge into dev.
   }
 
   async onModuleDestroy() {

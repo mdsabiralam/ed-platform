@@ -6,11 +6,11 @@
 - **Transport Security:** SSL/TLS is enforced for all database connections in production environments via `PrismaService` configuration.
 
 ## 2. Right to be Forgotten (Data Erasure)
-- **Soft Delete:** We have implemented a "Soft Delete" mechanism (`deleted_at` column) for critical entities (Users, Students, Tenants) to prevent accidental data loss while allowing logical removal.
+- **Soft Delete:** We have implemented a "Soft Delete" mechanism (`deleted_at` column) for critical entities (Users, Students, Institutes) to prevent accidental data loss while allowing logical removal.
 - **Hard Delete Policy:** Upon specific request (Right to Erasure) or contract termination, a scheduled job can permanently remove records marked as soft-deleted after a retention period (e.g., 30 days).
 
 ## 3. Access Control & Isolation
-- **Row Level Security (RLS):** Database-level policies ensure that tenants (schools) cannot access each other's data.
+- **Row Level Security (RLS):** Database-level policies ensure that institutes (schools) cannot access each other's data.
 - **Role-Based Access Control (RBAC):** Strict roles (Super Admin, Admin, Teacher, Student) limit access to specific API endpoints.
 - **Read-Only Access:** Dedicated database users for analytics to prevent unauthorized modification.
 

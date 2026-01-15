@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { Logger } from '@nestjs/common';
 
 const prisma = new PrismaClient();
+const logger = new Logger('Seed');
 
 async function main() {
-  console.log('Seeding database...');
+  logger.log('Seeding database...');
 
   // 2.B.09 Seed Plans
   const plans = [
@@ -24,31 +26,49 @@ async function main() {
       },
     });
   }
-  console.log('Plans seeded.');
+  logger.log('Plans seeded.');
 
   // ১. পাসওয়ার্ড হ্যাশ করা (নিরাপত্তার জন্য)
   const saltRounds = 10;
   const password = await bcrypt.hash('SuperSecretPassword123!', saltRounds);
 
   // 2.C.10 Create Super Admin User
-  // Note: In real scenario, Super Admin might not need a profile linked to a tenant immediately, 
-  // or linked to a default "Admin Tenant". For now, creating just the User.
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@edplatform.com' },
-    update: {}, // ইউজার ইতিমধ্যে থাকলে কিছু আপডেট করার দরকার নেই
+  const superAdminEmail = 'admin@edplatform.com';
+  const superAdminUser = await prisma.user.upsert({
+    where: { email: superAdminEmail },
+    update: {},
     create: {
-      email: 'admin@edplatform.com',
+      email: superAdminEmail,
       passwordHash: password,
       phone: '+8801700000000',
     },
   });
 
-  console.log({ superAdmin });
+  // Ensure PlatformAdmin role
+  // Need to find if platform admin exists
+  const existingAdmin = await prisma.platformAdmin.findUnique({
+    where: { userId: superAdminUser.id },
+  });
+
+  if (!existingAdmin) {
+      await prisma.platformAdmin.create({
+          data: {
+              userId: superAdminUser.id,
+              role: 'OWNER',
+              accessLevel: 'FULL',
+          }
+      });
+      logger.log('Platform Admin created.');
+  } else {
+      logger.log('Platform Admin already exists.');
+  }
+
+  logger.log({ superAdminUser });
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    logger.error(e);
     process.exit(1);
   })
   .finally(async () => {

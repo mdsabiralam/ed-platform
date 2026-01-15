@@ -23,16 +23,16 @@ describe('RLS Policy Verification (e2e)', () => {
 
   it('should enforce RLS and not return data without proper claims', async () => {
     // ১. কোনো ক্লেইম (Claims) ছাড়া কুয়েরি চালানো
-    // RLS পলিসি অনুযায়ী, authenticated ইউজার না হলে কোনো টেন্যান্ট ডাটা পাওয়ার কথা না।
+    // RLS পলিসি অনুযায়ী, authenticated ইউজার না হলে কোনো ইনস্টিটিউট ডাটা পাওয়ার কথা না।
     // সেশন ভেরিয়েবল রিসেট করা হচ্ছে (যদি আগে থেকে কিছু সেট করা থাকে)
     await prisma.$executeRawUnsafe(`RESET ALL;`);
 
-    // Tenants টেবিল চেক করা
-    const tenants = await prisma.tenant.findMany();
+    // Institutes টেবিল চেক করা
+    const institutes = await prisma.institute.findMany();
 
-    // যদি RLS ঠিক থাকে, তাহলে সাধারণ ইউজারের (anon) কোনো টেন্যান্ট দেখার কথা না।
-    // তাই, tenants অ্যারে খালি (empty) হওয়া উচিত।
-    expect(tenants).toHaveLength(0);
+    // যদি RLS ঠিক থাকে, তাহলে সাধারণ ইউজারের (anon) কোনো ইনস্টিটিউট দেখার কথা না।
+    // তাই, institutes অ্যারে খালি (empty) হওয়া উচিত।
+    expect(institutes).toHaveLength(0);
   });
 
   it('should allow setting session claims via raw SQL', async () => {
