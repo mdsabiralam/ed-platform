@@ -13,7 +13,7 @@ export class AiService {
     // Simple keyword extraction (naive approach for prototype)
     // We take the last meaningful word or the whole question as a fallback for 'contains'
     // In reality, we'd use Full Text Search or Vectors
-    const keyword = question.replace(/Explain|What|is|the/gi, '').trim();
+    const keyword = question.replace(/Explain|What|is|the/gi, '').replace(/[?.,]/g, '').trim();
 
     if (!keyword) {
         return { answer: "Please ask a specific question.", citation: null };

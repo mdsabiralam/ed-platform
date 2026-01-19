@@ -12,6 +12,11 @@ export class HomeworkService {
 
     if (!homework) throw new NotFoundException('Homework not found');
 
+    // Prevent duplicate submission badges
+    if (homework.status === 'SUBMITTED') {
+      return homework;
+    }
+
     const now = new Date();
 
     // Update homework status
