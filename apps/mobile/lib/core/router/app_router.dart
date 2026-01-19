@@ -35,6 +35,8 @@ import 'package:mobile/features/finance/screens/fee_payment_screen.dart'; // Stu
 import 'package:mobile/features/transport/screens/transport_dashboard_screen.dart';
 import 'package:mobile/features/transport/screens/vehicle_list_screen.dart';
 import 'package:mobile/features/transport/screens/route_management_screen.dart';
+import 'package:mobile/features/transport/screens/driver_dashboard_screen.dart'; // Driver
+import 'package:mobile/features/transport/screens/passenger_manifest_screen.dart'; // Driver
 // Teacher
 import 'package:mobile/features/teacher/screens/teacher_dashboard.dart';
 import 'package:mobile/features/teacher/screens/attendance_screen.dart';
@@ -248,7 +250,7 @@ final GoRouter appRouter = GoRouter(
         ),
       ],
     ),
-    // Transport Routes
+    // Transport Routes (Admin)
     GoRoute(
       path: '/transport',
       builder: (context, state) => const TransportDashboardScreen(),
@@ -264,6 +266,21 @@ final GoRouter appRouter = GoRouter(
          GoRoute(
           path: 'routes',
           builder: (context, state) => const RouteManagementScreen(),
+        ),
+      ],
+    ),
+    // Driver App Routes
+    GoRoute(
+      path: '/driver',
+      builder: (context, state) => const DriverDashboardScreen(),
+      routes: [
+        GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const DriverDashboardScreen(),
+        ),
+        GoRoute(
+          path: 'manifest',
+          builder: (context, state) => const PassengerManifestScreen(),
         ),
       ],
     ),
