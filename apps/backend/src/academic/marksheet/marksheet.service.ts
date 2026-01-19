@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 @Injectable()
 export class MarksheetService {
@@ -17,6 +17,7 @@ export class MarksheetService {
     }
 
     const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const page = pdfDoc.addPage([600, 800]);
     const { width, height } = page.getSize();
     const fontSize = 20;
@@ -25,21 +26,22 @@ export class MarksheetService {
       x: 50,
       y: height - 4 * fontSize,
       size: fontSize,
+      font: font,
       color: rgb(0, 0, 0),
     });
 
     let yPosition = height - 100;
 
     // Draw Table Header
-    page.drawText('Subject', { x: 50, y: yPosition, size: 12 });
-    page.drawText('Score', { x: 250, y: yPosition, size: 12 });
-    page.drawText('Total', { x: 350, y: yPosition, size: 12 });
+    page.drawText('Subject', { x: 50, y: yPosition, size: 12, font: font });
+    page.drawText('Score', { x: 250, y: yPosition, size: 12, font: font });
+    page.drawText('Total', { x: 350, y: yPosition, size: 12, font: font });
     yPosition -= 20;
 
     student.marks.forEach(mark => {
-       page.drawText(mark.subject, { x: 50, y: yPosition, size: 12 });
-       page.drawText(mark.score.toString(), { x: 250, y: yPosition, size: 12 });
-       page.drawText(mark.total.toString(), { x: 350, y: yPosition, size: 12 });
+       page.drawText(mark.subject, { x: 50, y: yPosition, size: 12, font: font });
+       page.drawText(mark.score.toString(), { x: 250, y: yPosition, size: 12, font: font });
+       page.drawText(mark.total.toString(), { x: 350, y: yPosition, size: 12, font: font });
        yPosition -= 20;
     });
 
