@@ -293,8 +293,7 @@ class _LoginFormState extends State<_LoginForm> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () {
-                   // Navigate to Forgot Password Screen (Placeholder)
-                   // context.push('/forgot-password');
+                   context.push('/forgot_password');
                 },
                 child: const Text('Forgot Password?'),
               ),
