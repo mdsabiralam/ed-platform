@@ -21,6 +21,15 @@ import 'package:mobile/features/student_management/screens/student_profile_scree
 import 'package:mobile/features/admission/screens/admission_form_screen.dart';
 // Academic
 import 'package:mobile/features/academic/screens/academic_setup_screen.dart';
+import 'package:mobile/features/academic/screens/session_manager_screen.dart';
+import 'package:mobile/features/academic/screens/timetable_screen.dart';
+// Finance
+import 'package:mobile/features/finance/screens/fee_management_screen.dart';
+import 'package:mobile/features/finance/screens/fee_dashboard_screen.dart';
+// Transport
+import 'package:mobile/features/transport/screens/transport_dashboard_screen.dart';
+import 'package:mobile/features/transport/screens/vehicle_list_screen.dart';
+import 'package:mobile/features/transport/screens/route_management_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/super-admin', // Or /principal/dashboard based on role in real app
@@ -157,6 +166,48 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'setup',
           builder: (context, state) => const AcademicSetupScreen(),
+        ),
+         GoRoute(
+          path: 'sessions',
+          builder: (context, state) => const SessionManagerScreen(),
+        ),
+         GoRoute(
+          path: 'timetable',
+          builder: (context, state) => const TimetableScreen(),
+        ),
+      ],
+    ),
+    // Finance Routes
+     GoRoute(
+      path: '/finance',
+      builder: (context, state) => const FeeDashboardScreen(),
+      routes: [
+         GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const FeeDashboardScreen(),
+        ),
+        GoRoute(
+          path: 'collect',
+          builder: (context, state) => const FeeManagementScreen(),
+        ),
+      ],
+    ),
+    // Transport Routes
+    GoRoute(
+      path: '/transport',
+      builder: (context, state) => const TransportDashboardScreen(),
+      routes: [
+        GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const TransportDashboardScreen(),
+        ),
+        GoRoute(
+          path: 'vehicles',
+          builder: (context, state) => const VehicleListScreen(),
+        ),
+         GoRoute(
+          path: 'routes',
+          builder: (context, state) => const RouteManagementScreen(),
         ),
       ],
     ),

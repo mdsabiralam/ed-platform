@@ -21,10 +21,11 @@ dependencies:
   url_launcher: ^6.2.0
   table_calendar: ^3.0.9
   pdf: ^3.10.4
+  google_maps_flutter: ^2.5.0
 
   cupertino_icons: ^1.0.8
   easy_localization: ^3.0.8
-  http: ^1.1.0
+  http: ^1.6.0
   intl: ^0.20.2
   sentry_flutter: ^9.9.1
   drift: ^2.14.0
