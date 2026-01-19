@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/router/app_router.dart';
 import 'package:mobile/core/services/connectivity_service.dart';

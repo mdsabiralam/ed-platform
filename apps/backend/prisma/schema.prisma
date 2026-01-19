@@ -316,9 +316,45 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  marks             StudentMark[]
+  homeworks         Homework[]
+  badgeCount        Int @default(0) @map("badge_count")
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
+}
+
+model TextbookEmbedding {
+  id        String @id @default(uuid())
+  content   String
+  pageNumber Int
+  // Mocking vector support
+
+  @@map("textbook_embeddings")
+}
+
+model StudentMark {
+  id        String @id @default(uuid())
+  studentId String
+  subject   String
+  score     Float
+  total     Float
+  term      String
+
+  student   Student @relation(fields: [studentId], references: [id])
+  @@map("student_marks")
+}
+
+model Homework {
+  id        String @id @default(uuid())
+  studentId String
+  title     String
+  status    String
+  dueDate   DateTime @map("due_date")
+  submittedAt DateTime?
+
+  student   Student @relation(fields: [studentId], references: [id])
+  @@map("homeworks")
 }
 
 // 2.F.06 Guardians

@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile/core/api/api_client.dart';
+import 'package:mobile/core/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
+import 'package:drift/drift.dart';
 
 class SyncService {
   final AppDatabase db;
@@ -39,7 +40,7 @@ class SyncService {
     for (final student in unsyncedStudents) {
       try {
         // সার্ভারে ডাটা পাঠানো
-        await apiClient.post('/students', {
+        await apiClient.post('/students', data: {
           'name': student.name,
           'rollNo': student.rollNo,
           'classId': student.classId,
@@ -59,7 +60,7 @@ class SyncService {
     try {
       // সার্ভার থেকে সব স্টুডেন্ট নিয়ে আসা
       final response = await apiClient.get('/students');
-      final List<dynamic> serverStudents = response as List<dynamic>;
+      final List<dynamic> serverStudents = response.data as List<dynamic>;
 
       await db.batch((batch) {
         for (final data in serverStudents) {
