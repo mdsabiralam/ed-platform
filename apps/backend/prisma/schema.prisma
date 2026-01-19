@@ -38,6 +38,11 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  trips              Trip[]
+  books              Book[]
+  libraryTransactions LibraryTransaction[]
+  opdVisits          OpdVisit[]
+  emergencyAlerts    EmergencyAlert[]
 
   @@map("tenants")
 }
@@ -316,6 +321,9 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  libraryTransactions LibraryTransaction[]
+  opdVisits         OpdVisit[]
+  emergencyAlerts   EmergencyAlert[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +366,8 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+  trips        Trip[]
+  opdVisits    OpdVisit[]
 
   @@map("staff_profiles")
 }
@@ -463,4 +473,98 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+
+// TRANSPORT MODULE
+model Trip {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("school_id")
+  driverId    String    @map("driver_id")
+  vehicleNo   String    @map("vehicle_no")
+  status      String    @default("PLANNED") // STARTED, COMPLETED
+  startTime   DateTime? @map("start_time")
+  endTime     DateTime? @map("end_time")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  driver      StaffProfile @relation(fields: [driverId], references: [id])
+  gpsLogs     GpsLog[]
+
+  @@map("trips")
+}
+
+model GpsLog {
+  id        String   @id @default(uuid())
+  tripId    String   @map("trip_id")
+  latitude  Float
+  longitude Float
+  timestamp DateTime @default(now())
+
+  trip      Trip     @relation(fields: [tripId], references: [id])
+
+  @@map("gps_logs")
+}
+
+// LIBRARY MODULE
+model Book {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("school_id")
+  title           String
+  author          String
+  barcode         String
+  totalCopies     Int      @default(1) @map("total_copies")
+  availableCopies Int      @default(1) @map("available_copies")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  transactions    LibraryTransaction[]
+
+  @@unique([tenantId, barcode])
+  @@map("books")
+}
+
+model LibraryTransaction {
+  id        String    @id @default(uuid())
+  tenantId  String    @map("school_id")
+  bookId    String    @map("book_id")
+  studentId String    @map("student_id")
+  issueDate DateTime  @default(now()) @map("issue_date")
+  returnDate DateTime? @map("return_date")
+  status    String    @default("ISSUED") // ISSUED, RETURNED
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  book      Book      @relation(fields: [bookId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id])
+
+  @@map("library_transactions")
+}
+
+// HEALTH MODULE
+model OpdVisit {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  studentId String   @map("student_id")
+  nurseId   String?  @map("nurse_id")
+  symptom   String
+  treatment String?
+  visitTime DateTime @default(now()) @map("visit_time")
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  student   Student      @relation(fields: [studentId], references: [id])
+  nurse     StaffProfile? @relation(fields: [nurseId], references: [id])
+
+  @@map("opd_visits")
+}
+
+model EmergencyAlert {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  studentId String   @map("student_id")
+  type      String   // SOS
+  message   String
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  student   Student   @relation(fields: [studentId], references: [id])
+
+  @@map("emergency_alerts")
 }
