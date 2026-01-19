@@ -77,13 +77,17 @@ class _DataSource extends DataTableSource {
   DataRow? getRow(int index) {
     if (index >= controllers.length) return null;
     return DataRow(cells: [
-      DataCell(Text('${index + 1}')),
-      DataCell(Text('Student ${index + 1}')),
+      DataCell(Text('${index + 1}', style: const TextStyle(fontSize: 16))),
+      DataCell(Text('Student ${index + 1}', style: const TextStyle(fontSize: 16))),
       DataCell(
         TextFormField(
           controller: controllers[index],
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
+          style: const TextStyle(fontSize: 18), // Bigger input
+          decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+          ),
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: (value) {
              if (value != null && value.isNotEmpty) {

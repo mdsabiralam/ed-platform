@@ -12,6 +12,7 @@ class StudentDiaryScreen extends StatefulWidget {
 class _StudentDiaryScreenState extends State<StudentDiaryScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
+  String _currentLocaleId = 'en_US';
   final TextEditingController _textController = TextEditingController();
 
   @override
@@ -29,6 +30,7 @@ class _StudentDiaryScreenState extends State<StudentDiaryScreen> {
       if (available) {
         setState(() => _isListening = true);
         _speech.listen(
+          localeId: _currentLocaleId,
           onResult: (val) => setState(() {
             _textController.text = val.recognizedWords;
           }),
@@ -48,19 +50,40 @@ class _StudentDiaryScreenState extends State<StudentDiaryScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Language Toggle
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text('Input Language:', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 10),
+                DropdownButton<String>(
+                  value: _currentLocaleId,
+                  items: const [
+                    DropdownMenuItem(value: 'en_US', child: Text('English')),
+                    DropdownMenuItem(value: 'bn_BD', child: Text('Bangla')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _currentLocaleId = val);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: _textController,
               maxLines: 5,
+              style: const TextStyle(fontSize: 18), // Bigger text
               decoration: const InputDecoration(
                 labelText: 'Remark',
+                labelStyle: TextStyle(fontSize: 18),
                 hintText: 'Enter remark or use microphone...',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
-            FloatingActionButton(
+            FloatingActionButton.large( // Bigger button
               onPressed: _listen,
-              child: Icon(_isListening ? Icons.mic : Icons.mic_none),
+              child: Icon(_isListening ? Icons.mic : Icons.mic_none, size: 36),
               backgroundColor: _isListening ? Colors.red : Colors.blue,
             ),
             const SizedBox(height: 20),

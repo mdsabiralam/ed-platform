@@ -38,16 +38,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         itemBuilder: (context, index) {
           final student = students[index];
           return ListTile(
-            title: Text(student['name']),
-            trailing: Switch(
-              value: student['status'] == 'PRESENT',
-              onChanged: (val) {
-                setState(() {
-                  students[index]['status'] = val ? 'PRESENT' : 'ABSENT';
-                });
-              },
-              activeColor: Colors.green,
-              inactiveTrackColor: Colors.red,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // More spacing
+            title: Text(
+                student['name'],
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500), // Bigger text
+            ),
+            trailing: Transform.scale(
+              scale: 1.2, // Bigger switch
+              child: Switch(
+                value: student['status'] == 'PRESENT',
+                onChanged: (val) {
+                  setState(() {
+                    students[index]['status'] = val ? 'PRESENT' : 'ABSENT';
+                  });
+                },
+                activeColor: Colors.green,
+                inactiveTrackColor: Colors.red,
+              ),
             ),
           );
         },
