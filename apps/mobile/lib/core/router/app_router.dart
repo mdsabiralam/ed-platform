@@ -49,6 +49,11 @@ import 'package:mobile/features/student/screens/student_routine_screen.dart';
 // Library & AI
 import 'package:mobile/features/library/screens/library_search_screen.dart';
 import 'package:mobile/features/ai/screens/ai_doubt_solver_screen.dart';
+// Parent
+import 'package:mobile/features/parent/screens/parent_dashboard_screen.dart';
+import 'package:mobile/features/parent/screens/fee_history_screen.dart';
+import 'package:mobile/features/parent/screens/vehicle_tracking_screen.dart';
+import 'package:mobile/features/parent/screens/student_leave_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/super-admin', // Default initial
@@ -307,6 +312,29 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/ai/chat',
       builder: (context, state) => const AiDoubtSolverScreen(),
+    ),
+    // Parent Portal Routes
+    GoRoute(
+      path: '/parent',
+      builder: (context, state) => const ParentDashboardScreen(),
+      routes: [
+        GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const ParentDashboardScreen(),
+        ),
+        GoRoute(
+          path: 'fees',
+          builder: (context, state) => const FeeHistoryScreen(),
+        ),
+        GoRoute(
+          path: 'tracking',
+          builder: (context, state) => const VehicleTrackingScreen(),
+        ),
+        GoRoute(
+          path: 'leave',
+          builder: (context, state) => const StudentLeaveScreen(),
+        ),
+      ],
     ),
   ],
 );
