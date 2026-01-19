@@ -8,6 +8,9 @@ import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
 import { TenantModule } from './tenants/tenant.module';
+import { FeesModule } from './fees/fees.module';
+import { TransportModule } from './transport/transport.module';
+import { ParentModule } from './parent/parent.module';
 
 @Module({
   imports: [
@@ -15,6 +18,9 @@ import { TenantModule } from './tenants/tenant.module';
     PrismaModule,
     SaasModule,
     TenantModule,
+    FeesModule,
+    TransportModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
