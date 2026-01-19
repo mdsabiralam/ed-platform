@@ -10,13 +10,26 @@ import 'package:mobile/features/super_admin/screens/user_management_screen.dart'
 import 'package:mobile/features/super_admin/screens/super_admin_shell.dart';
 import 'package:mobile/features/auth/login_screen.dart';
 
+// Principal & Staff
+import 'package:mobile/features/principal/screens/dashboard_screen.dart';
+import 'package:mobile/features/staff/screens/staff_list_screen.dart';
+import 'package:mobile/features/staff/screens/add_staff_screen.dart';
+import 'package:mobile/features/staff/screens/staff_profile_screen.dart';
+// Student & Admission
+import 'package:mobile/features/student_management/screens/student_list_screen.dart';
+import 'package:mobile/features/student_management/screens/student_profile_screen.dart';
+import 'package:mobile/features/admission/screens/admission_form_screen.dart';
+// Academic
+import 'package:mobile/features/academic/screens/academic_setup_screen.dart';
+
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/super-admin',
+  initialLocation: '/super-admin', // Or /principal/dashboard based on role in real app
   routes: [
     GoRoute(
       path: '/',
       builder: (context, state) => const LoginScreen(),
     ),
+    // Super Admin Routes
     ShellRoute(
       builder: (context, state, child) {
         return SuperAdminShell(child: child);
@@ -72,6 +85,78 @@ final GoRouter appRouter = GoRouter(
               builder: (context, state) => const PlatformUserManagementScreen(),
             ),
           ],
+        ),
+      ],
+    ),
+    // Principal / School Admin Routes
+    GoRoute(
+      path: '/principal',
+      builder: (context, state) => const PrincipalDashboardScreen(),
+      routes: [
+        GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const PrincipalDashboardScreen(),
+        ),
+        // For now, putting staff/student routes under root or a shared shell would be better,
+        // but sticking to requested paths.
+        // Assuming /staff/... and /student/... are top level or accessible.
+      ],
+    ),
+    // Staff Routes
+    GoRoute(
+      path: '/staff',
+      builder: (context, state) => const StaffListScreen(),
+      routes: [
+        GoRoute(
+          path: 'add',
+          builder: (context, state) => const AddStaffScreen(),
+        ),
+        GoRoute(
+          path: 'profile/:id',
+          builder: (context, state) {
+             final id = state.pathParameters['id']!;
+             return StaffProfileScreen(staffId: id);
+          },
+        ),
+      ],
+    ),
+    // Student Routes
+    GoRoute(
+      path: '/student',
+      builder: (context, state) => const StudentListScreen(),
+      routes: [
+        GoRoute(
+           path: 'list', // /student/list
+           builder: (context, state) => const StudentListScreen(),
+        ),
+        GoRoute(
+          path: 'admission',
+          builder: (context, state) => const AdmissionFormScreen(),
+        ),
+        GoRoute(
+          path: 'profile/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return StudentProfileScreen(studentId: id);
+          },
+        ),
+        GoRoute(
+          path: 'edit/:id',
+           builder: (context, state) {
+             // Reusing Admission form for edit in this plan
+             return const AdmissionFormScreen();
+           },
+        )
+      ],
+    ),
+    // Academic Routes
+    GoRoute(
+      path: '/academic',
+      builder: (context, state) => const AcademicSetupScreen(),
+      routes: [
+        GoRoute(
+          path: 'setup',
+          builder: (context, state) => const AcademicSetupScreen(),
         ),
       ],
     ),
