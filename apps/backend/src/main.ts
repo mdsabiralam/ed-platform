@@ -12,7 +12,7 @@ import helmet from 'helmet';
 
 async function bootstrap() {
   // 3.H.09: SSL Certificate Logic for Production
-  let httpsOptions = undefined;
+  let httpsOptions: any = undefined;
   if (process.env.NODE_ENV === 'production') {
     const keyPath = process.env.SSL_KEY_PATH || '/etc/ssl/private/server.key';
     const certPath = process.env.SSL_CERT_PATH || '/etc/ssl/certs/server.crt';

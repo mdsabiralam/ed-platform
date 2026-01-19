@@ -27,6 +27,10 @@ class $StudentsTable extends Students with TableInfo<$StudentsTable, Student> {
     'name',
     aliasedName,
     false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 50,
+    ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
@@ -364,52 +368,42 @@ class $AttendanceLogsTable extends AttendanceLogs
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _presentMeta = const VerificationMeta(
+    'present',
+  );
+  @override
+  late final GeneratedColumn<bool> present = GeneratedColumn<bool>(
+    'present',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("present" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _studentIdMeta = const VerificationMeta(
     'studentId',
   );
   @override
-  late final GeneratedColumn<String> studentId = GeneratedColumn<String>(
+  late final GeneratedColumn<int> studentId = GeneratedColumn<int>(
     'student_id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
-  late final GeneratedColumn<String> date = GeneratedColumn<String>(
-    'date',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _statusMeta = const VerificationMeta('status');
-  @override
-  late final GeneratedColumn<String> status = GeneratedColumn<String>(
-    'status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
-    'isSynced',
-  );
-  @override
-  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
-    'is_synced',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_synced" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, studentId, date, status, isSynced];
+  List<GeneratedColumn> get $columns => [id, date, present, studentId];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -425,14 +419,6 @@ class $AttendanceLogsTable extends AttendanceLogs
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('student_id')) {
-      context.handle(
-        _studentIdMeta,
-        studentId.isAcceptableOrUnknown(data['student_id']!, _studentIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_studentIdMeta);
-    }
     if (data.containsKey('date')) {
       context.handle(
         _dateMeta,
@@ -441,19 +427,21 @@ class $AttendanceLogsTable extends AttendanceLogs
     } else if (isInserting) {
       context.missing(_dateMeta);
     }
-    if (data.containsKey('status')) {
+    if (data.containsKey('present')) {
       context.handle(
-        _statusMeta,
-        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+        _presentMeta,
+        present.isAcceptableOrUnknown(data['present']!, _presentMeta),
       );
     } else if (isInserting) {
-      context.missing(_statusMeta);
+      context.missing(_presentMeta);
     }
-    if (data.containsKey('is_synced')) {
+    if (data.containsKey('student_id')) {
       context.handle(
-        _isSyncedMeta,
-        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+        _studentIdMeta,
+        studentId.isAcceptableOrUnknown(data['student_id']!, _studentIdMeta),
       );
+    } else if (isInserting) {
+      context.missing(_studentIdMeta);
     }
     return context;
   }
@@ -468,21 +456,17 @@ class $AttendanceLogsTable extends AttendanceLogs
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      studentId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}student_id'],
-      )!,
       date: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
+        DriftSqlType.dateTime,
         data['${effectivePrefix}date'],
       )!,
-      status: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}status'],
-      )!,
-      isSynced: attachedDatabase.typeMapping.read(
+      present: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
-        data['${effectivePrefix}is_synced'],
+        data['${effectivePrefix}present'],
+      )!,
+      studentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}student_id'],
       )!,
     );
   }
@@ -495,35 +479,31 @@ class $AttendanceLogsTable extends AttendanceLogs
 
 class AttendanceLog extends DataClass implements Insertable<AttendanceLog> {
   final int id;
-  final String studentId;
-  final String date;
-  final String status;
-  final bool isSynced;
+  final DateTime date;
+  final bool present;
+  final int studentId;
   const AttendanceLog({
     required this.id,
-    required this.studentId,
     required this.date,
-    required this.status,
-    required this.isSynced,
+    required this.present,
+    required this.studentId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['student_id'] = Variable<String>(studentId);
-    map['date'] = Variable<String>(date);
-    map['status'] = Variable<String>(status);
-    map['is_synced'] = Variable<bool>(isSynced);
+    map['date'] = Variable<DateTime>(date);
+    map['present'] = Variable<bool>(present);
+    map['student_id'] = Variable<int>(studentId);
     return map;
   }
 
   AttendanceLogsCompanion toCompanion(bool nullToAbsent) {
     return AttendanceLogsCompanion(
       id: Value(id),
-      studentId: Value(studentId),
       date: Value(date),
-      status: Value(status),
-      isSynced: Value(isSynced),
+      present: Value(present),
+      studentId: Value(studentId),
     );
   }
 
@@ -534,10 +514,9 @@ class AttendanceLog extends DataClass implements Insertable<AttendanceLog> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AttendanceLog(
       id: serializer.fromJson<int>(json['id']),
-      studentId: serializer.fromJson<String>(json['studentId']),
-      date: serializer.fromJson<String>(json['date']),
-      status: serializer.fromJson<String>(json['status']),
-      isSynced: serializer.fromJson<bool>(json['isSynced']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      present: serializer.fromJson<bool>(json['present']),
+      studentId: serializer.fromJson<int>(json['studentId']),
     );
   }
   @override
@@ -545,33 +524,29 @@ class AttendanceLog extends DataClass implements Insertable<AttendanceLog> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'studentId': serializer.toJson<String>(studentId),
-      'date': serializer.toJson<String>(date),
-      'status': serializer.toJson<String>(status),
-      'isSynced': serializer.toJson<bool>(isSynced),
+      'date': serializer.toJson<DateTime>(date),
+      'present': serializer.toJson<bool>(present),
+      'studentId': serializer.toJson<int>(studentId),
     };
   }
 
   AttendanceLog copyWith({
     int? id,
-    String? studentId,
-    String? date,
-    String? status,
-    bool? isSynced,
+    DateTime? date,
+    bool? present,
+    int? studentId,
   }) => AttendanceLog(
     id: id ?? this.id,
-    studentId: studentId ?? this.studentId,
     date: date ?? this.date,
-    status: status ?? this.status,
-    isSynced: isSynced ?? this.isSynced,
+    present: present ?? this.present,
+    studentId: studentId ?? this.studentId,
   );
   AttendanceLog copyWithCompanion(AttendanceLogsCompanion data) {
     return AttendanceLog(
       id: data.id.present ? data.id.value : this.id,
-      studentId: data.studentId.present ? data.studentId.value : this.studentId,
       date: data.date.present ? data.date.value : this.date,
-      status: data.status.present ? data.status.value : this.status,
-      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      present: data.present.present ? data.present.value : this.present,
+      studentId: data.studentId.present ? data.studentId.value : this.studentId,
     );
   }
 
@@ -579,78 +554,69 @@ class AttendanceLog extends DataClass implements Insertable<AttendanceLog> {
   String toString() {
     return (StringBuffer('AttendanceLog(')
           ..write('id: $id, ')
-          ..write('studentId: $studentId, ')
           ..write('date: $date, ')
-          ..write('status: $status, ')
-          ..write('isSynced: $isSynced')
+          ..write('present: $present, ')
+          ..write('studentId: $studentId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, studentId, date, status, isSynced);
+  int get hashCode => Object.hash(id, date, present, studentId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AttendanceLog &&
           other.id == this.id &&
-          other.studentId == this.studentId &&
           other.date == this.date &&
-          other.status == this.status &&
-          other.isSynced == this.isSynced);
+          other.present == this.present &&
+          other.studentId == this.studentId);
 }
 
 class AttendanceLogsCompanion extends UpdateCompanion<AttendanceLog> {
   final Value<int> id;
-  final Value<String> studentId;
-  final Value<String> date;
-  final Value<String> status;
-  final Value<bool> isSynced;
+  final Value<DateTime> date;
+  final Value<bool> present;
+  final Value<int> studentId;
   const AttendanceLogsCompanion({
     this.id = const Value.absent(),
-    this.studentId = const Value.absent(),
     this.date = const Value.absent(),
-    this.status = const Value.absent(),
-    this.isSynced = const Value.absent(),
+    this.present = const Value.absent(),
+    this.studentId = const Value.absent(),
   });
   AttendanceLogsCompanion.insert({
     this.id = const Value.absent(),
-    required String studentId,
-    required String date,
-    required String status,
-    this.isSynced = const Value.absent(),
-  }) : studentId = Value(studentId),
-       date = Value(date),
-       status = Value(status);
+    required DateTime date,
+    required bool present,
+    required int studentId,
+  }) : date = Value(date),
+       present = Value(present),
+       studentId = Value(studentId);
   static Insertable<AttendanceLog> custom({
     Expression<int>? id,
-    Expression<String>? studentId,
-    Expression<String>? date,
-    Expression<String>? status,
-    Expression<bool>? isSynced,
+    Expression<DateTime>? date,
+    Expression<bool>? present,
+    Expression<int>? studentId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (studentId != null) 'student_id': studentId,
       if (date != null) 'date': date,
-      if (status != null) 'status': status,
-      if (isSynced != null) 'is_synced': isSynced,
+      if (present != null) 'present': present,
+      if (studentId != null) 'student_id': studentId,
     });
   }
 
   AttendanceLogsCompanion copyWith({
     Value<int>? id,
-    Value<String>? studentId,
-    Value<String>? date,
-    Value<String>? status,
-    Value<bool>? isSynced,
+    Value<DateTime>? date,
+    Value<bool>? present,
+    Value<int>? studentId,
   }) {
     return AttendanceLogsCompanion(
       id: id ?? this.id,
-      studentId: studentId ?? this.studentId,
       date: date ?? this.date,
-      status: status ?? this.status,
-      isSynced: isSynced ?? this.isSynced,
+      present: present ?? this.present,
+      studentId: studentId ?? this.studentId,
     );
   }
 
@@ -660,17 +626,14 @@ class AttendanceLogsCompanion extends UpdateCompanion<AttendanceLog> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (studentId.present) {
-      map['student_id'] = Variable<String>(studentId.value);
-    }
     if (date.present) {
-      map['date'] = Variable<String>(date.value);
+      map['date'] = Variable<DateTime>(date.value);
     }
-    if (status.present) {
-      map['status'] = Variable<String>(status.value);
+    if (present.present) {
+      map['present'] = Variable<bool>(present.value);
     }
-    if (isSynced.present) {
-      map['is_synced'] = Variable<bool>(isSynced.value);
+    if (studentId.present) {
+      map['student_id'] = Variable<int>(studentId.value);
     }
     return map;
   }
@@ -679,10 +642,9 @@ class AttendanceLogsCompanion extends UpdateCompanion<AttendanceLog> {
   String toString() {
     return (StringBuffer('AttendanceLogsCompanion(')
           ..write('id: $id, ')
-          ..write('studentId: $studentId, ')
           ..write('date: $date, ')
-          ..write('status: $status, ')
-          ..write('isSynced: $isSynced')
+          ..write('present: $present, ')
+          ..write('studentId: $studentId')
           ..write(')'))
         .toString();
   }
@@ -707,24 +669,26 @@ class $SyncQueueTable extends SyncQueue
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
   @override
-  late final GeneratedColumn<String> action = GeneratedColumn<String>(
-    'action',
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _payloadMeta = const VerificationMeta(
-    'payload',
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
   );
   @override
-  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
-    'payload',
+  late final GeneratedColumn<int> entityId = GeneratedColumn<int>(
+    'entity_id',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
@@ -736,11 +700,10 @@ class $SyncQueueTable extends SyncQueue
     aliasedName,
     false,
     type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-    defaultValue: currentDateAndTime,
+    requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, action, payload, createdAt];
+  List<GeneratedColumn> get $columns => [id, entityType, entityId, createdAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -756,27 +719,29 @@ class $SyncQueueTable extends SyncQueue
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('action')) {
+    if (data.containsKey('entity_type')) {
       context.handle(
-        _actionMeta,
-        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
       );
     } else if (isInserting) {
-      context.missing(_actionMeta);
+      context.missing(_entityTypeMeta);
     }
-    if (data.containsKey('payload')) {
+    if (data.containsKey('entity_id')) {
       context.handle(
-        _payloadMeta,
-        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
       );
     } else if (isInserting) {
-      context.missing(_payloadMeta);
+      context.missing(_entityIdMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
     }
     return context;
   }
@@ -791,13 +756,13 @@ class $SyncQueueTable extends SyncQueue
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      action: attachedDatabase.typeMapping.read(
+      entityType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}action'],
+        data['${effectivePrefix}entity_type'],
       )!,
-      payload: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}payload'],
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}entity_id'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -814,21 +779,21 @@ class $SyncQueueTable extends SyncQueue
 
 class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
   final int id;
-  final String action;
-  final String payload;
+  final String entityType;
+  final int entityId;
   final DateTime createdAt;
   const SyncQueueData({
     required this.id,
-    required this.action,
-    required this.payload,
+    required this.entityType,
+    required this.entityId,
     required this.createdAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['action'] = Variable<String>(action);
-    map['payload'] = Variable<String>(payload);
+    map['entity_type'] = Variable<String>(entityType);
+    map['entity_id'] = Variable<int>(entityId);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -836,8 +801,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
   SyncQueueCompanion toCompanion(bool nullToAbsent) {
     return SyncQueueCompanion(
       id: Value(id),
-      action: Value(action),
-      payload: Value(payload),
+      entityType: Value(entityType),
+      entityId: Value(entityId),
       createdAt: Value(createdAt),
     );
   }
@@ -849,8 +814,8 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SyncQueueData(
       id: serializer.fromJson<int>(json['id']),
-      action: serializer.fromJson<String>(json['action']),
-      payload: serializer.fromJson<String>(json['payload']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      entityId: serializer.fromJson<int>(json['entityId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -859,28 +824,30 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'action': serializer.toJson<String>(action),
-      'payload': serializer.toJson<String>(payload),
+      'entityType': serializer.toJson<String>(entityType),
+      'entityId': serializer.toJson<int>(entityId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
 
   SyncQueueData copyWith({
     int? id,
-    String? action,
-    String? payload,
+    String? entityType,
+    int? entityId,
     DateTime? createdAt,
   }) => SyncQueueData(
     id: id ?? this.id,
-    action: action ?? this.action,
-    payload: payload ?? this.payload,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
     createdAt: createdAt ?? this.createdAt,
   );
   SyncQueueData copyWithCompanion(SyncQueueCompanion data) {
     return SyncQueueData(
       id: data.id.present ? data.id.value : this.id,
-      action: data.action.present ? data.action.value : this.action,
-      payload: data.payload.present ? data.payload.value : this.payload,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -889,67 +856,68 @@ class SyncQueueData extends DataClass implements Insertable<SyncQueueData> {
   String toString() {
     return (StringBuffer('SyncQueueData(')
           ..write('id: $id, ')
-          ..write('action: $action, ')
-          ..write('payload: $payload, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, action, payload, createdAt);
+  int get hashCode => Object.hash(id, entityType, entityId, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SyncQueueData &&
           other.id == this.id &&
-          other.action == this.action &&
-          other.payload == this.payload &&
+          other.entityType == this.entityType &&
+          other.entityId == this.entityId &&
           other.createdAt == this.createdAt);
 }
 
 class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
   final Value<int> id;
-  final Value<String> action;
-  final Value<String> payload;
+  final Value<String> entityType;
+  final Value<int> entityId;
   final Value<DateTime> createdAt;
   const SyncQueueCompanion({
     this.id = const Value.absent(),
-    this.action = const Value.absent(),
-    this.payload = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityId = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   SyncQueueCompanion.insert({
     this.id = const Value.absent(),
-    required String action,
-    required String payload,
-    this.createdAt = const Value.absent(),
-  }) : action = Value(action),
-       payload = Value(payload);
+    required String entityType,
+    required int entityId,
+    required DateTime createdAt,
+  }) : entityType = Value(entityType),
+       entityId = Value(entityId),
+       createdAt = Value(createdAt);
   static Insertable<SyncQueueData> custom({
     Expression<int>? id,
-    Expression<String>? action,
-    Expression<String>? payload,
+    Expression<String>? entityType,
+    Expression<int>? entityId,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (action != null) 'action': action,
-      if (payload != null) 'payload': payload,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityId != null) 'entity_id': entityId,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
 
   SyncQueueCompanion copyWith({
     Value<int>? id,
-    Value<String>? action,
-    Value<String>? payload,
+    Value<String>? entityType,
+    Value<int>? entityId,
     Value<DateTime>? createdAt,
   }) {
     return SyncQueueCompanion(
       id: id ?? this.id,
-      action: action ?? this.action,
-      payload: payload ?? this.payload,
+      entityType: entityType ?? this.entityType,
+      entityId: entityId ?? this.entityId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -960,11 +928,11 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (action.present) {
-      map['action'] = Variable<String>(action.value);
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
     }
-    if (payload.present) {
-      map['payload'] = Variable<String>(payload.value);
+    if (entityId.present) {
+      map['entity_id'] = Variable<int>(entityId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -976,8 +944,8 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueData> {
   String toString() {
     return (StringBuffer('SyncQueueCompanion(')
           ..write('id: $id, ')
-          ..write('action: $action, ')
-          ..write('payload: $payload, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityId: $entityId, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1192,18 +1160,16 @@ typedef $$StudentsTableProcessedTableManager =
 typedef $$AttendanceLogsTableCreateCompanionBuilder =
     AttendanceLogsCompanion Function({
       Value<int> id,
-      required String studentId,
-      required String date,
-      required String status,
-      Value<bool> isSynced,
+      required DateTime date,
+      required bool present,
+      required int studentId,
     });
 typedef $$AttendanceLogsTableUpdateCompanionBuilder =
     AttendanceLogsCompanion Function({
       Value<int> id,
-      Value<String> studentId,
-      Value<String> date,
-      Value<String> status,
-      Value<bool> isSynced,
+      Value<DateTime> date,
+      Value<bool> present,
+      Value<int> studentId,
     });
 
 class $$AttendanceLogsTableFilterComposer
@@ -1220,23 +1186,18 @@ class $$AttendanceLogsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get studentId => $composableBuilder(
-    column: $table.studentId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get date => $composableBuilder(
+  ColumnFilters<DateTime> get date => $composableBuilder(
     column: $table.date,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get status => $composableBuilder(
-    column: $table.status,
+  ColumnFilters<bool> get present => $composableBuilder(
+    column: $table.present,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isSynced => $composableBuilder(
-    column: $table.isSynced,
+  ColumnFilters<int> get studentId => $composableBuilder(
+    column: $table.studentId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1255,23 +1216,18 @@ class $$AttendanceLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get studentId => $composableBuilder(
-    column: $table.studentId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get date => $composableBuilder(
+  ColumnOrderings<DateTime> get date => $composableBuilder(
     column: $table.date,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get status => $composableBuilder(
-    column: $table.status,
+  ColumnOrderings<bool> get present => $composableBuilder(
+    column: $table.present,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isSynced => $composableBuilder(
-    column: $table.isSynced,
+  ColumnOrderings<int> get studentId => $composableBuilder(
+    column: $table.studentId,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -1288,17 +1244,14 @@ class $$AttendanceLogsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get studentId =>
-      $composableBuilder(column: $table.studentId, builder: (column) => column);
-
-  GeneratedColumn<String> get date =>
+  GeneratedColumn<DateTime> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
 
-  GeneratedColumn<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => column);
+  GeneratedColumn<bool> get present =>
+      $composableBuilder(column: $table.present, builder: (column) => column);
 
-  GeneratedColumn<bool> get isSynced =>
-      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+  GeneratedColumn<int> get studentId =>
+      $composableBuilder(column: $table.studentId, builder: (column) => column);
 }
 
 class $$AttendanceLogsTableTableManager
@@ -1335,30 +1288,26 @@ class $$AttendanceLogsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> studentId = const Value.absent(),
-                Value<String> date = const Value.absent(),
-                Value<String> status = const Value.absent(),
-                Value<bool> isSynced = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<bool> present = const Value.absent(),
+                Value<int> studentId = const Value.absent(),
               }) => AttendanceLogsCompanion(
                 id: id,
-                studentId: studentId,
                 date: date,
-                status: status,
-                isSynced: isSynced,
+                present: present,
+                studentId: studentId,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String studentId,
-                required String date,
-                required String status,
-                Value<bool> isSynced = const Value.absent(),
+                required DateTime date,
+                required bool present,
+                required int studentId,
               }) => AttendanceLogsCompanion.insert(
                 id: id,
-                studentId: studentId,
                 date: date,
-                status: status,
-                isSynced: isSynced,
+                present: present,
+                studentId: studentId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -1388,15 +1337,15 @@ typedef $$AttendanceLogsTableProcessedTableManager =
 typedef $$SyncQueueTableCreateCompanionBuilder =
     SyncQueueCompanion Function({
       Value<int> id,
-      required String action,
-      required String payload,
-      Value<DateTime> createdAt,
+      required String entityType,
+      required int entityId,
+      required DateTime createdAt,
     });
 typedef $$SyncQueueTableUpdateCompanionBuilder =
     SyncQueueCompanion Function({
       Value<int> id,
-      Value<String> action,
-      Value<String> payload,
+      Value<String> entityType,
+      Value<int> entityId,
       Value<DateTime> createdAt,
     });
 
@@ -1414,13 +1363,13 @@ class $$SyncQueueTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get action => $composableBuilder(
-    column: $table.action,
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get payload => $composableBuilder(
-    column: $table.payload,
+  ColumnFilters<int> get entityId => $composableBuilder(
+    column: $table.entityId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1444,13 +1393,13 @@ class $$SyncQueueTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get action => $composableBuilder(
-    column: $table.action,
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get payload => $composableBuilder(
-    column: $table.payload,
+  ColumnOrderings<int> get entityId => $composableBuilder(
+    column: $table.entityId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -1472,11 +1421,13 @@ class $$SyncQueueTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get action =>
-      $composableBuilder(column: $table.action, builder: (column) => column);
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get payload =>
-      $composableBuilder(column: $table.payload, builder: (column) => column);
+  GeneratedColumn<int> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1514,25 +1465,25 @@ class $$SyncQueueTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> action = const Value.absent(),
-                Value<String> payload = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<int> entityId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => SyncQueueCompanion(
                 id: id,
-                action: action,
-                payload: payload,
+                entityType: entityType,
+                entityId: entityId,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String action,
-                required String payload,
-                Value<DateTime> createdAt = const Value.absent(),
+                required String entityType,
+                required int entityId,
+                required DateTime createdAt,
               }) => SyncQueueCompanion.insert(
                 id: id,
-                action: action,
-                payload: payload,
+                entityType: entityType,
+                entityId: entityId,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
