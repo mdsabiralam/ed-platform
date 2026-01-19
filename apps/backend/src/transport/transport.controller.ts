@@ -14,4 +14,9 @@ export class TransportController {
   async logGps(@Param('id') tripId: string, @Body() body: { latitude: number; longitude: number }) {
     return this.transportService.logGps(tripId, body.latitude, body.longitude);
   }
+
+  @Post('trip/:id/passenger')
+  async boardPassenger(@Param('id') tripId: string, @Body() body: { studentId: string }) {
+    return this.transportService.boardPassenger(tripId, body.studentId);
+  }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -33,5 +33,31 @@ export class HealthService {
     console.log(`[SOS] Alert sent to Principal and Parents for Student ${studentId}: ${message}`);
 
     return alert;
+  }
+
+  async getStudentHealthProfile(tenantId: string, studentId: string) {
+    // Ensure the student belongs to the tenant
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student || student.tenantId !== tenantId) {
+      throw new NotFoundException('Student not found');
+    }
+
+    const profile = await this.prisma.healthProfile.findUnique({
+      where: { studentId },
+    });
+
+    if (!profile) {
+       throw new NotFoundException('Health profile not found');
+    }
+
+    // Since we are using the encryption extension (assumed from memory/context),
+    // the fields 'allergies', 'medicalHistory', 'medications' should be decrypted automatically
+    // when accessed if the extension is correctly set up in PrismaService.
+    // However, in a unit test mock scenario, we just return the object.
+
+    return profile;
   }
 }

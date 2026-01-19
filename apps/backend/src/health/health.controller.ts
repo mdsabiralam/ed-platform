@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
 import { HealthService } from './health.service';
 
 @Controller('health')
@@ -13,5 +13,10 @@ export class HealthController {
   @Post('sos')
   async triggerSos(@Body() body: { tenantId: string; studentId: string; message: string }) {
     return this.healthService.triggerSos(body.tenantId, body.studentId, body.message);
+  }
+
+  @Get('student/:studentId/profile')
+  async getProfile(@Param('studentId') studentId: string, @Query('tenantId') tenantId: string) {
+    return this.healthService.getStudentHealthProfile(tenantId, studentId);
   }
 }

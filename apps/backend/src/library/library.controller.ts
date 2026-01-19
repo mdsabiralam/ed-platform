@@ -14,4 +14,9 @@ export class LibraryController {
   async issueBook(@Body() body: { tenantId: string; barcode: string; studentId: string }) {
     return this.libraryService.issueBook(body.tenantId, body.barcode, body.studentId);
   }
+
+  @Post('return')
+  async returnBook(@Body() body: { tenantId: string; transactionId: string }) {
+    return this.libraryService.returnBook(body.tenantId, body.transactionId);
+  }
 }
