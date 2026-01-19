@@ -15,7 +15,7 @@ import 'package:mobile/features/principal/screens/dashboard_screen.dart';
 import 'package:mobile/features/staff/screens/staff_list_screen.dart';
 import 'package:mobile/features/staff/screens/add_staff_screen.dart';
 import 'package:mobile/features/staff/screens/staff_profile_screen.dart';
-// Student & Admission
+// Student & Admission (Admin)
 import 'package:mobile/features/student_management/screens/student_list_screen.dart';
 import 'package:mobile/features/student_management/screens/student_profile_screen.dart';
 import 'package:mobile/features/admission/screens/admission_form_screen.dart';
@@ -30,6 +30,7 @@ import 'package:mobile/features/academic/screens/marks_entry_screen.dart';
 // Finance
 import 'package:mobile/features/finance/screens/fee_management_screen.dart';
 import 'package:mobile/features/finance/screens/fee_dashboard_screen.dart';
+import 'package:mobile/features/finance/screens/fee_payment_screen.dart'; // Student Payment
 // Transport
 import 'package:mobile/features/transport/screens/transport_dashboard_screen.dart';
 import 'package:mobile/features/transport/screens/vehicle_list_screen.dart';
@@ -42,6 +43,12 @@ import 'package:mobile/features/teacher/screens/attendance_history_screen.dart';
 import 'package:mobile/features/hr/screens/leave_application_screen.dart';
 // Student View
 import 'package:mobile/features/student/screens/report_card_screen.dart';
+import 'package:mobile/features/student/screens/student_dashboard_screen.dart';
+import 'package:mobile/features/student/screens/digital_diary_screen.dart';
+import 'package:mobile/features/student/screens/student_routine_screen.dart';
+// Library & AI
+import 'package:mobile/features/library/screens/library_search_screen.dart';
+import 'package:mobile/features/ai/screens/ai_doubt_solver_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/super-admin', // Default initial
@@ -163,7 +170,20 @@ final GoRouter appRouter = GoRouter(
            builder: (context, state) {
              return const AdmissionFormScreen();
            },
-        )
+        ),
+        // Student Portal Routes (Nested under /student for clarity in routing structure, though functionally separate)
+        GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const StudentDashboardScreen(),
+        ),
+        GoRoute(
+          path: 'diary',
+          builder: (context, state) => const DigitalDiaryScreen(),
+        ),
+        GoRoute(
+          path: 'routine',
+          builder: (context, state) => const StudentRoutineScreen(),
+        ),
       ],
     ),
     // Academic Routes (Admin View)
@@ -217,6 +237,10 @@ final GoRouter appRouter = GoRouter(
           path: 'collect',
           builder: (context, state) => const FeeManagementScreen(),
         ),
+        GoRoute(
+          path: 'pay',
+          builder: (context, state) => const FeePaymentScreen(),
+        ),
       ],
     ),
     // Transport Routes
@@ -264,15 +288,25 @@ final GoRouter appRouter = GoRouter(
         ),
       ],
     ),
-    // Student View Routes
+    // Student View Routes (Portal)
     GoRoute(
-      path: '/portal', // Differentiate from /student (Admin)
+      path: '/portal',
       routes: [
         GoRoute(
           path: 'report-card',
           builder: (context, state) => const ReportCardScreen(),
         ),
       ],
+    ),
+    // Library
+    GoRoute(
+      path: '/library/search',
+      builder: (context, state) => const LibrarySearchScreen(),
+    ),
+    // AI
+    GoRoute(
+      path: '/ai/chat',
+      builder: (context, state) => const AiDoubtSolverScreen(),
     ),
   ],
 );
