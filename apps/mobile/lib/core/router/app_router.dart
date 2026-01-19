@@ -56,6 +56,10 @@ import 'package:mobile/features/parent/screens/parent_dashboard_screen.dart';
 import 'package:mobile/features/parent/screens/fee_history_screen.dart';
 import 'package:mobile/features/parent/screens/vehicle_tracking_screen.dart';
 import 'package:mobile/features/parent/screens/student_leave_screen.dart';
+// Health
+import 'package:mobile/features/health/screens/health_dashboard_screen.dart';
+import 'package:mobile/features/health/screens/opd_entry_screen.dart';
+import 'package:mobile/features/health/screens/health_vitals_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/super-admin', // Default initial
@@ -350,6 +354,25 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'leave',
           builder: (context, state) => const StudentLeaveScreen(),
+        ),
+      ],
+    ),
+    // Health Routes
+    GoRoute(
+      path: '/health',
+      builder: (context, state) => const HealthDashboardScreen(),
+      routes: [
+        GoRoute(
+          path: 'dashboard',
+          builder: (context, state) => const HealthDashboardScreen(),
+        ),
+        GoRoute(
+          path: 'opd',
+          builder: (context, state) => const OpdEntryScreen(),
+        ),
+        GoRoute(
+          path: 'vitals',
+          builder: (context, state) => const HealthVitalsScreen(),
         ),
       ],
     ),
