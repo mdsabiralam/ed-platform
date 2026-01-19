@@ -293,6 +293,7 @@ model Section {
   
   class     Class    @relation(fields: [classId], references: [id])
   students  Student[]
+  homeworks Homework[]
 
   @@map("sections")
 }
@@ -503,6 +504,20 @@ model StudentRemark {
   teacher   User     @relation(fields: [teacherId], references: [id])
 
   @@map("student_remarks")
+}
+
+model Homework {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  sectionId   String   @map("section_id")
+  deadline    DateTime
+  attachments Json?    // Array of { type: 'PDF'|'YOUTUBE', url: string }
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  section     Section  @relation(fields: [sectionId], references: [id])
+
+  @@map("homeworks")
 }
 
 // 2.C.03 Roles Enum
