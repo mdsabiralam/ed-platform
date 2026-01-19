@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseEntity } from '../../common/entities/base.entity';
+import { BaseEntity } from '../src/prisma/base.entity';
 
 export class Tenant extends BaseEntity {
   @ApiProperty()

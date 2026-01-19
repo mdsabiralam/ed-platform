@@ -39,6 +39,11 @@ model Tenant {
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
 
+  // New relations for workflows
+  transferCertificates TransferCertificate[]
+  routineEntries       RoutineEntry[]
+  feeReceipts          FeeReceipt[]
+
   @@map("tenants")
 }
 
@@ -278,6 +283,7 @@ model Class {
   
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   sections  Section[]
+  routineEntries RoutineEntry[]
 
   @@map("classes")
 }
@@ -316,6 +322,8 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  transferCertificate TransferCertificate?
+  feeReceipts       FeeReceipt[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -358,6 +366,10 @@ model StaffProfile {
   
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   user         User     @relation(fields: [userId], references: [id])
+
+  routineEntries RoutineEntry[]
+  originalSubstitutions RoutineSubstitution[] @relation("OriginalTeacher")
+  substituteSubstitutions RoutineSubstitution[] @relation("SubstituteTeacher")
 
   @@map("staff_profiles")
 }
@@ -444,6 +456,74 @@ model TableAuditLog {
 
   @@map("table_audit_logs")
 }
+
+// Workflow 1: Transfer Certificate
+model TransferCertificate {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  studentId   String   @unique @map("student_id")
+  status      String   @default("PENDING") // PENDING, APPROVED
+  certificateUrl String? @map("certificate_url")
+  issuedAt    DateTime? @map("issued_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@map("transfer_certificates")
+}
+
+// Workflow 2: Routine and Substitution
+model RoutineEntry {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  classId     String   @map("class_id")
+  teacherId   String   @map("teacher_id")
+  subject     String   // Simplified subject for now
+  dayOfWeek   String   // MONDAY, TUESDAY...
+  startTime   String   // "09:00"
+  endTime     String   // "10:00"
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  class       Class    @relation(fields: [classId], references: [id])
+  teacher     StaffProfile @relation(fields: [teacherId], references: [id])
+
+  substitutions RoutineSubstitution[]
+
+  @@map("routine_entries")
+}
+
+model RoutineSubstitution {
+  id              String   @id @default(uuid())
+  routineEntryId  String   @map("routine_entry_id")
+  originalTeacherId String @map("original_teacher_id")
+  substituteTeacherId String @map("substitute_teacher_id")
+  date            DateTime
+  status          String   @default("ASSIGNED") // ASSIGNED, COMPLETED
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  routineEntry    RoutineEntry @relation(fields: [routineEntryId], references: [id])
+  originalTeacher StaffProfile @relation("OriginalTeacher", fields: [originalTeacherId], references: [id])
+  substituteTeacher StaffProfile @relation("SubstituteTeacher", fields: [substituteTeacherId], references: [id])
+
+  @@map("routine_substitutions")
+}
+
+// Workflow 3: Fee Receipts
+model FeeReceipt {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("school_id")
+  studentId   String   @map("student_id")
+  amount      Float
+  paymentDate DateTime @default(now()) @map("payment_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@map("fee_receipts")
+}
+
 
 // 2.C.03 Roles Enum
 enum UserRole {
