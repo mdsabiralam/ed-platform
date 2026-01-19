@@ -23,6 +23,10 @@ import 'package:mobile/features/admission/screens/admission_form_screen.dart';
 import 'package:mobile/features/academic/screens/academic_setup_screen.dart';
 import 'package:mobile/features/academic/screens/session_manager_screen.dart';
 import 'package:mobile/features/academic/screens/timetable_screen.dart';
+import 'package:mobile/features/academic/screens/homework_screen.dart';
+import 'package:mobile/features/academic/screens/create_homework_screen.dart';
+import 'package:mobile/features/academic/screens/homework_status_screen.dart';
+import 'package:mobile/features/academic/screens/marks_entry_screen.dart';
 // Finance
 import 'package:mobile/features/finance/screens/fee_management_screen.dart';
 import 'package:mobile/features/finance/screens/fee_dashboard_screen.dart';
@@ -30,9 +34,17 @@ import 'package:mobile/features/finance/screens/fee_dashboard_screen.dart';
 import 'package:mobile/features/transport/screens/transport_dashboard_screen.dart';
 import 'package:mobile/features/transport/screens/vehicle_list_screen.dart';
 import 'package:mobile/features/transport/screens/route_management_screen.dart';
+// Teacher
+import 'package:mobile/features/teacher/screens/teacher_dashboard.dart';
+import 'package:mobile/features/teacher/screens/attendance_screen.dart';
+import 'package:mobile/features/teacher/screens/attendance_history_screen.dart';
+// HR
+import 'package:mobile/features/hr/screens/leave_application_screen.dart';
+// Student View
+import 'package:mobile/features/student/screens/report_card_screen.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/super-admin', // Or /principal/dashboard based on role in real app
+  initialLocation: '/super-admin', // Default initial
   routes: [
     GoRoute(
       path: '/',
@@ -97,7 +109,7 @@ final GoRouter appRouter = GoRouter(
         ),
       ],
     ),
-    // Principal / School Admin Routes
+    // Principal Routes
     GoRoute(
       path: '/principal',
       builder: (context, state) => const PrincipalDashboardScreen(),
@@ -106,12 +118,9 @@ final GoRouter appRouter = GoRouter(
           path: 'dashboard',
           builder: (context, state) => const PrincipalDashboardScreen(),
         ),
-        // For now, putting staff/student routes under root or a shared shell would be better,
-        // but sticking to requested paths.
-        // Assuming /staff/... and /student/... are top level or accessible.
       ],
     ),
-    // Staff Routes
+    // Staff Routes (Admin View)
     GoRoute(
       path: '/staff',
       builder: (context, state) => const StaffListScreen(),
@@ -129,13 +138,13 @@ final GoRouter appRouter = GoRouter(
         ),
       ],
     ),
-    // Student Routes
+    // Student Routes (Admin View)
     GoRoute(
       path: '/student',
       builder: (context, state) => const StudentListScreen(),
       routes: [
         GoRoute(
-           path: 'list', // /student/list
+           path: 'list',
            builder: (context, state) => const StudentListScreen(),
         ),
         GoRoute(
@@ -152,13 +161,12 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'edit/:id',
            builder: (context, state) {
-             // Reusing Admission form for edit in this plan
              return const AdmissionFormScreen();
            },
         )
       ],
     ),
-    // Academic Routes
+    // Academic Routes (Admin View)
     GoRoute(
       path: '/academic',
       builder: (context, state) => const AcademicSetupScreen(),
@@ -174,6 +182,25 @@ final GoRouter appRouter = GoRouter(
          GoRoute(
           path: 'timetable',
           builder: (context, state) => const TimetableScreen(),
+        ),
+        // Homework Management (Admin/Teacher Shared)
+        GoRoute(
+          path: 'homework',
+          builder: (context, state) => const HomeworkManagementScreen(),
+          routes: [
+            GoRoute(
+              path: 'create',
+              builder: (context, state) => const CreateHomeworkScreen(),
+            ),
+            GoRoute(
+              path: 'status/:id',
+              builder: (context, state) => HomeworkStatusScreen(homeworkId: state.pathParameters['id']!),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: 'marks/entry',
+          builder: (context, state) => const MarksEntryScreen(),
         ),
       ],
     ),
@@ -208,6 +235,42 @@ final GoRouter appRouter = GoRouter(
          GoRoute(
           path: 'routes',
           builder: (context, state) => const RouteManagementScreen(),
+        ),
+      ],
+    ),
+    // Teacher Routes
+    GoRoute(
+      path: '/teacher',
+      builder: (context, state) => const TeacherDashboardScreen(),
+      routes: [
+        GoRoute(
+          path: 'attendance/take',
+          builder: (context, state) => const AttendanceScreen(),
+        ),
+        GoRoute(
+          path: 'attendance/history',
+          builder: (context, state) => const AttendanceHistoryScreen(),
+        ),
+      ],
+    ),
+    // HR Routes
+    GoRoute(
+      path: '/hr',
+      builder: (context, state) => const LeaveApplicationScreen(),
+      routes: [
+        GoRoute(
+          path: 'leave',
+          builder: (context, state) => const LeaveApplicationScreen(),
+        ),
+      ],
+    ),
+    // Student View Routes
+    GoRoute(
+      path: '/portal', // Differentiate from /student (Admin)
+      routes: [
+        GoRoute(
+          path: 'report-card',
+          builder: (context, state) => const ReportCardScreen(),
         ),
       ],
     ),
