@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  vehicles           Vehicle[]
 
   @@map("tenants")
 }
@@ -316,6 +317,7 @@ model Student {
   
   guardians         ParentStudentMapping[]
   healthProfile     HealthProfile?
+  fees              StudentFee[]
 
   @@unique([admissionNo, tenantId]) // 2.F.09 Unique constraint
   @@map("students")
@@ -463,4 +465,49 @@ enum UserRole {
   SHOP_KEEPER
   MCM
   SUPPLIER
+}
+// 2.J.01 Student Fees
+model StudentFee {
+  id          String   @id @default(uuid())
+  studentId   String   @map("student_id")
+  title       String   // e.g., "Term 1 Fee"
+  amount      Float
+  dueDate     DateTime @map("due_date")
+  status      String   @default("PENDING") // PENDING, PAID, OVERDUE
+  paymentDate DateTime? @map("payment_date")
+  invoiceUrl  String?  @map("invoice_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@map("student_fees")
+}
+
+// 2.K.01 Transport
+model Vehicle {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  number    String   // License Plate
+  driverName String? @map("driver_name")
+  contactNumber String? @map("contact_number")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  locations VehicleLocation[]
+
+  @@map("vehicles")
+}
+
+model VehicleLocation {
+  id        String   @id @default(uuid())
+  vehicleId String   @map("vehicle_id")
+  latitude  Float
+  longitude Float
+  timestamp DateTime @default(now())
+
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  @@map("vehicle_locations")
 }
