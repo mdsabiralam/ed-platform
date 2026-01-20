@@ -6,12 +6,23 @@ import 'features/auth/screens/common_screens.dart';
 import 'features/teacher/screens/teacher_dashboard.dart';
 import 'features/teacher/screens/attendance_screen.dart';
 import 'features/teacher/screens/homework_screen.dart';
+import 'features/teacher/screens/teacher_profile_screen.dart';
 import 'features/teacher/screens/exam_screen.dart';
 import 'features/teacher/screens/leave_screen.dart';
 import 'features/student/screens/student_dashboard.dart';
+import 'features/student/screens/diary_screen.dart';
+import 'features/student/screens/routine_screen.dart';
+import 'features/student/screens/result_screen.dart';
+import 'features/student/screens/library_screen.dart';
+import 'features/student/screens/fee_payment_screen.dart';
 import 'features/parent/screens/parent_dashboard.dart';
+import 'features/parent/screens/child_switcher_screen.dart';
+import 'features/parent/screens/fee_history_screen.dart';
+import 'features/parent/screens/payment_gateway_screen.dart';
 import 'features/driver/screens/driver_dashboard.dart';
 import 'features/admin/screens/admin_dashboard.dart';
+import 'features/admin/screens/staff_list_screen.dart';
+import 'features/admin/screens/student_list_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,21 +33,15 @@ final GoRouter _router = GoRouter(
   initialLocation: '/',
   routes: [
     // Common Routes
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashScreen(),
-    ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
       path: '/forgot-password',
       builder: (context, state) => const ForgotPasswordScreen(),
     ),
     GoRoute(
       path: '/profile-select',
-       builder: (context, state) => const ProfileSelectionScreen(),
+      builder: (context, state) => const ProfileSelectionScreen(),
     ),
     GoRoute(
       path: '/settings',
@@ -52,17 +57,22 @@ final GoRouter _router = GoRouter(
       path: '/teacher-dashboard',
       builder: (context, state) => const TeacherDashboardScreen(),
     ),
-     GoRoute(
+    GoRoute(
       path: '/teacher',
       builder: (context, state) => const TeacherDashboardScreen(),
       routes: [
+        GoRoute(
+          path: 'profile',
+          builder: (context, state) => const TeacherProfileScreen(),
+        ),
         GoRoute(
           path: 'attendance',
           builder: (context, state) => const TeacherAttendanceScreen(),
         ),
         GoRoute(
           path: 'homework',
-          builder: (context, state) => const TeacherHomeworkScreen(), // Placeholder
+          builder: (context, state) =>
+              const TeacherHomeworkScreen(), // Placeholder
         ),
         GoRoute(
           path: 'exam',
@@ -70,40 +80,45 @@ final GoRouter _router = GoRouter(
         ),
         GoRoute(
           path: 'leave',
-          builder: (context, state) => const TeacherLeaveScreen(), // Placeholder
+          builder: (context, state) =>
+              const TeacherLeaveScreen(), // Placeholder
         ),
       ],
     ),
 
-
     // Student Routes
-     GoRoute(
+    GoRoute(
       path: '/student-dashboard',
       builder: (context, state) => const StudentDashboardScreen(),
     ),
     GoRoute(
       path: '/student',
-       builder: (context, state) => const StudentDashboardScreen(),
-       routes: [
+      builder: (context, state) => const StudentDashboardScreen(),
+      routes: [
         GoRoute(
           path: 'diary',
-          builder: (context, state) => const StudentDiaryScreen(), // Placeholder
+          builder: (context, state) =>
+              const StudentDiaryScreen(), // Placeholder
         ),
         GoRoute(
           path: 'routine',
-          builder: (context, state) => const StudentRoutineScreen(), // Placeholder
+          builder: (context, state) =>
+              const StudentRoutineScreen(), // Placeholder
         ),
         GoRoute(
           path: 'result',
-          builder: (context, state) => const StudentResultScreen(), // Placeholder
+          builder: (context, state) =>
+              const StudentResultScreen(), // Placeholder
         ),
         GoRoute(
           path: 'library',
-          builder: (context, state) => const StudentLibraryScreen(), // Placeholder
+          builder: (context, state) =>
+              const StudentLibraryScreen(), // Placeholder
         ),
         GoRoute(
           path: 'fee-payment',
-          builder: (context, state) => const StudentFeePaymentScreen(), // Placeholder
+          builder: (context, state) =>
+              const StudentFeePaymentScreen(), // Placeholder
         ),
       ],
     ),
@@ -113,51 +128,58 @@ final GoRouter _router = GoRouter(
       path: '/parent-dashboard',
       builder: (context, state) => const ParentDashboardScreen(),
     ),
-     GoRoute(
+    GoRoute(
       path: '/parent',
-       builder: (context, state) => const ParentDashboardScreen(),
+      builder: (context, state) => const ParentDashboardScreen(),
       routes: [
         GoRoute(
           path: 'child-switcher',
-          builder: (context, state) => const ParentChildSwitcherScreen(), // Placeholder
+          builder: (context, state) =>
+              const ParentChildSwitcherScreen(), // Placeholder
         ),
         GoRoute(
           path: 'fee-history',
-          builder: (context, state) => const ParentFeeHistoryScreen(), // Placeholder
+          builder: (context, state) =>
+              const ParentFeeHistoryScreen(), // Placeholder
         ),
         GoRoute(
           path: 'vehicle-tracking',
-          builder: (context, state) => const ParentVehicleTrackingScreen(), // Placeholder
+          builder: (context, state) =>
+              const ParentVehicleTrackingScreen(), // Placeholder
+        ),
+        GoRoute(
+          path: 'payment-gateway',
+          builder: (context, state) => const ParentPaymentGatewayScreen(),
         ),
       ],
     ),
-
 
     // Admin Routes
     GoRoute(
       path: '/admin-dashboard',
       builder: (context, state) => const AdminDashboardScreen(),
     ),
-     GoRoute(
+    GoRoute(
       path: '/admin',
-       builder: (context, state) => const AdminDashboardScreen(),
+      builder: (context, state) => const AdminDashboardScreen(),
       routes: [
         GoRoute(
           path: 'staff-list',
-          builder: (context, state) => const AdminStaffListScreen(), // Placeholder
+          builder: (context, state) =>
+              const AdminStaffListScreen(), // Placeholder
         ),
         GoRoute(
           path: 'student-list',
-          builder: (context, state) => const AdminStudentListScreen(), // Placeholder
+          builder: (context, state) =>
+              const AdminStudentListScreen(), // Placeholder
         ),
       ],
     ),
 
-
     // Driver Routes
     GoRoute(
-        path: '/driver-dashboard',
-        builder: (context, state) => const DriverTripDashboardScreen(),
+      path: '/driver-dashboard',
+      builder: (context, state) => const DriverTripDashboardScreen(),
     ),
     GoRoute(
       path: '/driver',
@@ -165,40 +187,46 @@ final GoRouter _router = GoRouter(
       routes: [
         GoRoute(
           path: 'passenger-list',
-          builder: (context, state) => const DriverPassengerListScreen(), // Placeholder
+          builder: (context, state) =>
+              const DriverPassengerListScreen(), // Placeholder
         ),
       ],
     ),
 
-
     // Librarian Routes
     GoRoute(
-        path: '/library-dashboard',
-        builder: (context, state) => const LibrarianBookListScreen(), // Placeholder
+      path: '/library-dashboard',
+      builder: (context, state) =>
+          const LibrarianBookListScreen(), // Placeholder
     ),
     GoRoute(
       path: '/library',
-      builder: (context, state) => const LibrarianBookListScreen(), // Placeholder
+      builder: (context, state) =>
+          const LibrarianBookListScreen(), // Placeholder
       routes: [
         GoRoute(
           path: 'issue-return',
-          builder: (context, state) => const LibrarianIssueReturnScreen(), // Placeholder
+          builder: (context, state) =>
+              const LibrarianIssueReturnScreen(), // Placeholder
         ),
       ],
     ),
 
     // Nurse Routes
-     GoRoute(
-        path: '/health-dashboard',
-        builder: (context, state) => const NurseHealthDashboardScreen(), // Placeholder
+    GoRoute(
+      path: '/health-dashboard',
+      builder: (context, state) =>
+          const NurseHealthDashboardScreen(), // Placeholder
     ),
     GoRoute(
       path: '/health',
-      builder: (context, state) => const NurseHealthDashboardScreen(), // Placeholder
+      builder: (context, state) =>
+          const NurseHealthDashboardScreen(), // Placeholder
       routes: [
         GoRoute(
           path: 'opd-entry',
-          builder: (context, state) => const NurseOpdEntryScreen(), // Placeholder
+          builder: (context, state) =>
+              const NurseOpdEntryScreen(), // Placeholder
         ),
       ],
     ),
@@ -221,119 +249,47 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Placeholder Widgets that are not yet created
-
-// Teacher
-class TeacherHomeworkScreen extends StatelessWidget {
-  const TeacherHomeworkScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Teacher Homework')));
-}
-
-class TeacherExamScreen extends StatelessWidget {
-  const TeacherExamScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Teacher Exam')));
-}
-
-class TeacherLeaveScreen extends StatelessWidget {
-  const TeacherLeaveScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Teacher Leave')));
-}
-
-// Student
-class StudentDiaryScreen extends StatelessWidget {
-  const StudentDiaryScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Student Diary')));
-}
-
-class StudentRoutineScreen extends StatelessWidget {
-  const StudentRoutineScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Student Routine')));
-}
-
-class StudentResultScreen extends StatelessWidget {
-  const StudentResultScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Student Result')));
-}
-
-class StudentLibraryScreen extends StatelessWidget {
-  const StudentLibraryScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Student Library')));
-}
-
-class StudentFeePaymentScreen extends StatelessWidget {
-  const StudentFeePaymentScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Student Fee Payment')));
-}
-
-// Parent
-class ParentChildSwitcherScreen extends StatelessWidget {
-  const ParentChildSwitcherScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Parent Child Switcher')));
-}
-
-class ParentFeeHistoryScreen extends StatelessWidget {
-  const ParentFeeHistoryScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Parent Fee History')));
-}
-
-class ParentVehicleTrackingScreen extends StatelessWidget {
-  const ParentVehicleTrackingScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Parent Vehicle Tracking')));
-}
-
-// Admin
-class AdminStaffListScreen extends StatelessWidget {
-  const AdminStaffListScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Admin Staff List')));
-}
-
-class AdminStudentListScreen extends StatelessWidget {
-  const AdminStudentListScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Admin Student List')));
-}
-
 // Driver
 class DriverPassengerListScreen extends StatelessWidget {
   const DriverPassengerListScreen({super.key});
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Driver Passenger List')));
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('Driver Passenger List')));
 }
 
 // Librarian
 class LibrarianBookListScreen extends StatelessWidget {
   const LibrarianBookListScreen({super.key});
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Librarian Book List')));
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('Librarian Book List')));
 }
 
 class LibrarianIssueReturnScreen extends StatelessWidget {
   const LibrarianIssueReturnScreen({super.key});
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Librarian Issue/Return')));
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('Librarian Issue/Return')));
 }
 
 // Nurse
 class NurseHealthDashboardScreen extends StatelessWidget {
   const NurseHealthDashboardScreen({super.key});
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Nurse Health Dashboard')));
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('Nurse Health Dashboard')));
 }
 
 class NurseOpdEntryScreen extends StatelessWidget {
   const NurseOpdEntryScreen({super.key});
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text('Nurse OPD Entry')));
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('Nurse OPD Entry')));
+}
+
+class ParentVehicleTrackingScreen extends StatelessWidget {
+  const ParentVehicleTrackingScreen({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('Parent Vehicle Tracking')));
 }

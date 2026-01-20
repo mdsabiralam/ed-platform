@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TeacherDashboardScreen extends StatelessWidget {
   const TeacherDashboardScreen({super.key});
@@ -10,10 +10,18 @@ class TeacherDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> menuItems = [
-      {'icon': Icons.assignment_ind, 'title': 'Attendance', 'route': '/teacher/attendance'},
+      {
+        'icon': Icons.assignment_ind,
+        'title': 'Attendance',
+        'route': '/teacher/attendance',
+      },
       {'icon': Icons.book, 'title': 'Homework', 'route': '/teacher/homework'},
       {'icon': Icons.grading, 'title': 'Exam', 'route': '/teacher/exam'},
-      {'icon': Icons.time_to_leave, 'title': 'Leave', 'route': '/teacher/leave'},
+      {
+        'icon': Icons.time_to_leave,
+        'title': 'Leave',
+        'route': '/teacher/leave',
+      },
     ];
 
     return Scaffold(
@@ -21,6 +29,77 @@ class TeacherDashboardScreen extends StatelessWidget {
         title: const Text('Teacher Dashboard'),
         backgroundColor: Colors.teal,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              final bool? confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true && context.mounted) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+                if (context.mounted) context.go('/login');
+              }
+            },
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Colors.teal),
+              accountName: Text(
+                'Teacher Name',
+                style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+              ),
+              accountEmail: Text(
+                'teacher@school.com',
+                style: GoogleFonts.lato(),
+              ),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 40, color: Colors.teal),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: Text('Profile', style: GoogleFonts.lato()),
+              onTap: () {
+                Navigator.pop(context); // ড্রয়ার বন্ধ করা
+                context.go('/teacher/profile');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: Text('Settings', style: GoogleFonts.lato()),
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/settings');
+              },
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -42,10 +121,7 @@ class TeacherDashboardScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Next Class: Math (10:00 AM)',
-                  style: GoogleFonts.lato(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: GoogleFonts.lato(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -88,7 +164,10 @@ class TeacherDashboardScreen extends StatelessWidget {
               Text(
                 item['title'],
                 textAlign: TextAlign.center,
-                style: GoogleFonts.lato(fontSize: 16, fontWeight: FontWeight.w600),
+                style: GoogleFonts.lato(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
