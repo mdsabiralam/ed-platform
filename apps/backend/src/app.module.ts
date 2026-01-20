@@ -7,7 +7,9 @@ import { SaasModule } from './saas/saas.module';
 import { LoggerMiddleware } from './shared/logger.middleware';
 import { SubscriptionMiddleware } from './shared/subscription.middleware';
 import { TenantMiddleware } from './common/middleware/tenant.middleware'; // Path check
+import { BlocklistMiddleware } from './common/middleware/blocklist.middleware';
 import { TenantModule } from './tenants/tenant.module';
+import { EventsModule } from './events/events.module'; // নতুন ইভেন্ট মডিউল ইম্পোর্ট
 
 @Module({
   imports: [
@@ -15,6 +17,7 @@ import { TenantModule } from './tenants/tenant.module';
     PrismaModule,
     SaasModule,
     TenantModule,
+    EventsModule, // মডিউল লিস্টে ইভেন্ট মডিউল যোগ করা হয়েছে
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -22,7 +25,7 @@ import { TenantModule } from './tenants/tenant.module';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(TenantMiddleware, LoggerMiddleware, SubscriptionMiddleware)
+      .apply(BlocklistMiddleware, TenantMiddleware, LoggerMiddleware, SubscriptionMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
