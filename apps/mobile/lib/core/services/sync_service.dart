@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:drift/drift.dart';
 import 'package:mobile/core/api/api_client.dart';
 import 'package:mobile/core/database/app_database.dart';
 import 'package:mobile/core/services/connectivity_service.dart';
@@ -39,7 +40,7 @@ class SyncService {
     for (final student in unsyncedStudents) {
       try {
         // সার্ভারে ডাটা পাঠানো
-        await apiClient.post('/students', {
+        await apiClient.post('/students', data: {
           'name': student.name,
           'rollNo': student.rollNo,
           'classId': student.classId,

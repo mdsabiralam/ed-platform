@@ -1,0 +1,143 @@
+import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
+import { GenerateTimetableDto } from './dto/generate-timetable.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { DayOfWeek } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
+@Injectable()
+export class TimetableService {
+  private readonly logger = new Logger(TimetableService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async findFiltered(filters: {
+    classId?: string;
+    teacherId?: string;
+    subjectId?: string;
+    roomId?: string;
+    day?: string;
+    schoolId?: string;
+  }) {
+    const { classId, teacherId, subjectId, roomId, day, schoolId } = filters;
+
+    const where: any = {};
+    if (schoolId) where.schoolId = schoolId;
+    if (classId) where.classId = classId;
+    if (teacherId) where.teacherId = teacherId;
+    if (subjectId) where.subjectId = subjectId;
+    if (roomId) where.roomId = roomId;
+    if (day) where.dayOfWeek = day;
+
+    const entries = await this.prisma.routineEntry.findMany({
+      where,
+      include: {
+        subject: true,
+        teacher: true,
+        room: true,
+        slot: true,
+        substitutions: {
+          where: { status: 'ASSIGNED' }, // Include only confirmed subs
+          include: { substituteTeacher: true },
+        },
+      },
+      orderBy: [
+        { dayOfWeek: 'asc' },
+        { slot: { startTime: 'asc' } },
+      ],
+    });
+
+    // Grouping logic can be done here or on the frontend.
+    // Given the requirement "Ensure the response groups data by dayOfWeek", I will group it here.
+    const grouped = entries.reduce((acc, entry) => {
+      const day = entry.dayOfWeek;
+      if (!acc[day]) {
+        acc[day] = [];
+      }
+      acc[day].push(entry);
+      return acc;
+    }, {});
+
+    return grouped;
+  }
+
+  async getStudentRoutine(studentId: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: { section: true },
+    });
+
+    if (!student) throw new NotFoundException('Student not found');
+
+    return this.findFiltered({
+      classId: student.section?.classId,
+      schoolId: student.tenantId,
+    });
+  }
+
+  async getTeacherRoutine(teacherId: string) {
+    const teacher = await this.prisma.staffProfile.findUnique({
+      where: { id: teacherId },
+    });
+
+    if (!teacher) throw new NotFoundException('Teacher not found');
+
+    return this.findFiltered({
+      teacherId: teacher.id,
+      schoolId: teacher.tenantId,
+    });
+  }
+
+  validateRequest(dto: GenerateTimetableDto) {
+    this.logger.log('Validating timetable configuration request', dto);
+    return {
+      status: 'valid',
+      message: 'Configuration is ready for processing',
+    };
+  }
+
+  async validateConflict(teacherId: string, classId: string, dayOfWeek: DayOfWeek, slotId: string) {
+    // 1. Check if Teacher is busy
+    const teacherBusy = await this.prisma.routineEntry.findFirst({
+      where: {
+        teacherId,
+        dayOfWeek,
+        slotId,
+      },
+    });
+
+    if (teacherBusy) {
+      throw new ConflictException(`Teacher ${teacherId} is already assigned at this time.`);
+    }
+
+    // 2. Check if Class is busy
+    const classBusy = await this.prisma.routineEntry.findFirst({
+      where: {
+        classId,
+        dayOfWeek,
+        slotId,
+      },
+    });
+
+    if (classBusy) {
+      throw new ConflictException(`Class ${classId} already has a subject at this time.`);
+    }
+
+    return true;
+  }
+
+  async markComplete(routineId: string) {
+    const routine = await this.prisma.routineEntry.findUnique({
+      where: { id: routineId },
+    });
+
+    if (!routine) throw new NotFoundException('Routine not found');
+
+    // Emit event for Syllabus Tracking
+    this.eventEmitter.emit('routine.completed', { routineId });
+
+    return { success: true, message: 'Routine marked as completed' };
+  }
+}
