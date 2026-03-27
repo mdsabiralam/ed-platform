@@ -1,10 +1,45 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+const DEFAULT_PERMISSIONS = {
+  [Role.INSTITUTE_ADMIN]: ['manage_users', 'manage_fees', 'view_reports'],
+  [Role.TEACHER]: ['view_students', 'manage_marks', 'view_routine'],
+};
+
 async function main() {
   console.log('Seeding database...');
+
+  // 3.E.08 Seed Default Permissions
+  console.log('Seeding default permissions...');
+  for (const [role, actions] of Object.entries(DEFAULT_PERMISSIONS)) {
+    const typedRole = role as Role;
+    for (const action of actions) {
+      // Create permission if not exists
+      const permission = await prisma.permission.upsert({
+        where: { action },
+        update: {},
+        create: { action },
+      });
+
+      // Assign permission to role
+      await prisma.rolePermission.upsert({
+        where: {
+          role_permissionId: {
+            role: typedRole,
+            permissionId: permission.id,
+          },
+        },
+        update: {},
+        create: {
+          role: typedRole,
+          permissionId: permission.id,
+        },
+      });
+    }
+  }
+  console.log('Default permissions seeded.');
 
   // 2.B.09 Seed Plans
   const plans = [

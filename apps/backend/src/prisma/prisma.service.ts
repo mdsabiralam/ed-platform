@@ -124,7 +124,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // 2.I.02 Soft Delete Middleware
     this.$use(async (params, next) => {
       // যেসব মডেলে soft delete আছে
-      const softDeleteModels = ['Tenant', 'User', 'Student', 'StaffProfile', 'Class', 'Section', 'AdmissionSession'];
+      const softDeleteModels = ['Institute', 'User', 'Student', 'StaffProfile', 'AcademicClass', 'Section', 'AdmissionSession'];
       
       if (params.model && softDeleteModels.includes(params.model)) {
         if (params.action === 'delete') {
