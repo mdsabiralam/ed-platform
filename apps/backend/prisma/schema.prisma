@@ -38,6 +38,7 @@ model Tenant {
   chartOfAccounts    ChartOfAccount[]
   leaveTypes         LeaveType[]
   kycDocuments       KycDocument[]
+  subjects           Subject[]
 
   @@map("tenants")
 }
@@ -394,6 +395,65 @@ model LeaveType {
 
   @@unique([tenantId, code])
   @@map("leave_types")
+}
+
+// 2.F.11 Subjects
+model Subject {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("school_id")
+  name      String
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  questions Question[]
+
+  @@unique([tenantId, code])
+  @@map("subjects")
+}
+
+// 7.C.01 Question Bank
+model Question {
+  id            String          @id @default(uuid())
+  subjectId     String          @map("subject_id")
+  topicTag      String          @map("topic_tag")
+  type          QuestionType
+  difficulty    DifficultyLevel
+  marks         Int
+  content       String          // Supports HTML
+  imageUrl      String?         @map("image_url")
+  bloomsLevel   BloomsLevel     @map("blooms_level")
+  options       Json?           // For MCQs
+  correctAnswer String          @map("correct_answer")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  subject       Subject         @relation(fields: [subjectId], references: [id])
+
+  @@map("questions")
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+  LONG_ANSWER
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum BloomsLevel {
+  REMEMBER
+  UNDERSTAND
+  APPLY
+  ANALYZE
+  EVALUATE
+  CREATE
 }
 
 // 2.I.01 Health Profiles (Encrypted)
